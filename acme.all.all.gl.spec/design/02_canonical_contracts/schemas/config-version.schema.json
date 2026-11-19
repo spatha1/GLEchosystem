@@ -133,16 +133,16 @@
         "datePolicies": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/datePolicy"
           },
-          "description": "Detailed by US-009"
+          "description": "US-009"
         },
         "calendars": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/calendar"
           },
-          "description": "Detailed by US-009"
+          "description": "US-009"
         },
         "keyProfiles": {
           "type": "array",
@@ -563,6 +563,104 @@
               }
             }
           }
+        }
+      }
+    },
+    "calendar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "timezone"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA time zone"
+        },
+        "weekend": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "MON",
+              "TUE",
+              "WED",
+              "THU",
+              "FRI",
+              "SAT",
+              "SUN"
+            ]
+          }
+        },
+        "holidays": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/date"
+          }
+        }
+      }
+    },
+    "datePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "calendar",
+        "bookDate"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "eventTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          }
+        },
+        "calendar": {
+          "$ref": "#/$defs/code"
+        },
+        "bookDate": {
+          "enum": [
+            "TRANSACTION_DATE",
+            "EFFECTIVE_DATE",
+            "RECORDED_DATE"
+          ]
+        },
+        "businessDayRule": {
+          "enum": [
+            "NONE",
+            "NEXT_BUSINESS_DAY"
+          ]
+        },
+        "fiscalYearStartMonth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12
+        },
+        "advance": {
+          "type": "boolean"
+        },
+        "lookupDate": {
+          "enum": [
+            "TRANSACTION_DATE",
+            "EFFECTIVE_DATE"
+          ]
+        },
+        "closeAfterBusinessDay": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "latePolicy": {
+          "enum": [
+            "NEXT_OPEN_PERIOD",
+            "REJECT"
+          ]
         }
       }
     }

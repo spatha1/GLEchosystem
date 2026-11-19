@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"gl/formula"
 )
@@ -239,19 +238,30 @@ type ConfigRef struct {
 // EventInput is the data of one event for evaluation: measure values as decimal strings in
 // the event currency, and list items (a list item may carry "@currency" when it differs).
 type EventInput struct {
-	EventType     string                         `json:"eventType"`
-	Currency      string                         `json:"currency"`
-	EffectiveDate string                         `json:"effectiveDate,omitempty"` // date for effective-dated lookups (default: open windows only)
-	Measures      map[string]string              `json:"measures"`
-	Dimensions    map[string]string              `json:"dimensions,omitempty"` // canonical values (normalised at intake)
-	Lists         map[string][]map[string]string `json:"lists,omitempty"`
+	EventType       string                         `json:"eventType"`
+	Currency        string                         `json:"currency"`
+	TransactionDate string                         `json:"transactionDate,omitempty"`
+	EffectiveDate   string                         `json:"effectiveDate,omitempty"`
+	RecordedAt      string                         `json:"recordedAt,omitempty"` // RFC 3339 instant
+	AsOf            string                         `json:"asOf,omitempty"`       // processing date for period decisions (default: the transaction date)
+	Measures        map[string]string              `json:"measures"`
+	Dimensions      map[string]string              `json:"dimensions,omitempty"` // canonical values (normalised at intake)
+	Lists           map[string][]map[string]string `json:"lists,omitempty"`
 }
 
 // Evaluation is everything evaluating one event produces: its resolved dimensions (with the
-// lookups that derived them) and its derived measures, each with lineage.
+// lookups that derived them), its period decision, and its derived measures, with lineage.
 type Evaluation struct {
 	Dimensions []ResolvedDimension `json:"dimensions"`
+	Period     *PeriodDecision     `json:"period,omitempty"`
 	Derived    []Derived           `json:"derived"`
+}
+
+func dateOrNull(s string) formula.Value {
+	if s == "" {
+		return formula.Null
+	}
+	return formula.Date(s)
 }
 
 // Derived is one evaluated derived measure with its lineage.
@@ -362,14 +372,15 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 		env.lists[l.Code] = items
 	}
 
-	day := time.Time{}
-	if in.EffectiveDate != "" {
-		t, ok := ParseDay(in.EffectiveDate)
-		if !ok {
-			return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: "effectiveDate must be YYYY-MM-DD"}
+	dates := EventDates{TransactionDate: in.TransactionDate, EffectiveDate: in.EffectiveDate, RecordedAt: in.RecordedAt}
+	for name, s := range map[string]string{"transactionDate": in.TransactionDate, "effectiveDate": in.EffectiveDate} {
+		if _, ok := ParseDay(s); s != "" && !ok {
+			return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: name + " must be a real date (YYYY-MM-DD)"}
 		}
-		day = t
 	}
+	// The date that selects effective-dated lookups is the policy's lookupDate (default the
+	// effective date); without dates, only entries with open windows can match.
+	day, _ := lookupDay(d, ev.Code, dates)
 	resolved, err := ResolveDimensions(d, ref, ev, in.Dimensions, day)
 	if err != nil {
 		return Evaluation{}, err
@@ -379,6 +390,37 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 	}
 	for _, r := range resolved {
 		env.vals[r.Dimension] = formula.String(r.Value)
+	}
+	env.vals["TRANSACTION_DATE"] = dateOrNull(in.TransactionDate)
+	env.vals["EFFECTIVE_DATE"] = dateOrNull(in.EffectiveDate)
+
+	// Period decision (US-009): book date, accounting period, booking class.
+	var period *PeriodDecision
+	if _, has := policyFor(d, ev.Code); has {
+		for _, k := range []string{"BOOK_DATE", "ACCOUNTING_PERIOD", "BOOKING_CLASS"} {
+			env.vals[k] = formula.Null
+		}
+		if in.TransactionDate != "" && in.EffectiveDate != "" {
+			asOf := in.AsOf
+			if asOf == "" {
+				asOf = in.TransactionDate
+			}
+			at, ok := ParseDay(asOf)
+			if !ok {
+				return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: "asOf must be a real date (YYYY-MM-DD)"}
+			}
+			dec, err := DecidePeriod(d, ev.Code, dates, at)
+			if err != nil {
+				return Evaluation{}, err
+			}
+			period = &dec
+			env.vals["BOOK_DATE"] = formula.Date(dec.BookDate)
+			env.vals["ACCOUNTING_PERIOD"] = formula.String(dec.AccountingPeriod)
+			if dec.BookingClass != "" {
+				env.vals["BOOKING_CLASS"] = formula.String(dec.BookingClass)
+				resolved = append(resolved, ResolvedDimension{Dimension: "BOOKING_CLASS", Value: dec.BookingClass, Via: "DATE_POLICY", Lookup: dec.Policy, Config: ref})
+			}
+		}
 	}
 	if resolved == nil {
 		resolved = []ResolvedDimension{}
@@ -412,7 +454,7 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 		env.vals[dm.Code] = v
 		out = append(out, Derived{Code: dm.Code, Value: v.String(), Formula: dm.Formula, FormulaDigest: FormulaDigest(dm.Formula), Config: ref, Trace: tr, value: v})
 	}
-	return Evaluation{Dimensions: resolved, Derived: out}, nil
+	return Evaluation{Dimensions: resolved, Period: period, Derived: out}, nil
 }
 
 // topoOrder orders derived measures so each comes after those it reads.

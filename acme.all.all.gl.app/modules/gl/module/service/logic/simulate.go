@@ -54,5 +54,5 @@ func evaluateVersion(c *call) modulesdk.Response {
 		out.Derived = []model.Derived{}
 	}
 	return jsonResponse(200, map[string]any{"configId": configID, "version": n, "status": v.Status, "eventType": in.EventType,
-		"dimensions": out.Dimensions, "derived": out.Derived})
+		"dimensions": out.Dimensions, "period": out.Period, "derived": out.Derived})
 }
