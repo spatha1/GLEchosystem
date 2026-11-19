@@ -37,6 +37,7 @@ ui/                            <gl-app> custom element
 | Story | Section | Rules |
 |---|---|---|
 | US-005 | `sourceSystems`, `events`, `sourceAuthority` | Event types are configuration (code, economic key, measures, 1:N lists with item keys). Authority is per **event × measure × effective window `[from, to)`**: a specific measure takes precedence over `"*"`; any other overlap is `AMBIGUOUS_SOURCE_AUTHORITY`; a carried measure without authority is `MISSING_SOURCE_AUTHORITY`. A measure has one grain (event or list). Runtime asks `model.ResolveAuthority` / `model.MayPost`: a non-authoritative copy is reconciliation-only |
+| US-006 | `baseMeasures` | A global, read-only **OOTB catalog** (`model/ootb_measures.json`, `gl.measures.ootb/v1`: premium, tax, fees, receivables, cash, commissions, claims, earnings — each with sign, grain, currency, definition, source scope). A client overrides only descriptive attributes (name, definition, sign, sourceScope) of an OOTB measure, or defines a `custom` measure; changing what a measure is (dataType, currency, grain, category) is `OVERRIDE_NOT_ALLOWED`. Unknown, shadowing or duplicate measures block. Measures carry no account or side. `GET /catalog/measures` (global) and `GET /configs/{id}/versions/{v}/measures` (resolved, with origin OOTB / OVERRIDDEN / CUSTOM) |
 
 ## Roles and maker-checker (US-004)
 

@@ -105,9 +105,9 @@
         "baseMeasures": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/baseMeasure"
           },
-          "description": "Detailed by US-006"
+          "description": "US-006: adopt/override OOTB measures, or define custom ones"
         },
         "derivedMeasures": {
           "type": "array",
@@ -342,6 +342,72 @@
           }
         }
       }
+    },
+    "baseMeasure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "custom": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "definition": {
+          "type": "string"
+        },
+        "dataType": {
+          "enum": [
+            "AMOUNT",
+            "QUANTITY",
+            "RATE",
+            "COUNT"
+          ]
+        },
+        "sign": {
+          "enum": [
+            "POSITIVE",
+            "NEGATIVE",
+            "SIGNED"
+          ]
+        },
+        "currency": {
+          "enum": [
+            "EVENT",
+            "NONE"
+          ]
+        },
+        "grain": {
+          "enum": [
+            "EVENT",
+            "ITEM",
+            "ANY"
+          ]
+        },
+        "sourceScope": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "POLICY",
+              "BILLING",
+              "CLAIMS",
+              "EARNINGS",
+              "SOURCE_JOURNAL",
+              "CUSTOM"
+            ]
+          }
+        }
+      },
+      "description": "No account or side: a base measure is not a posting."
     }
   }
 }

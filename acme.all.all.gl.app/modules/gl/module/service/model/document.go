@@ -38,6 +38,7 @@ type Document struct {
 	SourceSystems   []SourceSystem
 	Events          []EventType
 	SourceAuthority []SourceAuthority
+	BaseMeasures    []BaseMeasure
 }
 
 var codeRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
@@ -83,6 +84,8 @@ func Parse(canonical []byte) (*Document, []Finding) {
 	doc.Events, f = decodeSection[EventType]("events", s["events"])
 	fs = append(fs, f...)
 	doc.SourceAuthority, f = decodeSection[SourceAuthority]("sourceAuthority", s["sourceAuthority"])
+	fs = append(fs, f...)
+	doc.BaseMeasures, f = decodeSection[BaseMeasure]("baseMeasures", s["baseMeasures"])
 	fs = append(fs, f...)
 	return doc, fs
 }

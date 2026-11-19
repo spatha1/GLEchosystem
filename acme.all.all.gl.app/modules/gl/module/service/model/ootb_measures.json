@@ -1,0 +1,17 @@
+{
+  "catalogVersion": "gl.measures.ootb/v1",
+  "measures": [
+    { "code": "PREMIUM", "name": "Premium", "category": "PREMIUM", "definition": "Premium charged for the cover, excluding taxes and fees.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING", "EARNINGS"] },
+    { "code": "TAX", "name": "Premium tax", "category": "TAX", "definition": "Tax levied on premium (e.g. GST, IPT), as charged to the policyholder.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING"] },
+    { "code": "FEE", "name": "Fee", "category": "FEE", "definition": "Policy, installment or service fee charged in addition to premium.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING"] },
+    { "code": "INVOICE_AMT", "name": "Invoiced amount", "category": "RECEIVABLE", "definition": "Amount billed on one invoice; becomes an invoice receivable.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ITEM", "sourceScope": ["BILLING"] },
+    { "code": "PAY_AMT", "name": "Payment amount", "category": "CASH", "definition": "Cash received in one payment (receipt), before allocation.", "dataType": "AMOUNT", "sign": "POSITIVE", "currency": "EVENT", "grain": "EVENT", "sourceScope": ["BILLING"] },
+    { "code": "ALLOC_AMT", "name": "Allocated amount", "category": "CASH", "definition": "Part of a payment applied to one invoice.", "dataType": "AMOUNT", "sign": "POSITIVE", "currency": "EVENT", "grain": "ITEM", "sourceScope": ["BILLING"] },
+    { "code": "REFUND_AMT", "name": "Refund amount", "category": "CASH", "definition": "Cash returned to the payer.", "dataType": "AMOUNT", "sign": "POSITIVE", "currency": "EVENT", "grain": "ANY", "sourceScope": ["BILLING"] },
+    { "code": "WRITE_OFF_AMT", "name": "Write-off amount", "category": "RECEIVABLE", "definition": "Receivable written off as uncollectable or below threshold, as reported by the source.", "dataType": "AMOUNT", "sign": "POSITIVE", "currency": "EVENT", "grain": "ANY", "sourceScope": ["BILLING"] },
+    { "code": "COMMISSION", "name": "Commission", "category": "COMMISSION", "definition": "Commission payable to the distributor on premium.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING"] },
+    { "code": "CLAIM_PAYMENT", "name": "Claim payment", "category": "CLAIM", "definition": "Amount paid on a claim.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["CLAIMS"] },
+    { "code": "CLAIM_RESERVE", "name": "Claim reserve movement", "category": "CLAIM", "definition": "Change in the case reserve held for a claim.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["CLAIMS"] },
+    { "code": "EARNED_PREMIUM", "name": "Earned premium", "category": "EARNINGS", "definition": "Premium earned over the period, as computed by the earnings system.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["EARNINGS"] }
+  ]
+}
