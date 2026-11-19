@@ -1,0 +1,20 @@
+# mycelfile — the GL Ecosystem mycel APP root.
+#
+# An APP owns no module of its own: it carries the [app] identity, the [home] landing page
+# and one [[compose]] block per module it mounts. Each module lives under
+# modules/<token>/module with its own [module]-only mycelfile; the app composes them into
+# one shell and one Postgres database (each module isolated in its own schema = its token).
+build_type = "app"
+
+[app]
+name               = "acme.all.all.gl.app"
+title              = "GL Ecosystem"
+search_placeholder = "Search GL…"
+
+[home]
+title = "GL Ecosystem"
+body  = "Configuration-driven insurance General Ledger: versioned, approved configuration drives required-field discovery, Data Workbench mapping, data collection and deterministic, balanced posting."
+
+# gl — configuration, rule engine, journals, subledger, reconciliation (Priority 1)
+[[compose]]
+source = "modules/gl/module"

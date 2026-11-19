@@ -1,0 +1,8 @@
+# Keep regenerable and non-service trees out of the build context (only service/ is
+# copied by the Dockerfile).
+**/target
+**/node_modules
+**/dist
+**/.mycel
+bin
+ui

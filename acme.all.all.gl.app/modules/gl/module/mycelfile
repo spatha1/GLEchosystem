@@ -1,0 +1,14 @@
+# mycelfile — a mycel MODULE, composed by the acme.all.all.gl.app app (it does not run
+# standalone under the app core; for local development without the CLI use
+# service/cmd/devhttp). The module is a gRPC SERVER the app-core host dials.
+build_type = "module"
+
+[module]
+token    = "gl"                    # PG schema + /m/gl/* routes + <gl-app> element
+language = "go"
+element  = "gl-app"                # custom element the shell mounts
+ui_entry = "ui/dist/entry.js"      # built bundle → served at /modules/gl/entry.js
+label    = "GL (Go)"
+# gRPC backend the host dials for /m/gl/*. A per-token unix socket under one federation
+# dir; in a container deploy the host dials the module at gl:7373.
+backend  = "unix:///tmp/mycel_app_core/gl.sock"

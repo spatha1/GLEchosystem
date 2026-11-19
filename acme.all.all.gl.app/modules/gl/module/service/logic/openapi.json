@@ -1,0 +1,116 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "gl (GL — configuration and rule engine)",
+    "version": "0.1.0",
+    "description": "Tenant-scoped, versioned, effective-dated GL configuration. Every non-public operation requires the authenticated user (x-mycel-user, set by the app core) and the tenant (x-gl-tenant)."
+  },
+  "servers": [{ "url": "/" }],
+  "tags": [{ "name": "gl (GL)", "description": "GL configuration and rule engine" }],
+  "paths": {
+    "/m/gl/info": {
+      "get": { "tags": ["gl (GL)"], "operationId": "gl_info", "summary": "Module identity", "responses": { "200": { "description": "Module token and title" } } }
+    },
+    "/m/gl/openapi.json": {
+      "get": { "tags": ["gl (GL)"], "operationId": "gl_openapi", "summary": "This OpenAPI document", "responses": { "200": { "description": "OpenAPI 3 document" } } }
+    },
+    "/m/gl/configs": {
+      "get": {
+        "tags": ["gl (GL)"], "operationId": "gl_listConfigs", "summary": "List the tenant's configurations",
+        "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }],
+        "responses": { "200": { "description": "Configurations" }, "401": { "$ref": "#/components/responses/gl_Error" } }
+      },
+      "post": {
+        "tags": ["gl (GL)"], "operationId": "gl_createConfig", "summary": "Create a configuration and its first draft version",
+        "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/gl_CreateConfig" } } } },
+        "responses": { "201": { "description": "Version 1 (draft)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/gl_Version" } } } }, "400": { "$ref": "#/components/responses/gl_Error" }, "409": { "$ref": "#/components/responses/gl_Error" } }
+      }
+    },
+    "/m/gl/configs/{configId}/versions": {
+      "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }, { "$ref": "#/components/parameters/gl_ConfigId" }],
+      "get": { "tags": ["gl (GL)"], "operationId": "gl_listVersions", "summary": "List versions (without content)", "responses": { "200": { "description": "Versions" }, "404": { "$ref": "#/components/responses/gl_Error" } } },
+      "post": {
+        "tags": ["gl (GL)"], "operationId": "gl_createVersion", "summary": "Create a new draft version, optionally copied from an existing version",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/gl_CreateVersion" } } } },
+        "responses": { "201": { "description": "The new draft" }, "404": { "$ref": "#/components/responses/gl_Error" } }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}": {
+      "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }, { "$ref": "#/components/parameters/gl_ConfigId" }, { "$ref": "#/components/parameters/gl_VersionNo" }],
+      "get": { "tags": ["gl (GL)"], "operationId": "gl_getVersion", "summary": "One version with its content and validation report", "responses": { "200": { "description": "The version" }, "404": { "$ref": "#/components/responses/gl_Error" } } },
+      "put": {
+        "tags": ["gl (GL)"], "operationId": "gl_updateDraft", "summary": "Edit a draft or validated version (returns it to draft)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/gl_UpdateDraft" } } } },
+        "responses": { "200": { "description": "The edited draft" }, "409": { "$ref": "#/components/responses/gl_Error" } }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/validate": {
+      "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }, { "$ref": "#/components/parameters/gl_ConfigId" }, { "$ref": "#/components/parameters/gl_VersionNo" }],
+      "post": { "tags": ["gl (GL)"], "operationId": "gl_validateVersion", "summary": "Validate a draft", "responses": { "200": { "description": "Validated" }, "409": { "$ref": "#/components/responses/gl_Error" }, "422": { "$ref": "#/components/responses/gl_Error" } } }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/approve": {
+      "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }, { "$ref": "#/components/parameters/gl_ConfigId" }, { "$ref": "#/components/parameters/gl_VersionNo" }],
+      "post": { "tags": ["gl (GL)"], "operationId": "gl_approveVersion", "summary": "Approve a validated version; it becomes immutable", "responses": { "200": { "description": "Approved" }, "409": { "$ref": "#/components/responses/gl_Error" } } }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/retire": {
+      "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }, { "$ref": "#/components/parameters/gl_ConfigId" }, { "$ref": "#/components/parameters/gl_VersionNo" }],
+      "post": { "tags": ["gl (GL)"], "operationId": "gl_retireVersion", "summary": "Retire a version (reason required)", "responses": { "200": { "description": "Retired" }, "400": { "$ref": "#/components/responses/gl_Error" }, "409": { "$ref": "#/components/responses/gl_Error" } } }
+    },
+    "/m/gl/configs/{configId}/effective": {
+      "parameters": [
+        { "$ref": "#/components/parameters/gl_Tenant" }, { "$ref": "#/components/parameters/gl_ConfigId" },
+        { "name": "date", "in": "query", "required": true, "schema": { "type": "string", "format": "date" } }
+      ],
+      "get": { "tags": ["gl (GL)"], "operationId": "gl_effectiveVersion", "summary": "The approved version in force on a date", "responses": { "200": { "description": "The effective version with content" }, "404": { "$ref": "#/components/responses/gl_Error" } } }
+    },
+    "/m/gl/configs/{configId}/audit": {
+      "parameters": [
+        { "$ref": "#/components/parameters/gl_Tenant" }, { "$ref": "#/components/parameters/gl_ConfigId" },
+        { "name": "version", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1 } }
+      ],
+      "get": { "tags": ["gl (GL)"], "operationId": "gl_listAudit", "summary": "Append-only audit trail", "responses": { "200": { "description": "Audit entries in order" } } }
+    }
+  },
+  "components": {
+    "parameters": {
+      "gl_Tenant": { "name": "x-gl-tenant", "in": "header", "required": true, "schema": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" } },
+      "gl_ConfigId": { "name": "configId", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" } },
+      "gl_VersionNo": { "name": "version", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }
+    },
+    "responses": {
+      "gl_Error": {
+        "description": "Error envelope",
+        "content": { "application/json": { "schema": { "type": "object", "properties": { "error": { "$ref": "#/components/schemas/gl_Error" } } } } }
+      }
+    },
+    "schemas": {
+      "gl_Error": {
+        "type": "object", "required": ["code", "message", "retryable"],
+        "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "field": { "type": "string" }, "retryable": { "type": "boolean" }, "detail": { "type": "object" } }
+      },
+      "gl_CreateConfig": {
+        "type": "object", "required": ["configId", "effectiveFrom"], "additionalProperties": false,
+        "properties": { "configId": { "type": "string" }, "title": { "type": "string" }, "effectiveFrom": { "type": "string", "format": "date" }, "effectiveTo": { "type": "string", "format": "date", "nullable": true }, "content": { "type": "object" }, "reason": { "type": "string" } }
+      },
+      "gl_CreateVersion": {
+        "type": "object", "required": ["effectiveFrom"], "additionalProperties": false,
+        "properties": { "basedOnVersion": { "type": "integer" }, "effectiveFrom": { "type": "string", "format": "date" }, "effectiveTo": { "type": "string", "format": "date", "nullable": true }, "content": { "type": "object" }, "reason": { "type": "string" } }
+      },
+      "gl_UpdateDraft": {
+        "type": "object", "required": ["baseDigest"], "additionalProperties": false,
+        "properties": { "baseDigest": { "type": "string" }, "effectiveFrom": { "type": "string", "format": "date" }, "effectiveTo": { "type": "string", "format": "date" }, "clearEffectiveTo": { "type": "boolean" }, "content": { "type": "object" }, "reason": { "type": "string" } }
+      },
+      "gl_Version": {
+        "type": "object",
+        "properties": {
+          "tenantId": { "type": "string" }, "configId": { "type": "string" }, "version": { "type": "integer" },
+          "status": { "type": "string", "enum": ["draft", "validated", "approved", "retired"] }, "schemaVersion": { "type": "string" },
+          "effectiveFrom": { "type": "string", "format": "date" }, "effectiveTo": { "type": "string", "format": "date", "nullable": true },
+          "contentDigest": { "type": "string" }, "content": { "type": "object" }, "validationReport": { "type": "object" },
+          "createdBy": { "type": "string" }, "approvedBy": { "type": "string" }, "approvedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}
