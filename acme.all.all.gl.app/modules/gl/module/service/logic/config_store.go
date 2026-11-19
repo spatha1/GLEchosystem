@@ -32,6 +32,7 @@ type VersionView struct {
 	ApprovedAt       *string         `json:"approvedAt,omitempty"`
 	RetiredBy        *string         `json:"retiredBy,omitempty"`
 	RetiredAt        *string         `json:"retiredAt,omitempty"`
+	Editors          []string        `json:"editors"`
 	Content          json.RawMessage `json:"content,omitempty"`
 	ValidationReport json.RawMessage `json:"validationReport,omitempty"`
 }
@@ -46,7 +47,7 @@ var versionCols = strings.Join([]string{
 	"coalesce(effective_to::text, '')", "content_digest", "coalesce(based_on_version::text, '')",
 	"created_by", ts("created_at"), "updated_by", ts("updated_at"),
 	"coalesce(validated_by, '')", ts("validated_at"), "coalesce(approved_by, '')", ts("approved_at"),
-	"coalesce(retired_by, '')", ts("retired_at"),
+	"coalesce(retired_by, '')", ts("retired_at"), "array_to_json(editors)::text",
 }, ", ")
 
 const withContentCols = ", content::text, coalesce(validation_report::text, '')"
@@ -60,7 +61,7 @@ func opt(s string) *string {
 
 func scanVersion(r modulesdk.Row, withContent bool) (VersionView, error) {
 	c := r.Cells
-	want := 19
+	want := 20
 	if withContent {
 		want += 2
 	}
@@ -84,10 +85,13 @@ func scanVersion(r modulesdk.Row, withContent bool) (VersionView, error) {
 		}
 		out.BasedOnVersion = &b
 	}
+	if err := json.Unmarshal([]byte(c[19]), &out.Editors); err != nil {
+		return VersionView{}, err
+	}
 	if withContent {
-		out.Content = json.RawMessage(c[19])
-		if c[20] != "" {
-			out.ValidationReport = json.RawMessage(c[20])
+		out.Content = json.RawMessage(c[20])
+		if c[21] != "" {
+			out.ValidationReport = json.RawMessage(c[21])
 		}
 	}
 	return out, nil
@@ -121,6 +125,8 @@ func classify(err error) *apiError {
 		return errConflict("CONFIG_IMMUTABLE", "approved and retired configuration versions cannot be changed; publish a new version", false)
 	case strings.Contains(msg, "GL_AUDIT_APPEND_ONLY"):
 		return errConflict("AUDIT_APPEND_ONLY", "audit entries cannot be changed", false)
+	case strings.Contains(msg, "config_version_maker_checker"):
+		return &apiError{Status: 403, Code: "SELF_APPROVAL", Message: "you changed this version, so you cannot approve it; another approver must"}
 	case strings.Contains(msg, "config_version_one_approved_start"):
 		return errConflict("EFFECTIVE_DATE_CONFLICT", "another approved version of this configuration already starts on this date", false)
 	case strings.Contains(msg, "config_artifact_pkey"):
@@ -231,6 +237,9 @@ func createConfig(c *call) modulesdk.Response {
 	if e := decodeBody(c.req, &b); e != nil {
 		return e.response()
 	}
+	if e := requireReason(b.Reason); e != nil {
+		return e.response()
+	}
 	if e := pathCode("configId", b.ConfigID); e != nil {
 		return e.response()
 	}
@@ -250,8 +259,8 @@ func createConfig(c *call) modulesdk.Response {
 			return err
 		}
 		_, err := c.host.Exec(`insert into config_version (tenant_id, config_id, version, status, schema_version, effective_from, effective_to,
-				content, content_digest, created_by, updated_by)
-			values ($1, $2, 1, 'draft', $3, $4::date, nullif($5, '')::date, $6::jsonb, $7, $8, $8)`,
+				content, content_digest, created_by, updated_by, editors)
+			values ($1, $2, 1, 'draft', $3, $4::date, nullif($5, '')::date, $6::jsonb, $7, $8, $8, array[$8]::text[])`,
 			[]string{c.id.Tenant, b.ConfigID, SchemaVersion, b.EffectiveFrom, deref(b.EffectiveTo), string(content), digest, c.id.Actor})
 		return err
 	})
@@ -354,6 +363,9 @@ func createVersion(c *call) modulesdk.Response {
 	if e := decodeBody(c.req, &b); e != nil {
 		return e.response()
 	}
+	if e := requireReason(b.Reason); e != nil {
+		return e.response()
+	}
 	if e := checkEffective(b.EffectiveFrom, b.EffectiveTo); e != nil {
 		return e.response()
 	}
@@ -383,8 +395,8 @@ func createVersion(c *call) modulesdk.Response {
 	var created int
 	err := guarded(c.host, func() error {
 		rows, err := c.host.Query(`insert into config_version (tenant_id, config_id, version, status, schema_version, effective_from, effective_to,
-				content, content_digest, based_on_version, created_by, updated_by)
-			select $1, $2, coalesce(max(version), 0) + 1, 'draft', $3, $4::date, nullif($5, '')::date, $6::jsonb, $7, nullif($8, '')::integer, $9, $9
+				content, content_digest, based_on_version, created_by, updated_by, editors)
+			select $1, $2, coalesce(max(version), 0) + 1, 'draft', $3, $4::date, nullif($5, '')::date, $6::jsonb, $7, nullif($8, '')::integer, $9, $9, array[$9]::text[]
 			from config_version where tenant_id = $1 and config_id = $2
 			returning version::text`,
 			[]string{c.id.Tenant, configID, SchemaVersion, b.EffectiveFrom, deref(b.EffectiveTo), string(content), digest, based, c.id.Actor})
@@ -431,6 +443,9 @@ func updateDraft(c *call) modulesdk.Response {
 	if e := decodeBody(c.req, &b); e != nil {
 		return e.response()
 	}
+	if e := requireReason(b.Reason); e != nil {
+		return e.response()
+	}
 	cur, e := loadVersion(c.host, c.id, configID, n, true)
 	if e != nil {
 		return e.response()
@@ -469,7 +484,8 @@ func updateDraft(c *call) modulesdk.Response {
 	err := guarded(c.host, func() error {
 		_, err := c.host.Exec(`update config_version set status = 'draft', effective_from = $4::date, effective_to = nullif($5, '')::date,
 				content = $6::jsonb, content_digest = $7, validated_by = null, validated_at = null, validation_report = null,
-				updated_by = $8, updated_at = now()
+				updated_by = $8, updated_at = now(),
+				editors = case when $8 = any (editors) then editors else array_append(editors, $8::text) end
 			where tenant_id = $1 and config_id = $2 and version = $3::integer`,
 			[]string{c.id.Tenant, configID, strconv.Itoa(n), from, deref(to), string(content), digest, c.id.Actor})
 		return err
@@ -490,6 +506,18 @@ func updateDraft(c *call) modulesdk.Response {
 
 type reasonBody struct {
 	Reason string `json:"reason"`
+}
+
+// requireReason enforces "record who changed what and why": every configuration change
+// carries a reason, kept in the append-only audit.
+func requireReason(reason string) *apiError {
+	if strings.TrimSpace(reason) == "" {
+		return errInvalid("reason", "a reason is required for every configuration change")
+	}
+	if len(reason) > 2000 {
+		return errInvalid("reason", "reason is limited to 2000 characters")
+	}
+	return nil
 }
 
 func optionalReason(req modulesdk.Request) (string, *apiError) {
@@ -576,12 +604,22 @@ func approveVersion(c *call) modulesdk.Response {
 	if e != nil {
 		return e.response()
 	}
+	if e := requireReason(reason); e != nil {
+		return e.response()
+	}
 	cur, e := loadVersion(c.host, c.id, configID, n, false)
 	if e != nil {
 		return e.response()
 	}
 	if cur.Status != "validated" {
 		return errConflict("INVALID_STATE", fmt.Sprintf("only a validated version can be approved; version %d is %s", n, cur.Status), false).response()
+	}
+	// Maker-checker: nobody who changed this version's content may approve it. The database
+	// enforces the same rule (config_version_maker_checker), so this is not the only line.
+	for _, e := range cur.Editors {
+		if e == c.id.Actor {
+			return (&apiError{Status: 403, Code: "SELF_APPROVAL", Message: "you changed this version, so you cannot approve it; another approver must"}).response()
+		}
 	}
 	err := guarded(c.host, func() error {
 		_, err := c.host.Exec(`update config_version set status = 'approved', approved_by = $4, approved_at = now(), updated_by = $4, updated_at = now()

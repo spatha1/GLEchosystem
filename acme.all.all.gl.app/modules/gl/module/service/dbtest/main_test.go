@@ -85,6 +85,27 @@ func run(m *testing.M, admin string) (int, error) {
 			return 0, fmt.Errorf("%s: %w", s, err)
 		}
 	}
+	// Role seeding (as the test owner, outside any request): the people of the scenarios.
+	for _, tenant := range []string{"CLIENT_A", "CLIENT_B"} {
+		for actor, roles := range map[string][]string{
+			"ba@example.com":       {"CONFIG_EDITOR"},
+			"reviewer@example.com": {"CONFIG_APPROVER"},
+			"lead@example.com":     {"CONFIG_EDITOR", "CONFIG_APPROVER"},
+			"viewer@example.com":   {"VIEWER"},
+			"operator@example.com": {"OPERATOR"},
+			"admin@example.com":    {"GL_ADMIN"},
+		} {
+			for _, role := range roles {
+				if _, err := db.Exec("insert into gl.role_assignment (tenant_id, actor, role, granted_by) values ($1, $2, $3, 'test-seed')", tenant, actor, role); err != nil {
+					return 0, err
+				}
+			}
+		}
+	}
+	// outsider@ belongs to CLIENT_A only.
+	if _, err := db.Exec("insert into gl.role_assignment (tenant_id, actor, role, granted_by) values ('CLIENT_A', 'outsider@example.com', 'CONFIG_EDITOR', 'test-seed')"); err != nil {
+		return 0, err
+	}
 	// A validator that fails on purpose, so the 422 path and its audit can be exercised.
 	logic.RegisterSectionValidator("outputProfiles", func(items []map[string]any, _ map[string][]map[string]any) []logic.Finding {
 		var fs []logic.Finding

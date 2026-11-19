@@ -26,16 +26,22 @@ const Title = "GL — configuration and rule engine"
 var (
 	//go:embed sql/0001_config_store.sql
 	Migration0001SQL string
+	//go:embed sql/0002_roles_maker_checker.sql
+	Migration0002SQL string
 )
 
-// Migration0001ID is the ledger id of the first migration.
-const Migration0001ID = "0001_config_store"
+// Ledger ids of the shipped migrations.
+const (
+	Migration0001ID = "0001_config_store"
+	Migration0002ID = "0002_roles_maker_checker"
+)
 
 // Migrations is the ordered list the module ships. main.go, the dev adapter and the tests
 // all take it from here, so there is exactly one list.
 func Migrations() []modulesdk.Migration {
 	return []modulesdk.Migration{
 		{ID: Migration0001ID, SQL: Migration0001SQL},
+		{ID: Migration0002ID, SQL: Migration0002SQL},
 	}
 }
 
@@ -46,10 +52,20 @@ var OpenAPIFragment string
 
 type handler func(*call) modulesdk.Response
 
+// access is who may call a route.
+type access int
+
+const (
+	public        access = iota // no identity, touches no table
+	authenticated               // any authenticated user (roles are reported, not required)
+	roleGated                   // the caller needs one of the route's roles in the tenant
+)
+
 type route struct {
 	method   string
 	segments []string // "{name}" marks a path parameter
-	public   bool     // public routes need no identity and touch no table
+	access   access
+	anyOf    []string // roles allowed when access == roleGated
 	h        handler
 }
 
@@ -59,29 +75,43 @@ type call struct {
 	host   modulesdk.Host
 	params map[string]string
 	id     Identity
+	roles  map[string]bool
 	q      url.Values
 }
 
 func (c *call) query(k string) string { return c.q.Get(k) }
 
-func r(method, pattern string, public bool, h handler) route {
-	return route{method: method, segments: strings.Split(strings.Trim(pattern, "/"), "/"), public: public, h: h}
+func r(method, pattern string, a access, h handler, anyOf ...string) route {
+	return route{method: method, segments: strings.Split(strings.Trim(pattern, "/"), "/"), access: a, anyOf: anyOf, h: h}
 }
 
+// Who may do what (US-004): editors change configuration, approvers publish and retire it,
+// administrators manage roles, and every member of the tenant may read.
+var (
+	roleReaders   = []string{RoleViewer, RoleConfigEditor, RoleConfigApprover, RoleOperator, RoleAdmin}
+	roleEditors   = []string{RoleConfigEditor}
+	roleApprovers = []string{RoleConfigApprover}
+	roleAdmins    = []string{RoleAdmin}
+)
+
 var routes = []route{
-	r("GET", "/info", true, info),
-	r("GET", "/openapi.json", true, openapi),
-	r("GET", "/configs", false, listConfigs),
-	r("POST", "/configs", false, createConfig),
-	r("GET", "/configs/{configId}/versions", false, listVersions),
-	r("POST", "/configs/{configId}/versions", false, createVersion),
-	r("GET", "/configs/{configId}/versions/{version}", false, getVersion),
-	r("PUT", "/configs/{configId}/versions/{version}", false, updateDraft),
-	r("POST", "/configs/{configId}/versions/{version}/validate", false, validateVersion),
-	r("POST", "/configs/{configId}/versions/{version}/approve", false, approveVersion),
-	r("POST", "/configs/{configId}/versions/{version}/retire", false, retireVersion),
-	r("GET", "/configs/{configId}/effective", false, effectiveVersion),
-	r("GET", "/configs/{configId}/audit", false, listAudit),
+	r("GET", "/info", public, info),
+	r("GET", "/openapi.json", public, openapi),
+	r("GET", "/me", authenticated, me),
+	r("GET", "/roles", roleGated, listRoles, roleAdmins...),
+	r("GET", "/roles/audit", roleGated, listRoleAudit, roleAdmins...),
+	r("PUT", "/roles/{actor}", roleGated, setRoles, roleAdmins...),
+	r("GET", "/configs", roleGated, listConfigs, roleReaders...),
+	r("POST", "/configs", roleGated, createConfig, roleEditors...),
+	r("GET", "/configs/{configId}/versions", roleGated, listVersions, roleReaders...),
+	r("POST", "/configs/{configId}/versions", roleGated, createVersion, roleEditors...),
+	r("GET", "/configs/{configId}/versions/{version}", roleGated, getVersion, roleReaders...),
+	r("PUT", "/configs/{configId}/versions/{version}", roleGated, updateDraft, roleEditors...),
+	r("POST", "/configs/{configId}/versions/{version}/validate", roleGated, validateVersion, roleEditors...),
+	r("POST", "/configs/{configId}/versions/{version}/approve", roleGated, approveVersion, roleApprovers...),
+	r("POST", "/configs/{configId}/versions/{version}/retire", roleGated, retireVersion, roleApprovers...),
+	r("GET", "/configs/{configId}/effective", roleGated, effectiveVersion, roleReaders...),
+	r("GET", "/configs/{configId}/audit", roleGated, listAudit, roleReaders...),
 }
 
 func match(rt route, segs []string) (map[string]string, bool) {
@@ -122,7 +152,7 @@ func Route(req modulesdk.Request, host modulesdk.Host) modulesdk.Response {
 			continue
 		}
 		c := &call{req: req, host: host, params: params, q: q}
-		if !rt.public {
+		if rt.access != public {
 			id, e := identityFrom(req)
 			if e != nil {
 				return e.response()
@@ -131,6 +161,16 @@ func Route(req modulesdk.Request, host modulesdk.Host) modulesdk.Response {
 				return errInternal("could not scope the request to its tenant").response()
 			}
 			c.id = id
+			roles, err := loadRoles(host, id)
+			if err != nil {
+				return errInternal("could not load roles").response()
+			}
+			c.roles = roles
+			if rt.access == roleGated {
+				if e := authorize(roles, rt.anyOf); e != nil {
+					return e.response()
+				}
+			}
 		}
 		return rt.h(c)
 	}

@@ -14,6 +14,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -51,6 +52,11 @@ func main() {
 	if err := pghost.ApplyMigrations(db, logic.Token, logic.Migrations()); err != nil {
 		log.Fatalf("migrations: %v", err)
 	}
+	if spec := os.Getenv("GL_DEV_SEED_ROLES"); spec != "" {
+		if err := seedRoles(db, spec); err != nil {
+			log.Fatalf("GL_DEV_SEED_ROLES: %v", err)
+		}
+	}
 	prefix := "/m/" + logic.Token + "/"
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -87,6 +93,58 @@ func main() {
 	log.Printf("gl devhttp on http://%s%s (development only)", listen, prefix)
 	srv := &http.Server{Addr: listen, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	log.Fatal(srv.ListenAndServe())
+}
+
+// seedRoles bootstraps role assignments for development: a fresh tenant has no GL_ADMIN to
+// grant the first roles. Format: "TENANT:user:ROLE|ROLE;TENANT:user:ROLE". Existing
+// assignments are kept; each seeded grant is recorded in the role audit.
+func seedRoles(db *sql.DB, spec string) error {
+	for _, entry := range strings.Split(spec, ";") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		parts := strings.SplitN(entry, ":", 3)
+		if len(parts) != 3 {
+			return fmt.Errorf("%q is not TENANT:user:ROLE|ROLE", entry)
+		}
+		tenant, actor, roles := parts[0], parts[1], strings.Split(parts[2], "|")
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec("set local search_path to " + logic.Token); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if _, err := tx.Exec("select set_config('gl.tenant_id', $1, true)", tenant); err != nil {
+			tx.Rollback()
+			return err
+		}
+		var granted []string
+		for _, role := range roles {
+			res, err := tx.Exec(`insert into role_assignment (tenant_id, actor, role, granted_by) values ($1, $2, $3, 'devhttp-seed')
+				on conflict do nothing`, tenant, actor, role)
+			if err != nil {
+				tx.Rollback()
+				return fmt.Errorf("%s: %w", entry, err)
+			}
+			if n, _ := res.RowsAffected(); n > 0 {
+				granted = append(granted, role)
+			}
+		}
+		if len(granted) > 0 {
+			if _, err := tx.Exec(`insert into role_audit (tenant_id, actor, subject, granted, reason) values ($1, 'devhttp-seed', $2, $3::text[], 'development seed (GL_DEV_SEED_ROLES)')`,
+				tenant, actor, "{"+strings.Join(granted, ",")+"}"); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func envOr(k, d string) string {

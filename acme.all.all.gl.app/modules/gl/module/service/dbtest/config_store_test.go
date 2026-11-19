@@ -70,7 +70,7 @@ func TestInvalidTransitionsAreRefused(t *testing.T) {
 	needDB(t)
 	id := uniq("TRANS")
 	create(t, tenantA, id, "2026-01-01")
-	if r := do(t, "POST", "/configs/"+id+"/versions/1/approve", tenantA, rev, nil); r.code() != "INVALID_STATE" {
+	if r := do(t, "POST", "/configs/"+id+"/versions/1/approve", tenantA, rev, map[string]string{"reason": "test approval"}); r.code() != "INVALID_STATE" {
 		t.Errorf("approving a draft: %s", r.Raw)
 	}
 	if r := do(t, "POST", "/configs/"+id+"/versions/1/retire", tenantA, rev, map[string]string{"reason": ""}); r.code() != "INVALID_ARGUMENT" {
@@ -80,7 +80,7 @@ func TestInvalidTransitionsAreRefused(t *testing.T) {
 	if r := do(t, "POST", "/configs/"+id+"/versions/1/validate", tenantA, ba, nil); r.code() != "INVALID_STATE" {
 		t.Errorf("re-validating an approved version: %s", r.Raw)
 	}
-	if r := do(t, "POST", "/configs/"+id+"/versions/9/approve", tenantA, rev, nil); r.Status != 404 {
+	if r := do(t, "POST", "/configs/"+id+"/versions/9/approve", tenantA, rev, map[string]string{"reason": "test approval"}); r.Status != 404 {
 		t.Errorf("unknown version: %s", r.Raw)
 	}
 }
@@ -165,7 +165,7 @@ func TestTenantIsolation(t *testing.T) {
 		t.Errorf("tenant B must not be able to act on A's version: %s", r.Raw)
 	}
 	// The same id is a different configuration in tenant B.
-	mustStatus(t, do(t, "POST", "/configs", tenantB, ba, map[string]any{"configId": id, "effectiveFrom": "2026-01-01"}), 201)
+	mustStatus(t, do(t, "POST", "/configs", tenantB, ba, map[string]any{"configId": id, "effectiveFrom": "2026-01-01", "reason": "test change"}), 201)
 
 	// Database level: a query WITHOUT a tenant filter sees only the bound tenant's rows.
 	var aRows, bRows, unbound int
@@ -207,11 +207,11 @@ func TestEffectiveDatedResolution(t *testing.T) {
 	id := uniq("EFF")
 	create(t, tenantA, id, "2026-01-01")
 	approve(t, tenantA, id, "1")
-	mustStatus(t, do(t, "POST", "/configs/"+id+"/versions", tenantA, ba, map[string]any{"basedOnVersion": 1, "effectiveFrom": "2026-03-01"}), 201)
+	mustStatus(t, do(t, "POST", "/configs/"+id+"/versions", tenantA, ba, map[string]any{"basedOnVersion": 1, "effectiveFrom": "2026-03-01", "reason": "test change"}), 201)
 	approve(t, tenantA, id, "2")
-	mustStatus(t, do(t, "POST", "/configs/"+id+"/versions", tenantA, ba, map[string]any{"basedOnVersion": 2, "effectiveFrom": "2026-04-01", "effectiveTo": "2026-05-01"}), 201)
+	mustStatus(t, do(t, "POST", "/configs/"+id+"/versions", tenantA, ba, map[string]any{"basedOnVersion": 2, "effectiveFrom": "2026-04-01", "effectiveTo": "2026-05-01", "reason": "test change"}), 201)
 	approve(t, tenantA, id, "3")
-	mustStatus(t, do(t, "POST", "/configs/"+id+"/versions", tenantA, ba, map[string]any{"basedOnVersion": 2, "effectiveFrom": "2026-06-01"}), 201) // v4 stays draft
+	mustStatus(t, do(t, "POST", "/configs/"+id+"/versions", tenantA, ba, map[string]any{"basedOnVersion": 2, "effectiveFrom": "2026-06-01", "reason": "test change"}), 201) // v4 stays draft
 
 	for date, want := range map[string]int{
 		"2026-01-01": 1, "2026-02-28": 1, "2026-03-01": 2, "2026-03-31": 2,
@@ -229,9 +229,9 @@ func TestEffectiveDatedResolution(t *testing.T) {
 		t.Errorf("impossible date: %s", r.Raw)
 	}
 	// Two approved versions may not start on the same date.
-	mustStatus(t, do(t, "POST", "/configs/"+id+"/versions", tenantA, ba, map[string]any{"basedOnVersion": 2, "effectiveFrom": "2026-03-01"}), 201)
+	mustStatus(t, do(t, "POST", "/configs/"+id+"/versions", tenantA, ba, map[string]any{"basedOnVersion": 2, "effectiveFrom": "2026-03-01", "reason": "test change"}), 201)
 	mustStatus(t, do(t, "POST", "/configs/"+id+"/versions/5/validate", tenantA, ba, nil), 200)
-	if r := do(t, "POST", "/configs/"+id+"/versions/5/approve", tenantA, rev, nil); r.code() != "EFFECTIVE_DATE_CONFLICT" {
+	if r := do(t, "POST", "/configs/"+id+"/versions/5/approve", tenantA, rev, map[string]string{"reason": "test approval"}); r.code() != "EFFECTIVE_DATE_CONFLICT" {
 		t.Errorf("a second approval starting 2026-03-01: %s", r.Raw)
 	}
 	if r := do(t, "GET", "/configs/"+id+"/versions/5", tenantA, ba, nil); r.str("status") != "validated" {
@@ -257,10 +257,10 @@ func TestDraftEditsAreOptimisticAndResetValidation(t *testing.T) {
 	if stale.code() != "STALE_VERSION" {
 		t.Errorf("an edit from a stale digest must be refused: %s", stale.Raw)
 	}
-	if bad := do(t, "PUT", "/configs/"+id+"/versions/1", tenantA, ba, map[string]any{"baseDigest": e.str("contentDigest"), "content": map[string]any{"madeUp": []any{}}}); bad.code() != "INVALID_ARGUMENT" {
+	if bad := do(t, "PUT", "/configs/"+id+"/versions/1", tenantA, ba, map[string]any{"baseDigest": e.str("contentDigest"), "content": map[string]any{"madeUp": []any{}}, "reason": "test change"}); bad.code() != "INVALID_ARGUMENT" {
 		t.Errorf("an unknown section must be refused: %s", bad.Raw)
 	}
-	if bad := do(t, "PUT", "/configs/"+id+"/versions/1", tenantA, ba, map[string]any{"baseDigest": e.str("contentDigest"), "effectiveTo": "2025-12-31"}); bad.code() != "INVALID_ARGUMENT" {
+	if bad := do(t, "PUT", "/configs/"+id+"/versions/1", tenantA, ba, map[string]any{"baseDigest": e.str("contentDigest"), "effectiveTo": "2025-12-31", "reason": "test change"}); bad.code() != "INVALID_ARGUMENT" {
 		t.Errorf("an effectiveTo before effectiveFrom must be refused: %s", bad.Raw)
 	}
 }
@@ -270,7 +270,7 @@ func TestValidationFailureIsReportedAndAudited(t *testing.T) {
 	needDB(t)
 	id := uniq("VALFAIL")
 	mustStatus(t, do(t, "POST", "/configs", tenantA, ba, map[string]any{
-		"configId": id, "effectiveFrom": "2026-01-01",
+		"configId": id, "effectiveFrom": "2026-01-01", "reason": "test change",
 		"content": map[string]any{"outputProfiles": []any{map[string]any{"code": "TRF", "invalid": true}}},
 	}), 201)
 	v := do(t, "POST", "/configs/"+id+"/versions/1/validate", tenantA, ba, map[string]string{"reason": "try"})
@@ -320,10 +320,10 @@ func TestDuplicateAndUnknownConfigurations(t *testing.T) {
 	needDB(t)
 	id := uniq("DUP")
 	create(t, tenantA, id, "2026-01-01")
-	if r := do(t, "POST", "/configs", tenantA, ba, map[string]any{"configId": id, "effectiveFrom": "2026-01-01"}); r.code() != "ALREADY_EXISTS" {
+	if r := do(t, "POST", "/configs", tenantA, ba, map[string]any{"configId": id, "effectiveFrom": "2026-01-01", "reason": "test change"}); r.code() != "ALREADY_EXISTS" {
 		t.Errorf("duplicate id: %s", r.Raw)
 	}
-	if r := do(t, "POST", "/configs", tenantA, ba, map[string]any{"configId": "lower_case", "effectiveFrom": "2026-01-01"}); r.code() != "INVALID_ARGUMENT" {
+	if r := do(t, "POST", "/configs", tenantA, ba, map[string]any{"configId": "lower_case", "effectiveFrom": "2026-01-01", "reason": "test change"}); r.code() != "INVALID_ARGUMENT" {
 		t.Errorf("bad id: %s", r.Raw)
 	}
 	if r := do(t, "POST", "/configs", tenantA, ba, `{"configId":"X","effectiveFrom":"2026-01-01","tenantId":"CLIENT_B"}`); r.code() != "INVALID_ARGUMENT" {

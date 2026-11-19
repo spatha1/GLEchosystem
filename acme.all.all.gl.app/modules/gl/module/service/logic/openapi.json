@@ -3,7 +3,7 @@
   "info": {
     "title": "gl (GL — configuration and rule engine)",
     "version": "0.1.0",
-    "description": "Tenant-scoped, versioned, effective-dated GL configuration. Every non-public operation requires the authenticated user (x-mycel-user, set by the app core) and the tenant (x-gl-tenant)."
+    "description": "Tenant-scoped, versioned, effective-dated GL configuration. Every non-public operation requires the authenticated user (x-mycel-user, set by the app core) and the tenant (x-gl-tenant), and a role in that tenant: readers (any role) read; CONFIG_EDITOR creates, edits and validates; CONFIG_APPROVER approves and retires (never a version they changed: 403 SELF_APPROVAL); GL_ADMIN manages roles. Every change requires a reason."
   },
   "servers": [{ "url": "/" }],
   "tags": [{ "name": "gl (GL)", "description": "GL configuration and rule engine" }],
@@ -13,6 +13,47 @@
     },
     "/m/gl/openapi.json": {
       "get": { "tags": ["gl (GL)"], "operationId": "gl_openapi", "summary": "This OpenAPI document", "responses": { "200": { "description": "OpenAPI 3 document" } } }
+    },
+    "/m/gl/me": {
+      "get": {
+        "tags": ["gl (GL)"], "operationId": "gl_me", "summary": "The caller's identity and roles in the tenant",
+        "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }],
+        "responses": { "200": { "description": "tenantId, actor, roles" }, "401": { "$ref": "#/components/responses/gl_Error" } }
+      }
+    },
+    "/m/gl/roles": {
+      "get": {
+        "tags": ["gl (GL)"], "operationId": "gl_listRoles", "summary": "Role assignments in the tenant (GL_ADMIN)",
+        "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }],
+        "responses": { "200": { "description": "Assignments by user" }, "403": { "$ref": "#/components/responses/gl_Error" } }
+      }
+    },
+    "/m/gl/roles/audit": {
+      "get": {
+        "tags": ["gl (GL)"], "operationId": "gl_listRoleAudit", "summary": "Append-only history of role changes (GL_ADMIN)",
+        "parameters": [{ "$ref": "#/components/parameters/gl_Tenant" }],
+        "responses": { "200": { "description": "Role audit entries in order" }, "403": { "$ref": "#/components/responses/gl_Error" } }
+      }
+    },
+    "/m/gl/roles/{actor}": {
+      "put": {
+        "tags": ["gl (GL)"], "operationId": "gl_setRoles", "summary": "Replace a user's roles in the tenant (GL_ADMIN; not your own; keeps one admin; reason required)",
+        "parameters": [
+          { "$ref": "#/components/parameters/gl_Tenant" },
+          { "name": "actor", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object", "required": ["roles", "reason"], "additionalProperties": false,
+            "properties": {
+              "roles": { "type": "array", "items": { "type": "string", "enum": ["GL_ADMIN", "CONFIG_EDITOR", "CONFIG_APPROVER", "OPERATOR", "VIEWER"] } },
+              "reason": { "type": "string" }
+            }
+          } } }
+        },
+        "responses": { "200": { "description": "Roles after the change, with granted/revoked" }, "400": { "$ref": "#/components/responses/gl_Error" }, "403": { "$ref": "#/components/responses/gl_Error" }, "409": { "$ref": "#/components/responses/gl_Error" } }
+      }
     },
     "/m/gl/configs": {
       "get": {

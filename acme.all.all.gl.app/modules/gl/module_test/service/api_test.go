@@ -106,7 +106,7 @@ func TestConfigRoutesRequireIdentity(t *testing.T) {
 func TestLifecycleIsolationAndImmutabilityOverHTTP(t *testing.T) {
 	requireModule(t)
 	id := fmt.Sprintf("HTTP_%d", time.Now().UnixNano()%1e12)
-	c := call(t, "POST", "/configs", "API_A", "ba@example.com", map[string]any{"configId": id, "effectiveFrom": "2026-01-01",
+	c := call(t, "POST", "/configs", "API_A", "ba@example.com", map[string]any{"configId": id, "effectiveFrom": "2026-01-01", "reason": "http test",
 		"content": map[string]any{"sourceSystems": []any{map[string]any{"code": "POLICY", "kind": "POLICY"}}}})
 	if c.status != 201 || c.body["status"] != "draft" {
 		t.Fatalf("create: %s", c.raw)
@@ -117,7 +117,7 @@ func TestLifecycleIsolationAndImmutabilityOverHTTP(t *testing.T) {
 	if r := call(t, "POST", "/configs/"+id+"/versions/1/approve", "API_A", "reviewer@example.com", map[string]any{"reason": "ok"}); r.status != 200 || r.body["status"] != "approved" {
 		t.Fatalf("approve: %s", r.raw)
 	}
-	if r := call(t, "PUT", "/configs/"+id+"/versions/1", "API_A", "ba@example.com", map[string]any{"baseDigest": c.body["contentDigest"], "content": map[string]any{}}); r.status != 409 || r.code() != "CONFIG_IMMUTABLE" {
+	if r := call(t, "PUT", "/configs/"+id+"/versions/1", "API_A", "ba@example.com", map[string]any{"baseDigest": c.body["contentDigest"], "content": map[string]any{}, "reason": "edit approved"}); r.status != 409 || r.code() != "CONFIG_IMMUTABLE" {
 		t.Errorf("edit approved: %s", r.raw)
 	}
 	if r := call(t, "GET", "/configs/"+id+"/effective?date=2026-02-01", "API_A", "ba@example.com", nil); r.status != 200 || r.body["version"] != float64(1) {
@@ -128,5 +128,32 @@ func TestLifecycleIsolationAndImmutabilityOverHTTP(t *testing.T) {
 	}
 	if r := call(t, "GET", "/configs", "API_B", "ba@example.com", nil); strings.Contains(r.raw, id) {
 		t.Errorf("tenant B lists tenant A's configuration: %s", r.raw)
+	}
+}
+
+// US-004 over HTTP: the maker cannot approve, roles gate actions, outsiders are refused.
+func TestMakerCheckerAndRolesOverHTTP(t *testing.T) {
+	requireModule(t)
+	id := fmt.Sprintf("MC_%d", time.Now().UnixNano()%1e12)
+	if r := call(t, "POST", "/configs", "API_A", "lead@example.com", map[string]any{"configId": id, "effectiveFrom": "2026-01-01", "reason": "lead drafts"}); r.status != 201 {
+		t.Fatalf("create: %s", r.raw)
+	}
+	if r := call(t, "POST", "/configs/"+id+"/versions/1/validate", "API_A", "lead@example.com", nil); r.status != 200 {
+		t.Fatalf("validate: %s", r.raw)
+	}
+	if r := call(t, "POST", "/configs/"+id+"/versions/1/approve", "API_A", "lead@example.com", map[string]any{"reason": "mine"}); r.status != 403 || r.code() != "SELF_APPROVAL" {
+		t.Errorf("self-approval: %s", r.raw)
+	}
+	if r := call(t, "POST", "/configs/"+id+"/versions/1/approve", "API_A", "viewer@example.com", map[string]any{"reason": "x"}); r.status != 403 || r.code() != "FORBIDDEN" {
+		t.Errorf("viewer approval: %s", r.raw)
+	}
+	if r := call(t, "POST", "/configs/"+id+"/versions/1/approve", "API_A", "reviewer@example.com", map[string]any{"reason": "independent review"}); r.status != 200 {
+		t.Errorf("independent approval: %s", r.raw)
+	}
+	if r := call(t, "GET", "/configs", "API_B", "lead@example.com", nil); r.status != 403 || r.code() != "NO_TENANT_ACCESS" {
+		t.Errorf("cross-tenant: %s", r.raw)
+	}
+	if r := call(t, "GET", "/me", "API_A", "lead@example.com", nil); !strings.Contains(r.raw, "CONFIG_APPROVER") || !strings.Contains(r.raw, "CONFIG_EDITOR") {
+		t.Errorf("me: %s", r.raw)
 	}
 }
