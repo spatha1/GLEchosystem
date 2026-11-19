@@ -1,0 +1,39 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Secrets and local environment — never commit
+.env
+.env.*
+!.env.example
+**/.mycel.infra/secrets/*
+!**/.mycel.infra/secrets/.gitkeep
+*.pem
+*.key
+
+# Agent instruction files (local)
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+
+# Go build and test output
+*.test
+*.out
+coverage.out
+*.coverprofile
+**/module/service/server
+**/module/service/server.exe
+
+# Node / UI build output
+**/node_modules/
+**/ui/dist/
+
+# Derived Mycel build state (regenerated, never edited)
+**/.mycel/
+**/.mycel.infra/docker-compose.yml
+
+# Logs / process state
+*.log
+*.pid
