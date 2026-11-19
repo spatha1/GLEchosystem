@@ -435,6 +435,47 @@ func (ev *evaluator) call(x call) (Value, error) {
 			}
 		}
 		return best, nil
+	case "IN":
+		if len(x.args) < 2 {
+			return Null, errAt(x.p, "ARITY", "IN(value, candidate, …) takes at least 2 arguments")
+		}
+		v, err := ev.eval(x.args[0])
+		if err != nil || v.Kind == KNull {
+			return v, err
+		}
+		for _, a := range x.args[1:] {
+			c, err := ev.eval(a)
+			if err != nil {
+				return Null, err
+			}
+			if c.Kind == KNull {
+				continue
+			}
+			eq, err := compare(x.p, "==", v, c)
+			if err != nil {
+				return Null, err
+			}
+			if eq.Bool {
+				return Bool(true), nil
+			}
+		}
+		return Bool(false), nil
+	case "LIKE":
+		if len(x.args) != 2 {
+			return Null, errAt(x.p, "ARITY", "LIKE(value, 'pattern') takes 2 arguments")
+		}
+		pat, ok := x.args[1].(strLit)
+		if !ok {
+			return Null, errAt(x.p, "TYPE_MISMATCH", "the LIKE pattern must be a string literal (* = any run of characters, ? = one character)")
+		}
+		v, err := ev.eval(x.args[0])
+		if err != nil || v.Kind == KNull {
+			return v, err
+		}
+		if v.Kind != KString {
+			return Null, errAt(x.p, "TYPE_MISMATCH", "LIKE needs a string, got %s", v.Kind)
+		}
+		return Bool(Glob(pat.s, v.Str)), nil
 	case "SUM":
 		return ev.sum(x)
 	case "COUNT":

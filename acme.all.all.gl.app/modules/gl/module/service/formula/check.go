@@ -282,6 +282,29 @@ func (c *checker) call(x call, inAggregate bool) Type {
 			return c.fail(x.p, "TYPE_MISMATCH", "%s needs numbers", x.name)
 		}
 		return t
+	case "IN":
+		if len(x.args) < 2 {
+			return c.fail(x.p, "ARITY", "IN takes at least 2 arguments")
+		}
+		t := c.check(x.args[0], inAggregate)
+		for _, a := range x.args[1:] {
+			u := c.check(a, inAggregate)
+			if !unknown(t) && !unknown(u) {
+				c.compare(a.pos(), "==", t, u)
+			}
+		}
+		return Type{Kind: KBool}
+	case "LIKE":
+		if !args(2) {
+			return Type{Kind: KBool}
+		}
+		if t := c.check(x.args[0], inAggregate); !unknown(t) && t.Kind != KString {
+			c.fail(x.p, "TYPE_MISMATCH", "LIKE needs a string, got %s", t.Kind)
+		}
+		if _, ok := x.args[1].(strLit); !ok {
+			c.fail(x.p, "TYPE_MISMATCH", "the LIKE pattern must be a string literal")
+		}
+		return Type{Kind: KBool}
 	case "SUM":
 		if !args(1) {
 			return Type{Kind: KNull}

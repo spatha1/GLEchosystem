@@ -40,6 +40,8 @@ type Document struct {
 	SourceAuthority []SourceAuthority
 	BaseMeasures    []BaseMeasure
 	DerivedMeasures []DerivedMeasure
+	Dimensions      []Dimension
+	Lookups         []Lookup
 }
 
 var codeRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
@@ -89,6 +91,10 @@ func Parse(canonical []byte) (*Document, []Finding) {
 	doc.BaseMeasures, f = decodeSection[BaseMeasure]("baseMeasures", s["baseMeasures"])
 	fs = append(fs, f...)
 	doc.DerivedMeasures, f = decodeSection[DerivedMeasure]("derivedMeasures", s["derivedMeasures"])
+	fs = append(fs, f...)
+	doc.Dimensions, f = decodeSection[Dimension]("dimensions", s["dimensions"])
+	fs = append(fs, f...)
+	doc.Lookups, f = decodeSection[Lookup]("lookups", s["lookups"])
 	fs = append(fs, f...)
 	return doc, fs
 }

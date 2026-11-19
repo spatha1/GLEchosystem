@@ -26,8 +26,9 @@ type EventType struct {
 	// EconomicKey lists the fields whose values identify the economic event independently of
 	// the source and intake mode; economicEventKey = <code>:<value>:<value>…
 	EconomicKey []string    `json:"economicKey"`
-	Measures    []string    `json:"measures,omitempty"` // measures carried once per event
-	Lists       []EventList `json:"lists,omitempty"`    // 1:N children, e.g. ALLOCATION_LIST
+	Measures    []string    `json:"measures,omitempty"`   // measures carried once per event
+	Dimensions  []string    `json:"dimensions,omitempty"` // dimensions carried by the event (US-008)
+	Lists       []EventList `json:"lists,omitempty"`      // 1:N children, e.g. ALLOCATION_LIST
 }
 
 // EventList is a 1:N child collection of an event; its measures are carried once per item,

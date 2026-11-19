@@ -119,16 +119,16 @@
         "dimensions": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/dimension"
           },
-          "description": "Detailed by US-008"
+          "description": "US-008"
         },
         "lookups": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/lookup"
           },
-          "description": "Detailed by US-008"
+          "description": "US-008: derived dimensions"
         },
         "datePolicies": {
           "type": "array",
@@ -340,6 +340,13 @@
               }
             }
           }
+        },
+        "dimensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "description": "Dimensions the event carries (US-008)"
         }
       }
     },
@@ -441,6 +448,120 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/code"
+          }
+        }
+      }
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "custom": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "open": {
+          "type": "boolean"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "normalizations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sourceSystem",
+              "map"
+            ],
+            "properties": {
+              "sourceSystem": {
+                "$ref": "#/$defs/code"
+              },
+              "caseInsensitive": {
+                "type": "boolean"
+              },
+              "map": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "derivedBy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lookup"
+          ],
+          "properties": {
+            "lookup": {
+              "$ref": "#/$defs/code"
+            }
+          }
+        }
+      }
+    },
+    "lookup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "input",
+        "output",
+        "entries"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "description": {
+          "type": "string"
+        },
+        "input": {
+          "$ref": "#/$defs/code"
+        },
+        "output": {
+          "$ref": "#/$defs/code"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "value"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "effectiveFrom": {
+                "$ref": "#/$defs/date"
+              },
+              "effectiveTo": {
+                "$ref": "#/$defs/date"
+              }
+            }
           }
         }
       }

@@ -373,3 +373,49 @@ func TestCoerceGivesLiteralsTheirDeclaredType(t *testing.T) {
 		t.Errorf("null stays null: %v %v", n, err)
 	}
 }
+
+// Filter operators for dimensions: IN and LIKE (glob wildcards).
+func TestInAndLikeOperators(t *testing.T) {
+	env := p1()
+	env.vals["PRODUCT"] = String("MOTOR_PRIVATE")
+	cases := map[string]string{
+		"IN(LOB, 'MOTOR', 'HOME')":                     "true",
+		"IN(LOB, 'HOME', 'COMMERCIAL')":                "false",
+		"NOT IN(LOB, 'HOME')":                          "true",
+		"LIKE(PRODUCT, 'MOTOR_*')":                     "true",
+		"LIKE(PRODUCT, 'MOTOR_?RIVATE')":               "true",
+		"LIKE(PRODUCT, '*PRIVATE')":                    "true",
+		"LIKE(PRODUCT, 'HOME*')":                       "false",
+		"LIKE(PRODUCT, 'motor_*')":                     "false", // case-sensitive: values are canonical
+		"LIKE(LOB, '*')":                               "true",
+		"IN(PREMIUM, 1000, 2000)":                      "true",
+		"IN(MISSING, 'X')":                             "null",
+		"IN(LOB, 'MOTOR') AND LIKE(PRODUCT, 'MOTOR*')": "true",
+	}
+	for src, want := range cases {
+		v, _, err := eval(t, src, env)
+		if err != nil || v.String() != want {
+			t.Errorf("%s = %v (%v), want %s", src, v, err, want)
+		}
+	}
+	for src, want := range map[string]string{"LIKE(PREMIUM, '1*')": "TYPE_MISMATCH", "LIKE(LOB, LOB)": "TYPE_MISMATCH", "IN(LOB)": "ARITY", "IN(LOB, 1)": "TYPE_MISMATCH"} {
+		if _, _, err := eval(t, src, env); code(err) != want {
+			t.Errorf("%s: want %s, got %v", src, want, err)
+		}
+	}
+	for p, s := range map[string]string{"": "", "*": "", "a*b*c": "aXbYc", "?": "x"} {
+		if !Glob(p, s) {
+			t.Errorf("Glob(%q, %q) should match", p, s)
+		}
+	}
+	for p, s := range map[string]string{"": "x", "a*b": "acd", "?": "", "a?": "abc"} {
+		if Glob(p, s) {
+			t.Errorf("Glob(%q, %q) should not match", p, s)
+		}
+	}
+	n, _ := Parse("LOB == 'MOTOR' OR IN(COUNTRY, 'AU', 'NZ') OR 'C01' != COMPANY")
+	got := StringComparisons(n)
+	if len(got) != 3 || got[0].Field != "LOB" || len(got[1].Values) != 2 || got[2].Field != "COMPANY" {
+		t.Errorf("comparisons: %+v", got)
+	}
+}

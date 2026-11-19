@@ -1,0 +1,14 @@
+{
+  "catalogVersion": "gl.dimensions.ootb/v1",
+  "dimensions": [
+    { "code": "COUNTRY", "name": "Country", "description": "Country of the risk or the legal entity (ISO 3166-1 alpha-2).", "open": false },
+    { "code": "COMPANY", "name": "Legal company", "description": "Legal entity that books the transaction; each journal balances per company and currency.", "open": false },
+    { "code": "LOB", "name": "Line of business", "description": "Line of business of the policy (e.g. MOTOR, HOME).", "open": false },
+    { "code": "PRODUCT", "name": "Product", "description": "Insurance product the policy was sold under.", "open": false },
+    { "code": "TRANSACTION_TYPE", "name": "Transaction type", "description": "Source transaction type (new business, endorsement, cancellation, renewal, …) after normalisation.", "open": false },
+    { "code": "CURRENCY", "name": "Currency", "description": "Transaction currency (ISO 4217).", "open": false },
+    { "code": "BANK_ACCOUNT", "name": "Bank account", "description": "Bank account a payment was deposited to (an identifier; any value).", "open": true },
+    { "code": "BANKING_COMPANY", "name": "Banking company", "description": "Legal company that owns the bank account a payment landed in; derived by lookup from BANK_ACCOUNT.", "open": false },
+    { "code": "BOOKING_CLASS", "name": "Booking class", "description": "A (advance, effective in a future period) or C (current); derived by the date policy (US-009).", "open": false }
+  ]
+}

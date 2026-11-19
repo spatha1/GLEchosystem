@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"gl/formula"
 )
@@ -238,10 +239,19 @@ type ConfigRef struct {
 // EventInput is the data of one event for evaluation: measure values as decimal strings in
 // the event currency, and list items (a list item may carry "@currency" when it differs).
 type EventInput struct {
-	EventType string                         `json:"eventType"`
-	Currency  string                         `json:"currency"`
-	Measures  map[string]string              `json:"measures"`
-	Lists     map[string][]map[string]string `json:"lists,omitempty"`
+	EventType     string                         `json:"eventType"`
+	Currency      string                         `json:"currency"`
+	EffectiveDate string                         `json:"effectiveDate,omitempty"` // date for effective-dated lookups (default: open windows only)
+	Measures      map[string]string              `json:"measures"`
+	Dimensions    map[string]string              `json:"dimensions,omitempty"` // canonical values (normalised at intake)
+	Lists         map[string][]map[string]string `json:"lists,omitempty"`
+}
+
+// Evaluation is everything evaluating one event produces: its resolved dimensions (with the
+// lookups that derived them) and its derived measures, each with lineage.
+type Evaluation struct {
+	Dimensions []ResolvedDimension `json:"dimensions"`
+	Derived    []Derived           `json:"derived"`
 }
 
 // Derived is one evaluated derived measure with its lineage.
@@ -295,6 +305,16 @@ func toValue(m Measure, s, currency string) (formula.Value, error) {
 // dependency order, and returns each value with its lineage. An unknown measure in the
 // input, a bad number, or any formula error is returned as an error — never skipped.
 func EvaluateDerived(d *Document, ref ConfigRef, in EventInput) ([]Derived, error) {
+	e, err := EvaluateEvent(d, ref, in)
+	if err != nil {
+		return nil, err
+	}
+	return e.Derived, nil
+}
+
+// EvaluateEvent resolves an event's dimensions (lookups included) and evaluates its derived
+// measures, in dependency order, with lineage.
+func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error) {
 	var ev EventType
 	found := false
 	for _, e := range d.Events {
@@ -303,23 +323,23 @@ func EvaluateDerived(d *Document, ref ConfigRef, in EventInput) ([]Derived, erro
 		}
 	}
 	if !found {
-		return nil, &formula.Error{Code: "UNKNOWN_EVENT", Message: in.EventType + " is not in the event catalog"}
+		return Evaluation{}, &formula.Error{Code: "UNKNOWN_EVENT", Message: in.EventType + " is not in the event catalog"}
 	}
 	if !currencyRe(in.Currency) {
-		return nil, &formula.Error{Code: "INVALID_CURRENCY", Message: fmt.Sprintf("currency %q must be an ISO 4217 code", in.Currency)}
+		return Evaluation{}, &formula.Error{Code: "INVALID_CURRENCY", Message: fmt.Sprintf("currency %q must be an ISO 4217 code", in.Currency)}
 	}
 	measures := ResolveMeasures(d)
 	env := &inputEnv{vals: map[string]formula.Value{}, lists: map[string][]formula.Item{}}
 	for _, code := range ev.Measures {
 		v, err := toValue(measures[code], in.Measures[code], in.Currency)
 		if err != nil {
-			return nil, &formula.Error{Code: "INVALID_INPUT", Message: fmt.Sprintf("%s: %v", code, err)}
+			return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: fmt.Sprintf("%s: %v", code, err)}
 		}
 		env.vals[code] = v
 	}
 	for k := range in.Measures {
 		if !oneOf(k, ev.Measures) {
-			return nil, &formula.Error{Code: "UNKNOWN_IDENTIFIER", Message: fmt.Sprintf("event %s does not carry measure %s", ev.Code, k)}
+			return Evaluation{}, &formula.Error{Code: "UNKNOWN_IDENTIFIER", Message: fmt.Sprintf("event %s does not carry measure %s", ev.Code, k)}
 		}
 	}
 	for _, l := range ev.Lists {
@@ -333,7 +353,7 @@ func EvaluateDerived(d *Document, ref ConfigRef, in EventInput) ([]Derived, erro
 			for _, m := range l.Measures {
 				v, err := toValue(measures[m], raw[m], ccy)
 				if err != nil {
-					return nil, &formula.Error{Code: "INVALID_INPUT", Message: fmt.Sprintf("%s item %d %s: %v", l.Code, i, m, err)}
+					return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: fmt.Sprintf("%s item %d %s: %v", l.Code, i, m, err)}
 				}
 				it[m] = v
 			}
@@ -342,10 +362,32 @@ func EvaluateDerived(d *Document, ref ConfigRef, in EventInput) ([]Derived, erro
 		env.lists[l.Code] = items
 	}
 
+	day := time.Time{}
+	if in.EffectiveDate != "" {
+		t, ok := ParseDay(in.EffectiveDate)
+		if !ok {
+			return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: "effectiveDate must be YYYY-MM-DD"}
+		}
+		day = t
+	}
+	resolved, err := ResolveDimensions(d, ref, ev, in.Dimensions, day)
+	if err != nil {
+		return Evaluation{}, err
+	}
+	for _, code := range eventDimensions(d, ev) {
+		env.vals[code] = formula.Null
+	}
+	for _, r := range resolved {
+		env.vals[r.Dimension] = formula.String(r.Value)
+	}
+	if resolved == nil {
+		resolved = []ResolvedDimension{}
+	}
+
 	syms := eventSymbols(d, ev, measures)
 	order, err := topoOrder(d)
 	if err != nil {
-		return nil, err
+		return Evaluation{}, err
 	}
 	var out []Derived
 	for _, dm := range order {
@@ -354,23 +396,23 @@ func EvaluateDerived(d *Document, ref ConfigRef, in EventInput) ([]Derived, erro
 		}
 		node, perr := formula.Parse(dm.Formula)
 		if perr != nil {
-			return nil, perr
+			return Evaluation{}, perr
 		}
 		if _, errs := formula.Check(node, syms); len(errs) > 0 {
 			continue // does not apply to this event (validation guarantees it applies somewhere)
 		}
 		v, tr, err := formula.Eval(node, env, formula.Options{})
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", dm.Code, err)
+			return Evaluation{}, fmt.Errorf("%s: %w", dm.Code, err)
 		}
 		v, err = formula.Coerce(v, resultKinds[dm.ResultType], in.Currency)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", dm.Code, err)
+			return Evaluation{}, fmt.Errorf("%s: %w", dm.Code, err)
 		}
 		env.vals[dm.Code] = v
 		out = append(out, Derived{Code: dm.Code, Value: v.String(), Formula: dm.Formula, FormulaDigest: FormulaDigest(dm.Formula), Config: ref, Trace: tr, value: v})
 	}
-	return out, nil
+	return Evaluation{Dimensions: resolved, Derived: out}, nil
 }
 
 // topoOrder orders derived measures so each comes after those it reads.
