@@ -112,9 +112,9 @@
         "derivedMeasures": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/derivedMeasure"
           },
-          "description": "Detailed by US-007"
+          "description": "US-007: formulas over measures, in the bounded GL formula language"
         },
         "dimensions": {
           "type": "array",
@@ -408,6 +408,42 @@
         }
       },
       "description": "No account or side: a base measure is not a posting."
+    },
+    "derivedMeasure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "formula",
+        "resultType"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "description": {
+          "type": "string"
+        },
+        "formula": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "resultType": {
+          "enum": [
+            "AMOUNT",
+            "NUMBER",
+            "BOOL",
+            "STRING",
+            "DATE"
+          ]
+        },
+        "eventTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          }
+        }
+      }
     }
   }
 }
