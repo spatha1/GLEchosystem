@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gl/exception-case.schema.json",
+  "title": "Exception case (C7)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "caseId", "tenantId", "category", "status", "raisedAt", "detail"],
+  "properties": {
+    "schemaVersion": { "const": "gl.exception/v1" },
+    "caseId": { "type": "string", "minLength": 1 },
+    "tenantId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "category": {
+      "enum": ["MISSING_MAPPING", "STALE_MAPPING", "UNKNOWN_CODE", "MISSING_KEY", "KEY_CONFLICT", "DUPLICATE_EVENT", "SOURCE_AUTHORITY_CONFLICT", "AMBIGUOUS_RULE", "MISSING_ACCOUNT", "FORMULA_ERROR", "UNBALANCED", "CLOSED_PERIOD", "RECONCILIATION_BREAK"]
+    },
+    "status": { "enum": ["open", "assigned", "resolved", "reprocessed", "closed"] },
+    "raisedAt": { "type": "string", "format": "date-time" },
+    "economicEventKey": { "type": "string" },
+    "sourceSystem": { "type": "string" },
+    "sourceRowIds": { "type": "array", "items": { "type": "string" } },
+    "configId": { "type": "string" },
+    "configVersion": { "type": "integer", "minimum": 1 },
+    "mappingVersion": { "type": "integer", "minimum": 1 },
+    "detail": { "type": "object" },
+    "assignedTo": { "type": "string" },
+    "resolution": { "type": "string" }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gl/mapping-version.schema.json",
+  "title": "Source mapping version (C3)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tenantId", "mappingId", "version", "status", "configId", "configVersion", "manifestDigest", "sourceSystem", "fields"],
+  "properties": {
+    "schemaVersion": { "const": "gl.mapping/v1" },
+    "tenantId": { "$ref": "#/$defs/code" },
+    "mappingId": { "$ref": "#/$defs/code" },
+    "version": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["suggested", "reviewed", "approved", "rejected", "stale"] },
+    "configId": { "$ref": "#/$defs/code" },
+    "configVersion": { "type": "integer", "minimum": 1 },
+    "manifestDigest": { "$ref": "#/$defs/digest" },
+    "sourceSystem": { "$ref": "#/$defs/code" },
+    "dataWorkbench": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceConnectionId": { "type": "integer" },
+        "targetConnectionId": { "type": "integer" },
+        "studioMappingId": { "type": "integer" }
+      }
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["eventType", "fieldCode", "origin", "decision"],
+        "properties": {
+          "eventType": { "$ref": "#/$defs/code" },
+          "fieldCode": { "$ref": "#/$defs/code" },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["object", "column"],
+            "properties": {
+              "object": { "type": "string", "minLength": 1 },
+              "column": { "type": "string", "minLength": 1 },
+              "transform": { "type": "string" }
+            }
+          },
+          "joinPath": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["parentObject", "parentColumn", "childObject", "childColumn", "cardinality"],
+              "properties": {
+                "parentObject": { "type": "string" },
+                "parentColumn": { "type": "string" },
+                "childObject": { "type": "string" },
+                "childColumn": { "type": "string" },
+                "cardinality": { "enum": ["ONE_TO_ONE", "ONE_TO_MANY", "MANY_TO_ONE"] }
+              }
+            }
+          },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "origin": { "enum": ["DWB_RANK", "DWB_SUGGEST", "MANUAL"] },
+          "decision": { "enum": ["SUGGESTED", "ACCEPTED", "CORRECTED", "REJECTED"] },
+          "reviewNote": { "type": "string" }
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposedBy"],
+      "properties": {
+        "proposedBy": { "type": "string", "minLength": 1 },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "reason": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

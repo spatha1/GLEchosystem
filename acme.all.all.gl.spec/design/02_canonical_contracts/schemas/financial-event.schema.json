@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gl/financial-event.schema.json",
+  "title": "Canonical financial event (C4)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tenantId", "sourceSystem", "sourceEventId", "sourceEventVersion", "eventType", "economicEventKey", "company", "currency", "dates", "keys", "measures", "sourceRowIds"],
+  "properties": {
+    "schemaVersion": { "const": "gl.event/v1" },
+    "tenantId": { "$ref": "#/$defs/code" },
+    "sourceSystem": { "$ref": "#/$defs/code" },
+    "sourceEventId": { "type": "string", "minLength": 1 },
+    "sourceEventVersion": { "type": "integer", "minimum": 1 },
+    "eventType": { "$ref": "#/$defs/code" },
+    "economicEventKey": { "type": "string", "minLength": 1 },
+    "company": { "type": "string", "minLength": 1 },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "dates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactionDate", "effectiveDate"],
+      "properties": {
+        "transactionDate": { "$ref": "#/$defs/date" },
+        "effectiveDate": { "$ref": "#/$defs/date" },
+        "recordedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "keys": { "type": "object", "propertyNames": { "$ref": "#/$defs/code" }, "additionalProperties": { "type": "string", "minLength": 1 } },
+    "measures": { "type": "object", "propertyNames": { "$ref": "#/$defs/code" }, "additionalProperties": { "$ref": "#/$defs/decimal" } },
+    "dimensions": { "type": "object", "propertyNames": { "$ref": "#/$defs/code" }, "additionalProperties": { "type": "string" } },
+    "lists": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/code" },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["itemId"],
+          "properties": {
+            "itemId": { "type": "string", "minLength": 1 },
+            "keys": { "type": "object", "additionalProperties": { "type": "string" } },
+            "measures": { "type": "object", "additionalProperties": { "$ref": "#/$defs/decimal" } },
+            "dimensions": { "type": "object", "additionalProperties": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "sourceRowIds": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "mappingId": { "$ref": "#/$defs/code" },
+    "mappingVersion": { "type": "integer", "minimum": 1 },
+    "collectedAt": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "decimal": { "type": "string", "pattern": "^-?[0-9]+(\\.[0-9]+)?$" }
+  }
+}

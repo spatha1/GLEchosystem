@@ -1,0 +1,9 @@
+{
+  "description": "Client setup A: premium and tax from Policy, invoices and payments from Billing, all as raw events.",
+  "sourceAuthority": [
+    { "eventType": "PREM_ADDED", "measure": "PREMIUM", "sourceSystem": "POLICY", "intakeMode": "RAW_EVENT" },
+    { "eventType": "PREM_ADDED", "measure": "TAX", "sourceSystem": "POLICY", "intakeMode": "RAW_EVENT" },
+    { "eventType": "INVOICED", "measure": "INVOICE_AMT", "sourceSystem": "BILLING", "intakeMode": "RAW_EVENT" },
+    { "eventType": "PAYMENT_RECEIVED", "measure": "PAY_AMT", "sourceSystem": "BILLING", "intakeMode": "RAW_EVENT" }
+  ]
+}

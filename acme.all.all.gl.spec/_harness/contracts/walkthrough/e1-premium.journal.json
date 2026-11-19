@@ -1,0 +1,26 @@
+[
+  {
+    "schemaVersion": "gl.journal/v1",
+    "journalId": "J:PREMIUM:P1:T1:C01:AUD",
+    "groupId": "G:PREMIUM:P1:T1",
+    "tenantId": "DEMO",
+    "economicEventKey": "PREMIUM:P1:T1",
+    "eventType": "PREM_ADDED",
+    "legalEntity": "C01",
+    "currency": "AUD",
+    "intakeMode": "RAW_EVENT",
+    "bookingDate": "2026-01-01",
+    "effectiveDate": "2026-01-01",
+    "accountingPeriod": "2026-01",
+    "status": "posted",
+    "configId": "DEMO_GL",
+    "configVersion": 1,
+    "mappingId": "DEMO_POLICY",
+    "mappingVersion": 1,
+    "lines": [
+      { "lineId": "J:PREMIUM:P1:T1:C01:AUD/1", "account": "9948523", "accountingClass": "AR0", "side": "D", "amount": "1100.00", "subledgerKey": "POLICY:P1", "sourceRowIds": ["POLICY_TXN:P1:1"], "ruleId": "PR_PREM_ADDED", "ruleVersion": 1, "explanation": "GROSS = PREMIUM + TAX to policy receivable" },
+      { "lineId": "J:PREMIUM:P1:T1:C01:AUD/2", "account": "4100100", "accountingClass": "PW0", "side": "C", "amount": "1000.00", "sourceRowIds": ["POLICY_TXN:P1:1"], "ruleId": "PR_PREM_ADDED", "ruleVersion": 1, "explanation": "PREMIUM to written premium" },
+      { "lineId": "J:PREMIUM:P1:T1:C01:AUD/3", "account": "2200100", "accountingClass": "TX0", "side": "C", "amount": "100.00", "sourceRowIds": ["POLICY_TXN:P1:1"], "ruleId": "PR_PREM_ADDED", "ruleVersion": 1, "explanation": "TAX to tax payable" }
+    ]
+  }
+]

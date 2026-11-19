@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gl/config-version.schema.json",
+  "title": "GL configuration version (C1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tenantId", "configId", "version", "status", "effectiveFrom", "content"],
+  "properties": {
+    "schemaVersion": { "const": "gl.config/v1" },
+    "tenantId": { "$ref": "#/$defs/code" },
+    "configId": { "$ref": "#/$defs/code" },
+    "version": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["draft", "validated", "approved", "retired"] },
+    "effectiveFrom": { "$ref": "#/$defs/date" },
+    "effectiveTo": { "oneOf": [{ "$ref": "#/$defs/date" }, { "type": "null" }] },
+    "contentDigest": { "$ref": "#/$defs/digest" },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["submittedBy"],
+      "properties": {
+        "submittedBy": { "type": "string", "minLength": 1 },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "approvedBy": { "type": "string", "minLength": 1 },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "reason": { "type": "string" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceSystems": { "type": "array", "items": { "$ref": "#/$defs/sourceSystem" } },
+        "sourceAuthority": { "type": "array", "items": { "$ref": "#/$defs/sourceAuthority" } },
+        "events": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-005" },
+        "baseMeasures": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-006" },
+        "derivedMeasures": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-007" },
+        "dimensions": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-008" },
+        "lookups": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-008" },
+        "datePolicies": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-009" },
+        "calendars": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-009" },
+        "keyProfiles": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-010" },
+        "accountingClasses": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-011" },
+        "accounts": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-011" },
+        "postingRules": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-012" },
+        "accountAssignmentRules": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-013" },
+        "reconciliationEquations": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-028" },
+        "outputProfiles": { "type": "array", "items": { "type": "object" }, "description": "Detailed by US-039" }
+      }
+    }
+  },
+  "$defs": {
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "sourceSystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "kind"],
+      "properties": {
+        "code": { "$ref": "#/$defs/code" },
+        "kind": { "enum": ["POLICY", "BILLING", "CLAIMS", "EARNINGS", "SOURCE_JOURNAL", "CUSTOM"] },
+        "description": { "type": "string" }
+      }
+    },
+    "sourceAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventType", "measure", "sourceSystem", "intakeMode"],
+      "properties": {
+        "eventType": { "$ref": "#/$defs/code" },
+        "measure": { "$ref": "#/$defs/code" },
+        "sourceSystem": { "$ref": "#/$defs/code" },
+        "intakeMode": { "enum": ["RAW_EVENT", "SOURCE_JOURNAL"] },
+        "effectiveFrom": { "$ref": "#/$defs/date" },
+        "effectiveTo": { "$ref": "#/$defs/date" }
+      }
+    }
+  }
+}

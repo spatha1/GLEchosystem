@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "gl.event/v1",
+  "tenantId": "DEMO",
+  "sourceSystem": "BILLING",
+  "sourceEventId": "R1",
+  "sourceEventVersion": 1,
+  "eventType": "PAYMENT_RECEIVED",
+  "economicEventKey": "PAYMENT:R1",
+  "company": "C01",
+  "currency": "AUD",
+  "dates": { "transactionDate": "2026-01-10", "effectiveDate": "2026-01-10" },
+  "keys": { "POLICY_NO": "P1", "RECEIPT_NO": "R1" },
+  "measures": { "PAY_AMT": "1099.50" },
+  "dimensions": { "BANK_ACCOUNT": "BANK-C09" },
+  "lists": {
+    "ALLOCATION_LIST": [
+      { "itemId": "A1", "keys": { "INVOICE_NO": "INV1" }, "measures": { "ALLOC_AMT": "550.00" } },
+      { "itemId": "A2", "keys": { "INVOICE_NO": "INV2" }, "measures": { "ALLOC_AMT": "549.50" } }
+    ]
+  },
+  "sourceRowIds": ["RECEIPT:R1", "ALLOCATION:A1", "ALLOCATION:A2"],
+  "mappingId": "DEMO_BILLING",
+  "mappingVersion": 1
+}

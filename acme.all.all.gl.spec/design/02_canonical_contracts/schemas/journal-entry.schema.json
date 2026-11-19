@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gl/journal-entry.schema.json",
+  "title": "Journal entry (C6) — one per posting group, legal entity and currency",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "journalId", "groupId", "tenantId", "economicEventKey", "legalEntity", "currency", "intakeMode", "bookingDate", "accountingPeriod", "status", "configId", "configVersion", "lines"],
+  "properties": {
+    "schemaVersion": { "const": "gl.journal/v1" },
+    "journalId": { "type": "string", "minLength": 1 },
+    "groupId": { "type": "string", "minLength": 1 },
+    "tenantId": { "$ref": "#/$defs/code" },
+    "economicEventKey": { "type": "string", "minLength": 1 },
+    "eventType": { "$ref": "#/$defs/code" },
+    "legalEntity": { "type": "string", "minLength": 1 },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "intakeMode": { "enum": ["RAW_EVENT", "SOURCE_JOURNAL"] },
+    "bookingDate": { "$ref": "#/$defs/date" },
+    "effectiveDate": { "$ref": "#/$defs/date" },
+    "accountingPeriod": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+    "status": { "enum": ["posted", "reversed"] },
+    "configId": { "$ref": "#/$defs/code" },
+    "configVersion": { "type": "integer", "minimum": 1 },
+    "mappingId": { "$ref": "#/$defs/code" },
+    "mappingVersion": { "type": "integer", "minimum": 1 },
+    "sourceJournalId": { "type": "string" },
+    "reversalOf": { "type": "string" },
+    "correctionOf": { "type": "string" },
+    "lines": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lineId", "account", "accountingClass", "side", "amount", "sourceRowIds"],
+        "properties": {
+          "lineId": { "type": "string", "minLength": 1 },
+          "account": { "type": "string", "minLength": 1 },
+          "accountingClass": { "$ref": "#/$defs/code" },
+          "side": { "enum": ["D", "C"] },
+          "amount": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?$" },
+          "dimensions": { "type": "object", "additionalProperties": { "type": "string" } },
+          "subledgerKey": { "type": "string" },
+          "sourceRowIds": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+          "sourceLineId": { "type": "string" },
+          "ruleId": { "type": "string" },
+          "ruleVersion": { "type": "integer", "minimum": 1 },
+          "explanation": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+  }
+}

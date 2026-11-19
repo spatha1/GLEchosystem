@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "gl.event/v1",
+  "tenantId": "DEMO",
+  "sourceSystem": "POLICY",
+  "sourceEventId": "E1",
+  "sourceEventVersion": 1,
+  "eventType": "PREM_ADDED",
+  "economicEventKey": "PREMIUM:P1:T1",
+  "company": "C01",
+  "currency": "AUD",
+  "dates": { "transactionDate": "2026-01-01", "effectiveDate": "2026-01-01" },
+  "keys": { "POLICY_NO": "P1", "TERM_NO": "T1" },
+  "measures": { "PREMIUM": "1000.00", "TAX": "100.00" },
+  "dimensions": { "LOB": "MOTOR" },
+  "sourceRowIds": ["POLICY_TXN:P1:1"],
+  "mappingId": "DEMO_POLICY",
+  "mappingVersion": 1
+}

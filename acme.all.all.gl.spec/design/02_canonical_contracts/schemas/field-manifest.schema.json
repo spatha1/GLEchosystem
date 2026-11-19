@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gl/field-manifest.schema.json",
+  "title": "Required-field manifest (C2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tenantId", "configId", "configVersion", "configDigest", "manifestDigest", "events"],
+  "properties": {
+    "schemaVersion": { "const": "gl.manifest/v1" },
+    "tenantId": { "$ref": "#/$defs/code" },
+    "configId": { "$ref": "#/$defs/code" },
+    "configVersion": { "type": "integer", "minimum": 1 },
+    "configDigest": { "$ref": "#/$defs/digest" },
+    "manifestDigest": { "$ref": "#/$defs/digest" },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["eventType", "fields"],
+        "properties": {
+          "eventType": { "$ref": "#/$defs/code" },
+          "sourceSystem": { "$ref": "#/$defs/code" },
+          "fields": { "type": "array", "items": { "$ref": "#/$defs/field" } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fieldCode", "kind", "dataType", "cardinality", "mandatory", "requiredBy"],
+      "properties": {
+        "fieldCode": { "$ref": "#/$defs/code" },
+        "definition": { "type": "string" },
+        "kind": { "enum": ["SOURCE", "DERIVED", "LEDGER_STATE"] },
+        "dataType": { "enum": ["STRING", "DECIMAL", "INTEGER", "DATE", "TIMESTAMP", "BOOLEAN", "CODE"] },
+        "cardinality": { "enum": ["ONE", "LIST"] },
+        "listCode": { "$ref": "#/$defs/code" },
+        "mandatory": { "type": "boolean" },
+        "keyRole": { "enum": ["BUSINESS_KEY", "LINK_KEY", "DEDUP_KEY", "NONE"] },
+        "derivedFrom": { "type": "array", "items": { "$ref": "#/$defs/code" } },
+        "requiredBy": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "ref"],
+            "properties": {
+              "kind": { "enum": ["POSTING_RULE", "FORMULA", "FILTER", "KEY_PROFILE", "DATE_POLICY", "ACCOUNT_ASSIGNMENT", "LOOKUP", "EVENT_RECOGNITION", "RECONCILIATION"] },
+              "ref": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

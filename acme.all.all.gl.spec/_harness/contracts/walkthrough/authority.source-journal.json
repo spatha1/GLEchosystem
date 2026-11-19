@@ -1,0 +1,9 @@
+{
+  "description": "Client setup B: payments are posted from Billing's own pre-balanced journal; Policy is still authoritative for premium.",
+  "sourceAuthority": [
+    { "eventType": "PREM_ADDED", "measure": "PREMIUM", "sourceSystem": "POLICY", "intakeMode": "RAW_EVENT" },
+    { "eventType": "PREM_ADDED", "measure": "TAX", "sourceSystem": "POLICY", "intakeMode": "RAW_EVENT" },
+    { "eventType": "INVOICED", "measure": "INVOICE_AMT", "sourceSystem": "BILLING", "intakeMode": "RAW_EVENT" },
+    { "eventType": "PAYMENT_RECEIVED", "measure": "PAY_AMT", "sourceSystem": "BILLING_GL", "intakeMode": "SOURCE_JOURNAL" }
+  ]
+}

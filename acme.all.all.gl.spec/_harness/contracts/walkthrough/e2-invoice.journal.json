@@ -1,0 +1,27 @@
+[
+  {
+    "schemaVersion": "gl.journal/v1",
+    "journalId": "J:INVOICING:P1:T1:1:C01:AUD",
+    "groupId": "G:INVOICING:P1:T1:1",
+    "tenantId": "DEMO",
+    "economicEventKey": "INVOICING:P1:T1:1",
+    "eventType": "INVOICED",
+    "legalEntity": "C01",
+    "currency": "AUD",
+    "intakeMode": "RAW_EVENT",
+    "bookingDate": "2026-01-05",
+    "effectiveDate": "2026-01-05",
+    "accountingPeriod": "2026-01",
+    "status": "posted",
+    "configId": "DEMO_GL",
+    "configVersion": 1,
+    "mappingId": "DEMO_BILLING",
+    "mappingVersion": 1,
+    "lines": [
+      { "lineId": "J:INVOICING:P1:T1:1:C01:AUD/INV1/1", "account": "9948600", "accountingClass": "AR1", "side": "D", "amount": "550.00", "subledgerKey": "INVOICE:INV1", "sourceRowIds": ["INVOICE:INV1"], "ruleId": "PR_INVOICED", "ruleVersion": 1, "explanation": "expandBy INVOICE_LIST: invoice receivable" },
+      { "lineId": "J:INVOICING:P1:T1:1:C01:AUD/INV1/2", "account": "9948523", "accountingClass": "AR0", "side": "C", "amount": "550.00", "subledgerKey": "POLICY:P1", "sourceRowIds": ["INVOICE:INV1"], "ruleId": "PR_INVOICED", "ruleVersion": 1, "explanation": "expandBy INVOICE_LIST: relieve policy receivable" },
+      { "lineId": "J:INVOICING:P1:T1:1:C01:AUD/INV2/1", "account": "9948600", "accountingClass": "AR1", "side": "D", "amount": "550.00", "subledgerKey": "INVOICE:INV2", "sourceRowIds": ["INVOICE:INV2"], "ruleId": "PR_INVOICED", "ruleVersion": 1, "explanation": "expandBy INVOICE_LIST: invoice receivable" },
+      { "lineId": "J:INVOICING:P1:T1:1:C01:AUD/INV2/2", "account": "9948523", "accountingClass": "AR0", "side": "C", "amount": "550.00", "subledgerKey": "POLICY:P1", "sourceRowIds": ["INVOICE:INV2"], "ruleId": "PR_INVOICED", "ruleVersion": 1, "explanation": "expandBy INVOICE_LIST: relieve policy receivable" }
+    ]
+  }
+]

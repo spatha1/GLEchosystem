@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "gl.event/v1",
+  "tenantId": "DEMO",
+  "sourceSystem": "BILLING",
+  "sourceEventId": "E2",
+  "sourceEventVersion": 1,
+  "eventType": "INVOICED",
+  "economicEventKey": "INVOICING:P1:T1:1",
+  "company": "C01",
+  "currency": "AUD",
+  "dates": { "transactionDate": "2026-01-05", "effectiveDate": "2026-01-05" },
+  "keys": { "POLICY_NO": "P1", "TERM_NO": "T1" },
+  "measures": { "INVOICE_AMT": "1100.00" },
+  "lists": {
+    "INVOICE_LIST": [
+      { "itemId": "INV1", "keys": { "INVOICE_NO": "INV1" }, "measures": { "INVOICE_AMT": "550.00" } },
+      { "itemId": "INV2", "keys": { "INVOICE_NO": "INV2" }, "measures": { "INVOICE_AMT": "550.00" } }
+    ]
+  },
+  "sourceRowIds": ["INVOICE:INV1", "INVOICE:INV2"],
+  "mappingId": "DEMO_BILLING",
+  "mappingVersion": 1
+}

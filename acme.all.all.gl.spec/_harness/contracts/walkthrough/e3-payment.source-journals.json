@@ -1,0 +1,50 @@
+{
+  "description": "Client setup B: Billing's own GL feed for receipt R1, already balanced per company. Account references are Billing's; GL maps them to its COA.",
+  "accountRefMap": {
+    "BGL-1000": { "account": "1000900", "accountingClass": "PR0" },
+    "BGL-2501": { "account": "2500101", "accountingClass": "IC1" },
+    "BGL-1501": { "account": "1500109", "accountingClass": "IC0" },
+    "BGL-1210": { "account": "9948600", "accountingClass": "AR1" }
+  },
+  "journals": [
+    {
+      "schemaVersion": "gl.source-journal/v1",
+      "tenantId": "DEMO",
+      "sourceSystem": "BILLING_GL",
+      "sourceJournalId": "BGL-77001",
+      "sourceJournalVersion": 1,
+      "economicEventKey": "PAYMENT:R1",
+      "eventType": "PAYMENT_RECEIVED",
+      "company": "C09",
+      "currency": "AUD",
+      "bookingDate": "2026-01-10",
+      "lines": [
+        { "sourceLineId": "BGL-77001-1", "accountRef": "BGL-1000", "side": "D", "amount": "1099.50" },
+        { "sourceLineId": "BGL-77001-2", "accountRef": "BGL-2501", "side": "C", "amount": "1099.50" }
+      ],
+      "sourceRowIds": ["BGL_LINE:BGL-77001-1", "BGL_LINE:BGL-77001-2"],
+      "mappingId": "DEMO_BILLING_GL",
+      "mappingVersion": 1
+    },
+    {
+      "schemaVersion": "gl.source-journal/v1",
+      "tenantId": "DEMO",
+      "sourceSystem": "BILLING_GL",
+      "sourceJournalId": "BGL-77002",
+      "sourceJournalVersion": 1,
+      "economicEventKey": "PAYMENT:R1",
+      "eventType": "PAYMENT_RECEIVED",
+      "company": "C01",
+      "currency": "AUD",
+      "bookingDate": "2026-01-10",
+      "lines": [
+        { "sourceLineId": "BGL-77002-1", "accountRef": "BGL-1501", "side": "D", "amount": "1099.50" },
+        { "sourceLineId": "BGL-77002-2", "accountRef": "BGL-1210", "side": "C", "amount": "550.00", "dimensions": { "INVOICE_NO": "INV1" } },
+        { "sourceLineId": "BGL-77002-3", "accountRef": "BGL-1210", "side": "C", "amount": "549.50", "dimensions": { "INVOICE_NO": "INV2" } }
+      ],
+      "sourceRowIds": ["BGL_LINE:BGL-77002-1", "BGL_LINE:BGL-77002-2", "BGL_LINE:BGL-77002-3"],
+      "mappingId": "DEMO_BILLING_GL",
+      "mappingVersion": 1
+    }
+  ]
+}

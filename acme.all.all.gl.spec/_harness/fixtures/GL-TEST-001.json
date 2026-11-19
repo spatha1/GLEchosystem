@@ -1,0 +1,102 @@
+{
+  "testId": "GL-TEST-001",
+  "synthetic": true,
+  "currency": "AUD",
+  "tenantId": "DEMO",
+  "policyNo": "P1",
+  "configVersion": "demo-v1",
+  "events": [
+    {
+      "eventId": "E1",
+      "date": "2026-01-01",
+      "type": "PREM_ADDED",
+      "premium": "1000.00",
+      "tax": "100.00",
+      "company": "C01",
+      "lob": "MOTOR"
+    },
+    {
+      "eventId": "E2",
+      "date": "2026-01-05",
+      "type": "INVOICED",
+      "invoices": [
+        {
+          "invoiceNo": "INV1",
+          "amount": "550.00"
+        },
+        {
+          "invoiceNo": "INV2",
+          "amount": "550.00"
+        }
+      ]
+    },
+    {
+      "eventId": "E3",
+      "date": "2026-01-10",
+      "type": "PAYMENT_RECEIVED",
+      "receiptNo": "R1",
+      "amount": "1099.50",
+      "bankCompany": "C09",
+      "policyCompany": "C01",
+      "allocations": [
+        {
+          "invoiceNo": "INV1",
+          "amount": "550.00"
+        },
+        {
+          "invoiceNo": "INV2",
+          "amount": "549.50"
+        }
+      ]
+    },
+    {
+      "eventId": "E4",
+      "date": "2026-01-15",
+      "type": "WRITE_OFF",
+      "invoiceNo": "INV2",
+      "amountExpression": "OPEN_BALANCE(INV2)"
+    },
+    {
+      "eventId": "E5",
+      "date": "2026-01-20",
+      "effectiveDate": "2026-02-01",
+      "type": "ENDORSEMENT",
+      "premium": "200.00",
+      "company": "C01"
+    },
+    {
+      "eventId": "E5R",
+      "date": "2026-02-01",
+      "type": "ADVANCE_RECLASS",
+      "sourceEventId": "E5"
+    },
+    {
+      "eventId": "E6",
+      "date": "2026-02-05",
+      "type": "SOURCE_DATA_FIX",
+      "rebuildKey": "P1",
+      "correctsEventId": "E5",
+      "correctedPremium": "220.00"
+    }
+  ],
+  "expect": {
+    "journalGroups": 7,
+    "journalLines": 22,
+    "everyJournalBalanced": true,
+    "everyCompanyCurrencyBalanced": true,
+    "invoiceOpen": {
+      "INV1": "0.00",
+      "INV2": "0.00"
+    },
+    "remainingPolicyReceivable": "220.00",
+    "intercompanyDueToPlusDueFrom": "0.00",
+    "e6NetDeltaDr": "20.00",
+    "e6NetDeltaCr": "20.00",
+    "repeatRunCreatesNewPostings": false
+  },
+  "notes": [
+    "G1 3 lines; G2 4; G3 5; G4 2; G5 2; G5R 4; G6 delta 2.",
+    "No physical client data, dates chosen for a deterministic demo.",
+    "All amounts use decimal strings, never IEEE float."
+  ]
+}
