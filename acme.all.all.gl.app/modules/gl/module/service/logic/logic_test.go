@@ -121,13 +121,13 @@ func TestValidatorsRunAndReportDeterministically(t *testing.T) {
 		}
 		return fs
 	})
-	_, _, shape, _ := CanonicalContent([]byte(`{"baseMeasures":[{},{"code":"X"},{}]}`))
-	rep := ValidateContent(shape)
+	cb, _, shape, _ := CanonicalContent([]byte(`{"baseMeasures":[{},{"code":"X"},{}]}`))
+	rep := ValidateContent(cb, shape)
 	if rep.OK || len(rep.Findings) != 2 || rep.Findings[0].Path != "baseMeasures/0" {
 		t.Fatalf("report: %+v", rep)
 	}
-	_, _, ok, _ := CanonicalContent([]byte(`{"baseMeasures":[{"code":"X"}]}`))
-	if r := ValidateContent(ok); !r.OK || r.Findings == nil {
+	cok, _, ok, _ := CanonicalContent([]byte(`{"baseMeasures":[{"code":"X"}]}`))
+	if r := ValidateContent(cok, ok); !r.OK || r.Findings == nil {
 		t.Errorf("a clean section should validate with an empty (non-null) findings list: %+v", r)
 	}
 	defer func() {

@@ -30,6 +30,14 @@ ui/                            <gl-app> custom element
 | Concurrency | Edits must quote the `baseDigest` they started from (`STALE_VERSION` otherwise) |
 | Digest | `sha256` of the canonical JSON (sorted keys; numbers kept exactly as written; never floats) |
 
+## Configuration model (package `model`)
+
+`POST …/validate` runs the typed configuration model (`service/model`), with every section strictly decoded (unknown fields are findings) and checked across sections. A version with blocking findings cannot be validated, so it cannot be approved.
+
+| Story | Section | Rules |
+|---|---|---|
+| US-005 | `sourceSystems`, `events`, `sourceAuthority` | Event types are configuration (code, economic key, measures, 1:N lists with item keys). Authority is per **event × measure × effective window `[from, to)`**: a specific measure takes precedence over `"*"`; any other overlap is `AMBIGUOUS_SOURCE_AUTHORITY`; a carried measure without authority is `MISSING_SOURCE_AUTHORITY`. A measure has one grain (event or list). Runtime asks `model.ResolveAuthority` / `model.MayPost`: a non-authoritative copy is reconciliation-only |
+
 ## Roles and maker-checker (US-004)
 
 Identity comes from the platform: the app core sets `x-mycel-user`, and the request names its tenant in `x-gl-tenant`. **What a user may do in a tenant is GL's own decision**, stored per tenant in `role_assignment`:

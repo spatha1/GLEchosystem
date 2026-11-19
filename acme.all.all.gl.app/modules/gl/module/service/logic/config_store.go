@@ -553,14 +553,14 @@ func validateVersion(c *call) modulesdk.Response {
 	if cur.Status != "draft" {
 		return errConflict("INVALID_STATE", fmt.Sprintf("only a draft can be validated; version %d is %s", n, cur.Status), false).response()
 	}
-	_, digest, shape, e := contentOrError(cur.Content)
+	canonical, digest, shape, e := contentOrError(cur.Content)
 	if e != nil {
 		return e.response()
 	}
 	if digest != cur.ContentDigest {
 		return errInternal("stored content does not match its digest").response()
 	}
-	rep := ValidateContent(shape)
+	rep := ValidateContent(canonical, shape)
 	repJSON, _ := json.Marshal(rep)
 	if !rep.OK {
 		if err := audit(c.host, c.id, configID, n, "validation_failed", reason, "draft", "draft", digest, rep); err != nil {

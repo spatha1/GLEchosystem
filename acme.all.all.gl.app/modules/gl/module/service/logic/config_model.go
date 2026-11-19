@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"gl/model"
 )
 
 // SchemaVersion is the configuration contract version (spec C1) this module stores.
@@ -28,13 +30,9 @@ var Sections = []string{
 	"reconciliationEquations", "outputProfiles",
 }
 
-// Finding is one validation result. Severity "error" blocks validation; "warning" does not.
-type Finding struct {
-	Path     string `json:"path"`
-	Code     string `json:"code"`
-	Severity string `json:"severity"`
-	Message  string `json:"message"`
-}
+// Finding is one validation result (shared with the typed model). Severity "error" blocks
+// validation; "warning" does not.
+type Finding = model.Finding
 
 // Report is the outcome of validating one configuration version.
 type Report struct {
@@ -125,10 +123,11 @@ func CanonicalContent(raw []byte) (canonical []byte, digest string, shape map[st
 	return canonical, "sha256:" + hex.EncodeToString(sum[:]), shape, nil
 }
 
-// ValidateContent runs every registered section validator over a configuration and returns
-// the report. Findings are sorted so a report is reproducible byte for byte.
-func ValidateContent(shape map[string][]map[string]any) Report {
-	var fs []Finding
+// ValidateContent validates a configuration: the typed model's cross-section rules
+// (package model) plus any registered section validator. Findings are sorted so a report
+// is reproducible byte for byte.
+func ValidateContent(canonical []byte, shape map[string][]map[string]any) Report {
+	fs := model.ValidateCanonical(canonical)
 	for _, s := range Sections {
 		for _, v := range sectionValidators[s] {
 			fs = append(fs, v(shape[s], shape)...)

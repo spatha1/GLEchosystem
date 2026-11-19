@@ -15,8 +15,11 @@ const (
 
 var sampleContent = map[string]any{
 	"sourceSystems": []any{map[string]any{"code": "POLICY", "kind": "POLICY"}, map[string]any{"code": "BILLING", "kind": "BILLING"}},
+	"events": []any{
+		map[string]any{"code": "PREM_ADDED", "economicKey": []any{"POLICY_NO", "TERM_NO"}, "measures": []any{"PREMIUM", "TAX"}},
+	},
 	"sourceAuthority": []any{
-		map[string]any{"eventType": "PREM_ADDED", "measure": "PREMIUM", "sourceSystem": "POLICY", "intakeMode": "RAW_EVENT"},
+		map[string]any{"eventType": "PREM_ADDED", "measure": "*", "sourceSystem": "POLICY", "intakeMode": "RAW_EVENT"},
 	},
 }
 
