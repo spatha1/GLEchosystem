@@ -10,9 +10,51 @@ export interface Option {
 	label: string;
 }
 
+export interface MeasureDef {
+	code: string;
+	name: string;
+	category: string;
+	definition: string;
+	dataType: string;
+	sign: string;
+	grain: string;
+	sourceScope: string[];
+}
+
+export interface EventTemplate {
+	code: string;
+	name: string;
+	area: string;
+	purpose: string;
+	sourceKind: string;
+	economicKey: string[];
+	keys?: string[];
+	measures: string[];
+	dimensions: string[];
+	lists?: { code: string; itemKey: string[]; keys?: string[]; measures?: string[] }[];
+}
+
+export interface KeyDef {
+	code: string;
+	description?: string;
+	scope?: string[];
+	links?: { to: string; cardinality: string }[];
+}
+
+export interface EventCatalog {
+	catalogVersion: string;
+	scope: string;
+	status: string;
+	areas: { code: string; name: string }[];
+	events: EventTemplate[];
+	keys: KeyDef[];
+}
+
 export interface Catalog {
 	measures: Option[];
 	dimensions: Option[];
+	measureDefs?: MeasureDef[];
+	events?: EventCatalog;
 }
 
 export interface Field {
@@ -27,6 +69,9 @@ export interface Field {
 	options?: (c: Content, cat: Catalog, item: any) => Option[];
 	fields?: Field[]; // for rows
 	pairKeys?: (c: Content, cat: Catalog, item: any) => Option[]; // suggested keys for pairs
+	newOnly?: boolean; // shown only when adding an item
+	/** Runs after the user sets the field (e.g. a template filling the rest of the form). */
+	onset?: (item: any, value: any, c: Content, cat: Catalog) => void;
 }
 
 export interface SectionSpec {
@@ -39,7 +84,7 @@ export interface SectionSpec {
 	columns: { label: string; value: (item: any, c: Content) => string; mono?: boolean }[];
 	blank: (c: Content) => any;
 	/** Extra writes when an item is saved (e.g. an event's source authority). */
-	apply?: (c: Content, item: any, original?: string) => Content;
+	apply?: (c: Content, item: any, original?: string, cat?: Catalog) => Content;
 	/** Virtual fields read from the content when an item is opened for editing. */
 	load?: (c: Content, item: any) => any;
 }
@@ -62,7 +107,55 @@ export function dimensionOptions(c: Content, cat: Catalog): Option[] {
 	const configured = ((c.dimensions ?? []) as any[]).map((d) => ({ value: d.code, label: d.description ? `${d.code} · ${d.description}` : d.code }));
 	return uniq([...configured, ...cat.dimensions]);
 }
-const keyOptions = (c: Content) => opt(codes(c, 'keyProfiles'));
+const keyOptions = (c: Content, cat?: Catalog) =>
+	uniq([
+		...opt(codes(c, 'keyProfiles')),
+		...(cat?.events?.keys ?? []).map((k) => ({ value: k.code, label: `${k.code} · ${k.description ?? ''} (standard)` }))
+	]);
+
+/** The catalog keys a set of key codes needs: themselves and every key they are scoped by or linked to. */
+export function keyClosure(cat: Catalog, wanted: string[]): KeyDef[] {
+	const all = cat.events?.keys ?? [];
+	const need = new Set<string>();
+	const visit = (code: string) => {
+		if (need.has(code)) return;
+		need.add(code);
+		const k = all.find((x) => x.code === code);
+		for (const s of k?.scope ?? []) visit(s);
+		for (const l of k?.links ?? []) visit(l.to);
+	};
+	wanted.forEach(visit);
+	return all.filter((k) => need.has(k.code));
+}
+
+/** Declares the business keys and standard dimensions an event uses that the content lacks. */
+export function declareUses(c: Content, ev: any, cat?: Catalog): Content {
+	const out = { ...c };
+	const used = [...(ev.economicKey ?? []), ...(ev.keys ?? []), ...((ev.lists ?? []) as any[]).flatMap((l) => [...(l.itemKey ?? []), ...(l.keys ?? [])])];
+	const haveKeys = new Set(codes(c, 'keyProfiles'));
+	const addKeys = cat ? keyClosure(cat, used).filter((k) => !haveKeys.has(k.code)) : [];
+	if (addKeys.length) out.keyProfiles = [...((c.keyProfiles ?? []) as any[]), ...addKeys.map((k) => JSON.parse(JSON.stringify(k)))];
+	const haveDims = new Set(codes(c, 'dimensions'));
+	const standard = new Set((cat?.dimensions ?? []).map((d) => d.value));
+	const addDims = ((ev.dimensions ?? []) as string[]).filter((d) => !haveDims.has(d) && standard.has(d));
+	if (addDims.length) out.dimensions = [...((c.dimensions ?? []) as any[]), ...addDims.map((code) => ({ code }))];
+	return out;
+}
+
+/** Fills an event form from a catalog template. */
+function fromTemplate(item: any, code: string, c: Content, cat: Catalog) {
+	const t = cat.events?.events.find((e) => e.code === code);
+	if (!t) return;
+	if (!item.code) item.code = t.code;
+	item.description = t.purpose;
+	item.economicKey = [...t.economicKey];
+	item.keys = t.keys ? [...t.keys] : [];
+	item.measures = [...t.measures];
+	item.dimensions = [...t.dimensions];
+	item.lists = JSON.parse(JSON.stringify(t.lists ?? []));
+	const src = ((c.sourceSystems ?? []) as any[]).find((s) => s.kind === t.sourceKind);
+	if (src && !item._sourceSystem) item._sourceSystem = src.code;
+}
 const eventOptions = (c: Content) => opt(codes(c, 'events'));
 
 export const specs: Record<string, SectionSpec> = {
@@ -131,6 +224,20 @@ export const specs: Record<string, SectionSpec> = {
 		noun: 'business event',
 		key: (x) => x.code,
 		fields: [
+			{
+				key: '_template',
+				label: 'Start from the insurance event catalog',
+				type: 'select',
+				newOnly: true,
+				wide: true,
+				help: 'A standard general-insurance event fills the form; change anything you need, or define your own.',
+				options: (_c, cat) =>
+					(cat.events?.events ?? []).map((t) => ({
+						value: t.code,
+						label: `${cat.events?.areas.find((a) => a.code === t.area)?.name ?? t.area} · ${t.code} — ${t.name}`
+					})),
+				onset: (item, v, c, cat) => fromTemplate(item, v, c, cat)
+			},
 			{ key: 'code', label: 'Event code', type: 'code', required: true, fixedOnEdit: true, placeholder: 'e.g. ENDORSEMENT' },
 			{ key: 'description', label: 'Business purpose', type: 'text', wide: true, placeholder: 'What happened in the business' },
 			{ key: '_sourceSystem', label: 'Comes from (source system)', type: 'select', options: (c) => opt(codes(c, 'sourceSystems')), help: 'Authority for all of its measures' },
@@ -171,12 +278,13 @@ export const specs: Record<string, SectionSpec> = {
 			const a = ((c.sourceAuthority ?? []) as any[]).find((x) => x.eventType === item.code && x.measure === '*');
 			return { ...item, _sourceSystem: a?.sourceSystem ?? '', _intakeMode: a?.intakeMode ?? 'RAW_EVENT' };
 		},
-		apply: (c, item, original) => {
+		apply: (c, item, original, cat) => {
+			const out = declareUses(c, item, cat);
 			const src = item._sourceSystem;
-			if (!src) return c;
-			const auth = ((c.sourceAuthority ?? []) as any[]).filter((x) => !(x.eventType === (original ?? item.code) && x.measure === '*' && !x.effectiveFrom));
+			if (!src) return out;
+			const auth = ((out.sourceAuthority ?? []) as any[]).filter((x) => !(x.eventType === (original ?? item.code) && x.measure === '*' && !x.effectiveFrom));
 			auth.push({ eventType: item.code, measure: '*', sourceSystem: src, intakeMode: item._intakeMode || 'RAW_EVENT' });
-			return { ...c, sourceAuthority: auth };
+			return { ...out, sourceAuthority: auth };
 		}
 	},
 	baseMeasures: {
@@ -482,7 +590,7 @@ export function cleanItem(fields: Field[], item: any): any {
 }
 
 /** Content with one item of a section replaced (by its key), added, or removed (item null). */
-export function withItem(c: Content, spec: SectionSpec, item: any | null, originalKey?: string): Content {
+export function withItem(c: Content, spec: SectionSpec, item: any | null, originalKey?: string, cat?: Catalog): Content {
 	const items = [...((c[spec.section] ?? []) as any[])];
 	const i = originalKey ? items.findIndex((x) => spec.key(x) === originalKey) : -1;
 	let out: Content;
@@ -494,7 +602,7 @@ export function withItem(c: Content, spec: SectionSpec, item: any | null, origin
 		if (i >= 0) items[i] = clean;
 		else items.push(clean);
 		out = { ...c, [spec.section]: items };
-		if (spec.apply) out = spec.apply(out, item, originalKey);
+		if (spec.apply) out = spec.apply(out, item, originalKey, cat);
 	}
 	if (!(out[spec.section] as any[]).length) delete out[spec.section];
 	return out;

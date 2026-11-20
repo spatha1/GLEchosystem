@@ -13,6 +13,7 @@ import premRaw from '../test/prem-added.view.json';
 import payRaw from '../test/payment-received.view.json';
 import e3Raw from '../test/e3.plan.json';
 import fixtureConfig from '../../../../../../../acme.all.all.gl.spec/_harness/fixtures/GL-TEST-001.config.json';
+import eventCatalog from '../../../service/model/ootb_events.json';
 import RulePage from './RulePage.svelte';
 import FieldsTable from './FieldsTable.svelte';
 import Simulator from './Simulator.svelte';
@@ -347,5 +348,33 @@ describe('guided event flow', () => {
 		expect(within(nav).getAllByText('not built yet')).toHaveLength(5);
 		await fireEvent.click(screen.getByRole('button', { name: '5. Measures and formulas →' }));
 		expect(ctx.go).toHaveBeenCalledWith({ configId: 'GL_TEST_001', version: 1, event: 'PREM_ADDED', etab: 'measures' });
+	});
+});
+
+describe('insurance event catalog', () => {
+	const cat = {
+		measures: [],
+		dimensions: ['COMPANY', 'LOB', 'PRODUCT', 'BANK_ACCOUNT'].map((value) => ({ value, label: value })),
+		events: eventCatalog as any
+	};
+	it('fills a new event from a template and declares the keys and dimensions it needs', () => {
+		const item: any = { code: '', economicKey: [], measures: [], dimensions: [] };
+		const tmpl = specs.events.fields.find((f) => f.key === '_template')!;
+		tmpl.onset!(item, 'CLAIM_PAID', content, cat);
+		expect(item).toMatchObject({ code: 'CLAIM_PAID', economicKey: ['CLAIM_NO', 'CLAIM_TXN_NO'], measures: ['CLAIM_PAYMENT', 'CLAIM_EXPENSE', 'EXCESS'] });
+		item._sourceSystem = 'POLICY';
+		const c = withItem(content, specs.events, item, undefined, cat);
+		const keys = c.keyProfiles.map((k: any) => k.code);
+		expect(keys).toEqual(expect.arrayContaining(['CLAIM_NO', 'CLAIM_TXN_NO', 'POLICY_NO']));
+		expect(keys.filter((k: string) => k === 'POLICY_NO')).toHaveLength(1); // already there: not duplicated
+		expect(c.dimensions.map((d: any) => d.code)).toEqual(expect.arrayContaining(['BANK_ACCOUNT', 'COMPANY', 'LOB']));
+		expect(c.dimensions).toHaveLength(content.dimensions.length); // all three were already declared
+		expect(c.sourceAuthority.at(-1)).toEqual({ eventType: 'CLAIM_PAID', measure: '*', sourceSystem: 'POLICY', intakeMode: 'RAW_EVENT' });
+		expect(c.events.at(-1)).not.toHaveProperty('_template');
+	});
+	it('offers every template grouped by insurance area', () => {
+		const opts = specs.events.fields.find((f) => f.key === '_template')!.options!(content, cat, {});
+		expect(opts.length).toBe((eventCatalog as any).events.length);
+		expect(opts.find((o) => o.value === 'NEW_BUSINESS')?.label).toBe('Policy lifecycle · NEW_BUSINESS — New business written');
 	});
 });

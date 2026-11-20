@@ -194,6 +194,26 @@
 						findings={view.findings}
 					/>
 					<SectionEditor {ctx} spec={specs.baseMeasures} findings={view.findings} />
+					{#if ctx.catalog.measureDefs?.length}
+						<details class="card catalog" open={!view.measures.length}>
+							<summary><b>Standard insurance measures</b> <span class="muted small">({ctx.catalog.measureDefs.length}, general insurance) — use them by editing the event in step 4</span></summary>
+							{#each [...new Set(ctx.catalog.measureDefs.map((m) => m.category))] as cat (cat)}
+								<h4>{cat.toLowerCase()}</h4>
+								<table class="data">
+									<tbody>
+										{#each ctx.catalog.measureDefs.filter((m) => m.category === cat) as m (m.code)}
+											<tr>
+												<td class="mono w"><b>{m.code}</b></td>
+												<td class="small"><b>{m.name}</b> — {m.definition}</td>
+												<td class="small muted nw">{m.sign.toLowerCase()}, {m.grain === 'ANY' ? 'event or item' : m.grain.toLowerCase()} · {m.sourceScope.join(', ').toLowerCase()}</td>
+												<td>{#if view.measures.some((x) => x.code === m.code)}<span class="badge ok">carried</span>{/if}</td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							{/each}
+						</details>
+					{/if}
 				{:else if step === 'context'}
 					<section class="card">
 						<h3>Filters</h3>
@@ -476,6 +496,15 @@
 	.sub {
 		margin: 8px 0 0;
 		font-size: 15px;
+	}
+	.catalog summary {
+		cursor: pointer;
+	}
+	.catalog .w {
+		width: 160px;
+	}
+	.catalog .nw {
+		white-space: nowrap;
 	}
 	.nav {
 		margin-top: 6px;

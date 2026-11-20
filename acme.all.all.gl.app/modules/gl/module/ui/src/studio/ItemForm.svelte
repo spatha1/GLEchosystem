@@ -18,7 +18,10 @@
 	let adding = $state<Record<string, string>>({});
 
 	const val = (f: Field) => getPath(item, f.key);
-	const set = (f: Field, v: any) => setPath(item, f.key, v);
+	const set = (f: Field, v: any) => {
+		setPath(item, f.key, v);
+		f.onset?.(item, v, content, catalog);
+	};
 	const opts = (f: Field) => f.options?.(content, catalog, item) ?? [];
 	const arr = (f: Field): string[] => (Array.isArray(val(f)) ? val(f) : []);
 
@@ -40,7 +43,7 @@
 </script>
 
 <div class="form" class:compact>
-	{#each fields as f (f.key)}
+	{#each fields.filter((x) => !(editing && x.newOnly)) as f (f.key)}
 		<div class="f" class:wide={f.wide && !compact} class:full={f.type === 'rows' || f.type === 'pairs'}>
 			{#if f.type === 'bool'}
 				<label class="check"><input type="checkbox" checked={!!val(f)} onchange={(e) => set(f, (e.currentTarget as HTMLInputElement).checked)} /> {f.label}</label>

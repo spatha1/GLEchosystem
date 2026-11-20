@@ -58,7 +58,7 @@
 		editing = { original: spec.key(x), item: spec.load ? spec.load(ctx.content, item) : item };
 	}
 
-	const candidate = $derived(editing ? withItem(ctx.content, spec, editing.item, editing.original) : null);
+	const candidate = $derived(editing ? withItem(ctx.content, spec, editing.item, editing.original, ctx.catalog) : null);
 
 	$effect(() => {
 		const c = candidate;

@@ -22,12 +22,20 @@ func TestOOTBCatalogCoversInsuranceMeasures(t *testing.T) {
 		}
 		byCat[m.Category] = append(byCat[m.Category], m.Code)
 	}
-	for _, cat := range []string{"PREMIUM", "TAX", "FEE", "RECEIVABLE", "CASH", "COMMISSION", "CLAIM", "EARNINGS"} {
+	for _, cat := range []string{"PREMIUM", "TAX", "FEE", "RECEIVABLE", "CASH", "COMMISSION", "CLAIM", "EARNINGS", "REINSURANCE"} {
 		if len(byCat[cat]) == 0 {
 			t.Errorf("no OOTB measure for %s", cat)
 		}
 	}
-	if OOTBCatalogVersion() != "gl.measures.ootb/v1" {
+	// General insurance: taxes and levies, claim expenses, excess, recoveries, unearned
+	// premium and the reinsurance measures are standard, not custom.
+	for _, code := range []string{"STAMP_DUTY", "LEVY", "COMMISSION_TAX", "DISHONOUR_AMT", "UNEARNED_PREMIUM", "CLAIM_EXPENSE", "EXCESS", "RECOVERY",
+		"RI_PREMIUM", "RI_COMMISSION", "RI_RECOVERY"} {
+		if _, ok := ootbByCode()[code]; !ok {
+			t.Errorf("%s is not in the OOTB catalog", code)
+		}
+	}
+	if OOTBCatalogVersion() != "gl.measures.ootb/v2" {
 		t.Errorf("catalog version %q", OOTBCatalogVersion())
 	}
 }
@@ -80,9 +88,9 @@ func TestUnknownOrAmbiguousMeasuresBlock(t *testing.T) {
 		code   string
 	}{
 		"event carries an unknown measure": {func(c map[string]any) {
-			c["events"].([]any)[0].(map[string]any)["measures"] = []any{"PREMIUM", "STAMP_DUTY"}
+			c["events"].([]any)[0].(map[string]any)["measures"] = []any{"PREMIUM", "TERRORISM_LEVY"}
 		}, "UNKNOWN_MEASURE"},
-		"override of a non-OOTB code": {func(c map[string]any) { c["baseMeasures"] = []any{map[string]any{"code": "STAMP_DUTY"}} }, "UNKNOWN_MEASURE"},
+		"override of a non-OOTB code": {func(c map[string]any) { c["baseMeasures"] = []any{map[string]any{"code": "TERRORISM_LEVY"}} }, "UNKNOWN_MEASURE"},
 		"custom shadows an OOTB code": {func(c map[string]any) {
 			c["baseMeasures"] = []any{map[string]any{"code": "PREMIUM", "custom": true, "name": "P", "definition": "d", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": []any{"POLICY"}}}
 		}, "AMBIGUOUS_MEASURE"},
@@ -90,10 +98,10 @@ func TestUnknownOrAmbiguousMeasuresBlock(t *testing.T) {
 			c["baseMeasures"] = []any{map[string]any{"code": "TAX"}, map[string]any{"code": "TAX"}}
 		}, "DUPLICATE_MEASURE"},
 		"custom without meaning": {func(c map[string]any) {
-			c["baseMeasures"] = []any{map[string]any{"code": "STAMP_DUTY", "custom": true}}
+			c["baseMeasures"] = []any{map[string]any{"code": "TERRORISM_LEVY", "custom": true}}
 		}, "UNDEFINED_MEASURE"},
 		"custom amount, no ccy": {func(c map[string]any) {
-			c["baseMeasures"] = []any{map[string]any{"code": "STAMP_DUTY", "custom": true, "name": "S", "definition": "d", "dataType": "AMOUNT", "sign": "POSITIVE", "currency": "NONE", "grain": "EVENT", "sourceScope": []any{"POLICY"}}}
+			c["baseMeasures"] = []any{map[string]any{"code": "TERRORISM_LEVY", "custom": true, "name": "S", "definition": "d", "dataType": "AMOUNT", "sign": "POSITIVE", "currency": "NONE", "grain": "EVENT", "sourceScope": []any{"POLICY"}}}
 		}, "INVALID_CURRENCY"},
 		"item measure at event": {func(c map[string]any) {
 			c["events"].([]any)[2].(map[string]any)["measures"] = []any{"PAY_AMT", "INVOICE_AMT"}
@@ -114,14 +122,14 @@ func TestUnknownOrAmbiguousMeasuresBlock(t *testing.T) {
 // A custom measure is available to events once fully defined.
 func TestCustomMeasuresExtendTheCatalog(t *testing.T) {
 	c := p1Catalog("POLICY")
-	c["baseMeasures"] = []any{map[string]any{"code": "STAMP_DUTY", "custom": true, "name": "Stamp duty", "category": "TAX",
-		"definition": "State stamp duty on premium", "dataType": "AMOUNT", "sign": "POSITIVE", "currency": "EVENT", "grain": "EVENT", "sourceScope": []any{"POLICY"}}}
-	c["events"].([]any)[0].(map[string]any)["measures"] = []any{"PREMIUM", "TAX", "STAMP_DUTY"}
+	c["baseMeasures"] = []any{map[string]any{"code": "TERRORISM_LEVY", "custom": true, "name": "Terrorism levy", "category": "TAX",
+		"definition": "Terrorism insurance levy on premium", "dataType": "AMOUNT", "sign": "POSITIVE", "currency": "EVENT", "grain": "EVENT", "sourceScope": []any{"POLICY"}}}
+	c["events"].([]any)[0].(map[string]any)["measures"] = []any{"PREMIUM", "TAX", "TERRORISM_LEVY"}
 	doc, fs := parse(t, c)
 	if e := errorsOf(fs); len(e) > 0 {
 		t.Fatalf("%+v", e)
 	}
-	if m := ResolveMeasures(doc)["STAMP_DUTY"]; m.Origin != "CUSTOM" || m.Category != "TAX" {
+	if m := ResolveMeasures(doc)["TERRORISM_LEVY"]; m.Origin != "CUSTOM" || m.Category != "TAX" {
 		t.Errorf("custom measure: %+v", m)
 	}
 }

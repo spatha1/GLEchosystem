@@ -1,0 +1,593 @@
+{
+  "catalogVersion": "gl.events.ootb/v1",
+  "scope": "General insurance (property and casualty)",
+  "status": "PROPOSED",
+  "areas": [
+    {
+      "code": "POLICY",
+      "name": "Policy lifecycle"
+    },
+    {
+      "code": "BILLING_CASH",
+      "name": "Billing and cash"
+    },
+    {
+      "code": "DISTRIBUTION",
+      "name": "Distribution"
+    },
+    {
+      "code": "CLAIMS",
+      "name": "Claims"
+    },
+    {
+      "code": "REINSURANCE",
+      "name": "Reinsurance"
+    },
+    {
+      "code": "PERIOD_END",
+      "name": "Period end"
+    }
+  ],
+  "events": [
+    {
+      "code": "NEW_BUSINESS",
+      "name": "New business written",
+      "area": "POLICY",
+      "purpose": "A new policy is issued: premium, taxes, levies and fees are written for its first term, with the commission due to the distributor.",
+      "sourceKind": "POLICY",
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO"
+      ],
+      "measures": [
+        "PREMIUM",
+        "TAX",
+        "STAMP_DUTY",
+        "LEVY",
+        "FEE",
+        "COMMISSION"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB",
+        "PRODUCT"
+      ]
+    },
+    {
+      "code": "RENEWAL",
+      "name": "Policy renewed",
+      "area": "POLICY",
+      "purpose": "An existing policy is renewed for a new term: premium, taxes, levies, fees and commission are written for the new term.",
+      "sourceKind": "POLICY",
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO"
+      ],
+      "measures": [
+        "PREMIUM",
+        "TAX",
+        "STAMP_DUTY",
+        "LEVY",
+        "FEE",
+        "COMMISSION"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB",
+        "PRODUCT"
+      ]
+    },
+    {
+      "code": "ENDORSEMENT",
+      "name": "Mid-term endorsement",
+      "area": "POLICY",
+      "purpose": "The cover changes during the term: the additional or returned premium, taxes, levies, fees and commission of the change.",
+      "sourceKind": "POLICY",
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO",
+        "ENDORSEMENT_NO"
+      ],
+      "measures": [
+        "PREMIUM",
+        "TAX",
+        "STAMP_DUTY",
+        "LEVY",
+        "FEE",
+        "COMMISSION"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB",
+        "PRODUCT"
+      ]
+    },
+    {
+      "code": "CANCELLATION",
+      "name": "Policy cancelled",
+      "area": "POLICY",
+      "purpose": "The policy is cancelled during the term: the unexpired premium, taxes, levies, fees and commission are returned (negative amounts).",
+      "sourceKind": "POLICY",
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO"
+      ],
+      "measures": [
+        "PREMIUM",
+        "TAX",
+        "STAMP_DUTY",
+        "LEVY",
+        "FEE",
+        "COMMISSION"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB",
+        "PRODUCT"
+      ]
+    },
+    {
+      "code": "REINSTATEMENT",
+      "name": "Policy reinstated",
+      "area": "POLICY",
+      "purpose": "A cancelled policy is reinstated: the returned premium, taxes, levies, fees and commission are written again.",
+      "sourceKind": "POLICY",
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO"
+      ],
+      "measures": [
+        "PREMIUM",
+        "TAX",
+        "STAMP_DUTY",
+        "LEVY",
+        "FEE",
+        "COMMISSION"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB",
+        "PRODUCT"
+      ]
+    },
+    {
+      "code": "PREM_ADDED",
+      "name": "Premium posted",
+      "area": "POLICY",
+      "purpose": "Premium and tax posted for a policy term (a single generic premium event, as in GL-TEST-001).",
+      "sourceKind": "POLICY",
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO"
+      ],
+      "measures": [
+        "PREMIUM",
+        "TAX"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB",
+        "PRODUCT"
+      ]
+    },
+    {
+      "code": "INVOICED",
+      "name": "Invoice generated",
+      "area": "BILLING_CASH",
+      "purpose": "A billing run invoices the policyholder: one receivable per invoice, moved from the policy receivable.",
+      "sourceKind": "BILLING",
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO",
+        "INVOICE_RUN"
+      ],
+      "measures": [],
+      "dimensions": [
+        "COMPANY",
+        "LOB"
+      ],
+      "lists": [
+        {
+          "code": "INVOICE_LIST",
+          "itemKey": [
+            "INVOICE_NO"
+          ],
+          "measures": [
+            "INVOICE_AMT"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "PAYMENT_RECEIVED",
+      "name": "Payment received",
+      "area": "BILLING_CASH",
+      "purpose": "Cash is received into a bank account and allocated to one or more invoices.",
+      "sourceKind": "BILLING",
+      "economicKey": [
+        "RECEIPT_NO"
+      ],
+      "measures": [
+        "PAY_AMT"
+      ],
+      "dimensions": [
+        "BANK_ACCOUNT",
+        "COMPANY"
+      ],
+      "lists": [
+        {
+          "code": "ALLOCATION_LIST",
+          "itemKey": [
+            "ALLOCATION_ID"
+          ],
+          "keys": [
+            "INVOICE_NO"
+          ],
+          "measures": [
+            "ALLOC_AMT"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "PAYMENT_DISHONOURED",
+      "name": "Payment dishonoured",
+      "area": "BILLING_CASH",
+      "purpose": "A receipt is returned unpaid by the bank: the cash and its allocations are reversed.",
+      "sourceKind": "BILLING",
+      "economicKey": [
+        "RECEIPT_NO"
+      ],
+      "measures": [
+        "DISHONOUR_AMT"
+      ],
+      "dimensions": [
+        "BANK_ACCOUNT",
+        "COMPANY"
+      ]
+    },
+    {
+      "code": "REFUND_PAID",
+      "name": "Refund paid",
+      "area": "BILLING_CASH",
+      "purpose": "Cash is paid back to the policyholder (e.g. after a cancellation or an overpayment).",
+      "sourceKind": "BILLING",
+      "economicKey": [
+        "REFUND_NO"
+      ],
+      "measures": [
+        "REFUND_AMT"
+      ],
+      "dimensions": [
+        "BANK_ACCOUNT",
+        "COMPANY"
+      ],
+      "keys": [
+        "REFUND_NO",
+        "POLICY_NO"
+      ]
+    },
+    {
+      "code": "WRITE_OFF",
+      "name": "Receivable written off",
+      "area": "BILLING_CASH",
+      "purpose": "An invoice balance is written off as uncollectable or below a threshold. Once the subledger exists (US-024) the amount comes from the posted open balance.",
+      "sourceKind": "BILLING",
+      "economicKey": [
+        "INVOICE_NO"
+      ],
+      "measures": [
+        "WRITE_OFF_AMT"
+      ],
+      "dimensions": [
+        "COMPANY"
+      ]
+    },
+    {
+      "code": "COMMISSION_PAID",
+      "name": "Commission paid",
+      "area": "DISTRIBUTION",
+      "purpose": "Commission, and the tax on it, is paid to a broker or agent on a commission statement.",
+      "sourceKind": "BILLING",
+      "economicKey": [
+        "COMMISSION_STATEMENT_NO"
+      ],
+      "measures": [
+        "COMMISSION",
+        "COMMISSION_TAX"
+      ],
+      "dimensions": [
+        "BANK_ACCOUNT",
+        "COMPANY"
+      ],
+      "keys": [
+        "COMMISSION_STATEMENT_NO",
+        "INTERMEDIARY_ID"
+      ]
+    },
+    {
+      "code": "CLAIM_REPORTED",
+      "name": "Claim notified",
+      "area": "CLAIMS",
+      "purpose": "A claim is notified (first notice of loss) and its initial case reserve is set.",
+      "sourceKind": "CLAIMS",
+      "economicKey": [
+        "CLAIM_NO"
+      ],
+      "measures": [
+        "CLAIM_RESERVE"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB"
+      ],
+      "keys": [
+        "CLAIM_NO",
+        "POLICY_NO"
+      ]
+    },
+    {
+      "code": "RESERVE_CHANGED",
+      "name": "Claim reserve changed",
+      "area": "CLAIMS",
+      "purpose": "The case reserve of a claim is increased, decreased or released.",
+      "sourceKind": "CLAIMS",
+      "economicKey": [
+        "CLAIM_NO",
+        "CLAIM_TXN_NO"
+      ],
+      "measures": [
+        "CLAIM_RESERVE"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB"
+      ],
+      "keys": [
+        "CLAIM_NO",
+        "CLAIM_TXN_NO",
+        "POLICY_NO"
+      ]
+    },
+    {
+      "code": "CLAIM_PAID",
+      "name": "Claim payment made",
+      "area": "CLAIMS",
+      "purpose": "A payment is made on a claim: the indemnity, the handling expenses and any excess deducted.",
+      "sourceKind": "CLAIMS",
+      "economicKey": [
+        "CLAIM_NO",
+        "CLAIM_TXN_NO"
+      ],
+      "measures": [
+        "CLAIM_PAYMENT",
+        "CLAIM_EXPENSE",
+        "EXCESS"
+      ],
+      "dimensions": [
+        "BANK_ACCOUNT",
+        "COMPANY",
+        "LOB"
+      ],
+      "keys": [
+        "CLAIM_NO",
+        "CLAIM_TXN_NO",
+        "POLICY_NO"
+      ]
+    },
+    {
+      "code": "RECOVERY_RECEIVED",
+      "name": "Claim recovery received",
+      "area": "CLAIMS",
+      "purpose": "Money is recovered on a claim from salvage, subrogation or a third party.",
+      "sourceKind": "CLAIMS",
+      "economicKey": [
+        "CLAIM_NO",
+        "CLAIM_TXN_NO"
+      ],
+      "measures": [
+        "RECOVERY"
+      ],
+      "dimensions": [
+        "BANK_ACCOUNT",
+        "COMPANY",
+        "LOB"
+      ],
+      "keys": [
+        "CLAIM_NO",
+        "CLAIM_TXN_NO",
+        "POLICY_NO"
+      ]
+    },
+    {
+      "code": "RI_PREMIUM_CEDED",
+      "name": "Premium ceded to reinsurers",
+      "area": "REINSURANCE",
+      "purpose": "The reinsurers’ share of a policy’s premium is ceded under a treaty, with the reinsurance commission received.",
+      "sourceKind": "REINSURANCE",
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO",
+        "TREATY_NO"
+      ],
+      "measures": [
+        "RI_PREMIUM",
+        "RI_COMMISSION"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB"
+      ]
+    },
+    {
+      "code": "RI_RECOVERY",
+      "name": "Claim recovered from reinsurers",
+      "area": "REINSURANCE",
+      "purpose": "The reinsurers’ share of a claim payment becomes recoverable under a treaty.",
+      "sourceKind": "REINSURANCE",
+      "economicKey": [
+        "CLAIM_NO",
+        "CLAIM_TXN_NO",
+        "TREATY_NO"
+      ],
+      "measures": [
+        "RI_RECOVERY"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB"
+      ]
+    },
+    {
+      "code": "PREMIUM_EARNED",
+      "name": "Premium earned (earnings run)",
+      "area": "PERIOD_END",
+      "purpose": "The period’s earnings run: premium earned in the period and the unearned premium carried forward, per policy term.",
+      "sourceKind": "EARNINGS",
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO",
+        "EARNING_PERIOD"
+      ],
+      "measures": [
+        "EARNED_PREMIUM",
+        "UNEARNED_PREMIUM"
+      ],
+      "dimensions": [
+        "COMPANY",
+        "LOB"
+      ]
+    }
+  ],
+  "keys": [
+    {
+      "code": "POLICY_NO",
+      "description": "Policy number"
+    },
+    {
+      "code": "TERM_NO",
+      "description": "Policy term (period of cover) within the policy",
+      "scope": [
+        "POLICY_NO"
+      ],
+      "links": [
+        {
+          "to": "POLICY_NO",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "code": "ENDORSEMENT_NO",
+      "description": "Endorsement (mid-term change) within the term",
+      "scope": [
+        "TERM_NO"
+      ],
+      "links": [
+        {
+          "to": "TERM_NO",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "code": "INVOICE_RUN",
+      "description": "Billing run that produced the invoices of a term",
+      "scope": [
+        "TERM_NO"
+      ],
+      "links": [
+        {
+          "to": "TERM_NO",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "code": "INVOICE_NO",
+      "description": "Invoice number",
+      "links": [
+        {
+          "to": "POLICY_NO",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "code": "RECEIPT_NO",
+      "description": "Receipt (payment) number"
+    },
+    {
+      "code": "ALLOCATION_ID",
+      "description": "Allocation of a receipt to one invoice",
+      "scope": [
+        "RECEIPT_NO"
+      ],
+      "links": [
+        {
+          "to": "RECEIPT_NO",
+          "cardinality": "MANY_TO_ONE"
+        },
+        {
+          "to": "INVOICE_NO",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "code": "REFUND_NO",
+      "description": "Refund number",
+      "links": [
+        {
+          "to": "POLICY_NO",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "code": "INTERMEDIARY_ID",
+      "description": "Broker, agent or other distributor"
+    },
+    {
+      "code": "COMMISSION_STATEMENT_NO",
+      "description": "Commission statement paid to an intermediary",
+      "links": [
+        {
+          "to": "INTERMEDIARY_ID",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "code": "CLAIM_NO",
+      "description": "Claim number",
+      "links": [
+        {
+          "to": "POLICY_NO",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "code": "CLAIM_TXN_NO",
+      "description": "Financial transaction on a claim (reserve change, payment, recovery)",
+      "scope": [
+        "CLAIM_NO"
+      ],
+      "links": [
+        {
+          "to": "CLAIM_NO",
+          "cardinality": "MANY_TO_ONE"
+        }
+      ]
+    },
+    {
+      "code": "TREATY_NO",
+      "description": "Reinsurance treaty or facultative contract"
+    },
+    {
+      "code": "EARNING_PERIOD",
+      "description": "Accounting period of an earnings run"
+    }
+  ]
+}

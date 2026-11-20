@@ -60,8 +60,14 @@
 		load();
 	});
 	$effect(() => {
-		Promise.all([api.catalogMeasures(), api.catalogDimensions()]).then(
-			([measures, dimensions]) => (catalog = { measures, dimensions }),
+		Promise.all([api.catalogMeasures(), api.catalogDimensions(), api.catalogEvents()]).then(
+			([m, dimensions, events]) =>
+				(catalog = {
+					measures: m.measures.map((x) => ({ value: x.code, label: `${x.code} · ${x.name} (${x.category.toLowerCase()})` })),
+					measureDefs: m.measures,
+					dimensions,
+					events
+				}),
 			() => {}
 		);
 	});

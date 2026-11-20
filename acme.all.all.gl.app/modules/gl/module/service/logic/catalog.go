@@ -47,3 +47,9 @@ func versionMeasures(c *call) modulesdk.Response {
 func ootbDimensions(c *call) modulesdk.Response {
 	return jsonResponse(200, map[string]any{"catalogVersion": model.OOTBDimensionCatalogVersion(), "dimensions": model.OOTBDimensions()})
 }
+
+// ootbEvents returns the global, read-only insurance event catalog: templates a BA starts an
+// event from, with the business keys they use.
+func ootbEvents(c *call) modulesdk.Response {
+	return jsonResponse(200, model.OOTBEventCatalog())
+}

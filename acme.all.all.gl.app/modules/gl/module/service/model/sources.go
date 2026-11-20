@@ -15,7 +15,7 @@ type SourceSystem struct {
 }
 
 // SourceKinds are the kinds of source a configuration may declare.
-var SourceKinds = []string{"POLICY", "BILLING", "CLAIMS", "EARNINGS", "SOURCE_JOURNAL", "CUSTOM"}
+var SourceKinds = []string{"POLICY", "BILLING", "CLAIMS", "EARNINGS", "REINSURANCE", "SOURCE_JOURNAL", "CUSTOM"}
 
 // EventType is one configurable financial event (premium posted, invoice generated, payment
 // received, …). Nothing about an event type is fixed in code: its code, its identity, the

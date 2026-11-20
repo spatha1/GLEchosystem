@@ -583,6 +583,20 @@
         }
       }
     },
+    "/m/gl/catalog/events": {
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_ootbEvents",
+        "summary": "The global insurance event catalog (read-only, proposed): templates for the business events of general insurance with their purpose, typical source, economic key, measures, dimensions and lists, and the business keys they use",
+        "responses": {
+          "200": {
+            "description": "catalogVersion, scope, status, areas, events, keys"
+          }
+        }
+      }
+    },
     "/m/gl/configs/{configId}/versions/{version}/measures": {
       "parameters": [
         {

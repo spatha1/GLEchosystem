@@ -1,5 +1,5 @@
 {
-  "catalogVersion": "gl.measures.ootb/v1",
+  "catalogVersion": "gl.measures.ootb/v2",
   "measures": [
     { "code": "PREMIUM", "name": "Premium", "category": "PREMIUM", "definition": "Premium charged for the cover, excluding taxes and fees.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING", "EARNINGS"] },
     { "code": "TAX", "name": "Premium tax", "category": "TAX", "definition": "Tax levied on premium (e.g. GST, IPT), as charged to the policyholder.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING"] },
@@ -12,6 +12,17 @@
     { "code": "COMMISSION", "name": "Commission", "category": "COMMISSION", "definition": "Commission payable to the distributor on premium.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING"] },
     { "code": "CLAIM_PAYMENT", "name": "Claim payment", "category": "CLAIM", "definition": "Amount paid on a claim.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["CLAIMS"] },
     { "code": "CLAIM_RESERVE", "name": "Claim reserve movement", "category": "CLAIM", "definition": "Change in the case reserve held for a claim.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["CLAIMS"] },
-    { "code": "EARNED_PREMIUM", "name": "Earned premium", "category": "EARNINGS", "definition": "Premium earned over the period, as computed by the earnings system.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["EARNINGS"] }
+    { "code": "EARNED_PREMIUM", "name": "Earned premium", "category": "EARNINGS", "definition": "Premium earned over the period, as computed by the earnings system.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["EARNINGS"] },
+    { "code": "STAMP_DUTY", "name": "Stamp duty", "category": "TAX", "definition": "State or territory stamp duty charged on premium, as charged to the policyholder.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING"] },
+    { "code": "LEVY", "name": "Statutory levy", "category": "TAX", "definition": "Statutory levy collected with premium (e.g. emergency or fire services levy), as charged to the policyholder.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING"] },
+    { "code": "COMMISSION_TAX", "name": "Tax on commission", "category": "COMMISSION", "definition": "Tax (e.g. GST) on commission payable to the distributor.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["POLICY", "BILLING"] },
+    { "code": "DISHONOUR_AMT", "name": "Dishonoured payment", "category": "CASH", "definition": "Amount of a payment returned unpaid by the bank; it reverses the receipt.", "dataType": "AMOUNT", "sign": "POSITIVE", "currency": "EVENT", "grain": "EVENT", "sourceScope": ["BILLING"] },
+    { "code": "UNEARNED_PREMIUM", "name": "Unearned premium", "category": "EARNINGS", "definition": "Premium not yet earned at the end of the period (the unearned premium reserve), as computed by the earnings system.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["EARNINGS"] },
+    { "code": "CLAIM_EXPENSE", "name": "Claim handling expense", "category": "CLAIM", "definition": "Loss adjustment expense paid on a claim (assessors, legal, investigation), separate from the indemnity.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["CLAIMS"] },
+    { "code": "EXCESS", "name": "Excess", "category": "CLAIM", "definition": "Excess (deductible) borne by the insured on a claim, collected or deducted from the payment.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["CLAIMS"] },
+    { "code": "RECOVERY", "name": "Claim recovery", "category": "CLAIM", "definition": "Amount recovered on a claim from salvage, subrogation or a third party.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["CLAIMS"] },
+    { "code": "RI_PREMIUM", "name": "Reinsurance premium ceded", "category": "REINSURANCE", "definition": "Premium ceded to reinsurers under a treaty or facultative arrangement.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["REINSURANCE"] },
+    { "code": "RI_COMMISSION", "name": "Reinsurance commission", "category": "REINSURANCE", "definition": "Commission received from reinsurers on ceded premium.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["REINSURANCE"] },
+    { "code": "RI_RECOVERY", "name": "Reinsurance recovery", "category": "REINSURANCE", "definition": "Claim amount recoverable from reinsurers.", "dataType": "AMOUNT", "sign": "SIGNED", "currency": "EVENT", "grain": "ANY", "sourceScope": ["REINSURANCE"] }
   ]
 }
