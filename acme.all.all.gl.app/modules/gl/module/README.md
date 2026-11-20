@@ -95,22 +95,35 @@ For local development, `cmd/devhttp` accepts `GL_DEV_SEED_ROLES="TENANT:user:ROL
 
 Every `/m/gl/…` request other than `/info` and `/openapi.json` needs `x-mycel-user` and `x-gl-tenant`. A tenant in a request body is rejected.
 
-## UI (`ui/`, Svelte 5)
+## UI (`ui/`, Svelte 5): the GL Configuration Studio
 
-`<gl-app tenant="DEMO">` is the module's screen, built by `vite build` into `ui/dist/entry.js` (the file the app build mounts). It calls only `/m/gl/*`, sends the tenant (`x-gl-tenant`) and never an identity: the app core authenticates the user and sets `x-mycel-user`.
+`<gl-app tenant="CLIENT_A">` is the module's screen, built by `vite build` into `ui/dist/entry.js` (the file the app build mounts). It calls only `/m/gl/*`, sends the tenant (`x-gl-tenant`) and never an identity: the app core authenticates the user and sets `x-mycel-user`. With the `hash-routing` attribute every view has a link and the back button works.
 
-| Screen | What it does |
+The studio is event-centric and follows the GL flow: client → configuration → version → business event → definition → rules → lines → required fields → mapping → simulation → journal. Everything it shows is read from the stored, versioned configuration through the API (nothing is hard-coded, including the sample events, which are the version's `scenarios`), and every change is saved to a draft through the API.
+
+| Screen | What it shows and does |
 |---|---|
-| **Configurations** | Lists configurations and versions (status, effective window, who changed and approved, digest). Each version shows what it configures, its validation findings and the audit trail with reasons. Validate, approve and retire follow the user's roles. Approve is disabled, with the reason, for anyone who changed the version (maker-checker). Approve and retire ask for a reason. The server enforces all of it. |
-| **Posting preview** | Runs `POST …/plan` for a GL-TEST-001 sample event (or an edited one) against any version. It shows the rule chosen and the rules considered, and each journal leg with class, account, entity, debit or credit, and keys. **Why** opens a leg's amount lineage and the assignment rule (with configuration version) and rules considered. It also shows the balance per entity and currency, skipped legs with reasons, and refusals with the refused leg highlighted. Read-only. |
+| **Configurations** | The client's configurations and versions: status, effective window, based-on version, editors, approver, digest; which version is in force |
+| **Version** | Header with maker-checker actions (validate, approve with reason, retire, *new draft from this version*) and the **pipeline**: configured, validated, approved, required fields, mapped, collected, simulated, posted, subledger, reconciled, reports — stages not built yet say so, with their story |
+| **Business events** | One card per event: source, measures, lists, rules, lines, source fields, calculated values, scenarios, findings |
+| **Event · Definition** | "How this event is processed" chain; source and authority; business keys and the economic key; date policy and calendar; dimensions (carried or derived by lookup, normalisations, used or not); measures; formulas (editable in a draft, checked live); lists; lookups; findings |
+| **Event · Lineage map** | The event's dependency graph (`model.BuildEventGraph`) in five columns — source fields, calculated by GL, rules and controls, classes, accounts — with connectors; selecting any element lights up what it reads and what reads it, and lists each use in words |
+| **Event · Posting rules / Rule** | Each rule's applicability (filter, rank, window, other rules) and every debit and credit line explained: class (nature, normal side, statement), amount formula (with the formula behind a calculated measure), per-item expansion, condition, legal entity (and the lookup behind it), the account choice in precedence order. In a draft: edit, add, copy, deactivate/activate, delete, each saved with a reason; the editor checks the edit live (`POST …/check`) and lists what will change. In an approved version: *change this rule in a new draft* |
+| **Required fields** | The C2 manifest: per event, the source fields with type, mandatory, key role, authoritative source, canonical event path and every reason (with the chain through formulas and lookups); calculated values with their inputs; fields declared but unused; manifest digest; download |
+| **Data Workbench mapping** | Not built yet (US-015/US-016), and said so: the fields that will be sent, with empty proposal, confidence, transformation, approval and version columns and the configured value normalisations |
+| **Simulation** | Pick a scenario of the version (or a blank event) — the form is generated from the event's definition — and run it: configuration, matched rule and rules considered, formula calculations with values, derived dimensions, book date and period, the journal as one balanced entry per legal entity and currency, the scenario's expectation, and for any line its lineage: source record → source fields read (value, canonical field, source, mapping) → calculation → rule line → account assignment → journal leg. Run all scenarios; save the inputs and result as a scenario in a draft |
+| **Change impact** | Against the version it is based on (or any earlier one): changed items (rule lines named), events affected and why, required-field and mapping changes, every scenario's journal before and after, downstream stages |
+| **Chart of accounts** | Classes, accounts (with what each requires on every line) and assignment rules |
+| **Findings and history** | Live validation findings, maker-checker, and the audit trail with reasons and, for every save, which items changed |
 
 Local run (development only):
 
 ```
-# 1. the dev adapter, with roles for tenant DEMO (loopback only; an ordinary database role)
-GL_DEV_SEED_ROLES="DEMO:ba@example.com:CONFIG_EDITOR;DEMO:reviewer@example.com:CONFIG_APPROVER;DEMO:lead@example.com:CONFIG_EDITOR|CONFIG_APPROVER;DEMO:viewer@example.com:VIEWER" DATABASE_URL=postgres://<role>:<password>@127.0.0.1:55432/gl_dev go run ./service/cmd/devhttp
-# 2. the UI: seed the GL-TEST-001 demo configuration through the API, then open http://127.0.0.1:5174
+# 1. the dev adapter, with roles for Client A and Client B (loopback only; an ordinary database role)
+R=""; for t in CLIENT_A CLIENT_B; do R="$R$t:ba@example.com:CONFIG_EDITOR;$t:reviewer@example.com:CONFIG_APPROVER;$t:lead@example.com:CONFIG_EDITOR|CONFIG_APPROVER;$t:viewer@example.com:VIEWER;"; done
+GL_DEV_SEED_ROLES="${R%;}" DATABASE_URL=postgres://<role>:<password>@127.0.0.1:55432/gl_dev go run ./service/cmd/devhttp
+# 2. the UI: seed GL-TEST-001 for Client A (v1, approved by a second person) through the API, then open http://127.0.0.1:5174
 cd ui && npm install && npm run seed:dev && npm run dev
 ```
 
-The dev harness (`index.html`, `dev/`) chooses the user; its proxy turns that choice into `x-mycel-user`, which only the dev adapter trusts. `npm test` runs the UI tests (vitest, jsdom), and `npm run check` runs the type check.
+The dev harness (`index.html`, `dev/`) chooses the user and the client; its proxy turns the user into `x-mycel-user`, which only the dev adapter trusts. `npm test` runs the UI tests (vitest, jsdom; event views and plans recorded from the API in `src/test/`), and `npm run check` runs the type check.

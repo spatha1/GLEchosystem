@@ -88,7 +88,7 @@ func Eval(n Node, env Env, opt Options) (Value, Trace, error) {
 	if opt.DefaultRounding == "" {
 		opt.DefaultRounding = "HALF_UP"
 	}
-	ev := &evaluator{env: env, opt: opt, read: map[string]bool{}}
+	ev := &evaluator{env: env, opt: opt, read: map[string]bool{}, trace: Trace{Reads: []Read{}}}
 	v, err := ev.eval(n)
 	if err != nil {
 		return Null, ev.trace, err

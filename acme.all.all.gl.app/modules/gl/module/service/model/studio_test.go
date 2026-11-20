@@ -394,10 +394,35 @@ func TestImpactTracesAChangeToEventsFieldsAndJournals(t *testing.T) {
 	if s := sc["E1_HOME"]; !s.Changed || s.After.Error == nil || s.After.Error.Code != "MISSING_RULE" || !strings.Contains(strings.Join(s.Differences, ";"), "now refused: MISSING_RULE") {
 		t.Errorf("E1_HOME (now filtered out): %+v", s.Differences)
 	}
-	if s := sc["E3"]; s.Changed {
-		t.Errorf("E3 does not change: %+v", s.Differences)
+	if s := sc["E3"]; s.Changed || s.Differences == nil {
+		t.Errorf("E3 does not change (and says so with an empty list, never null): %+v", s.Differences)
+	}
+	if raw, _ := json.Marshal(im); strings.Contains(string(raw), ":null") {
+		t.Errorf("the impact holds a null list: %s", raw)
 	}
 	if len(im.Downstream) != 5 || im.Downstream[0].Stage != "mapped" || !strings.Contains(im.Downstream[0].Detail, "1 field") {
 		t.Errorf("downstream: %+v", im.Downstream)
+	}
+}
+
+// The studio reads these documents directly: a list is always a list, never null.
+func TestStudioDocumentsNeverHoldNullLists(t *testing.T) {
+	d := docOf(t, fixtureContent(t))
+	var docs []any
+	for _, e := range d.Events {
+		v, _ := ExplainEvent(d, Validate(d), "DEMO", fixtureRef, e.Code)
+		docs = append(docs, v)
+	}
+	m, x := CompileManifest(d, "DEMO", fixtureRef)
+	docs = append(docs, m, x, SummarizeEvents(d, nil, "DEMO", fixtureRef), RunScenarios(d, fixtureRef, nil))
+	for i, doc := range docs {
+		raw, _ := json.Marshal(doc)
+		if j := strings.Index(string(raw), ":null"); j >= 0 {
+			lo := j - 80
+			if lo < 0 {
+				lo = 0
+			}
+			t.Errorf("document %d holds a null: …%s…", i, raw[lo:j+5])
+		}
 	}
 }

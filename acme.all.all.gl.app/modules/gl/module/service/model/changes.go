@@ -80,7 +80,7 @@ func changedFields(a, b map[string]any) []string {
 		names = append(names, k)
 	}
 	sort.Strings(names)
-	var out []string
+	out := []string{}
 	for _, k := range names {
 		if reflect.DeepEqual(a[k], b[k]) {
 			continue
@@ -325,7 +325,7 @@ func errorText(r *ScenarioResult) string {
 }
 
 func legDifferences(si ScenarioImpact) []string {
-	var out []string
+	out := []string{}
 	switch {
 	case si.Before == nil && si.After != nil:
 		return []string{"new scenario"}

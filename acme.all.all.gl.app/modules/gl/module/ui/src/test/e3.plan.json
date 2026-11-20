@@ -1,0 +1,365 @@
+{
+ "configId": "GL_TEST_001",
+ "plan": {
+  "eventType": "PAYMENT_RECEIVED",
+  "rule": "PR_PAYMENT_RECEIVED",
+  "rank": 10,
+  "config": {
+   "configId": "GL_TEST_001",
+   "configVersion": 1,
+   "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+  },
+  "considered": [
+   {
+    "rule": "PR_PAYMENT_RECEIVED",
+    "rank": 10,
+    "matched": true,
+    "reason": "no filter: applies to every PAYMENT_RECEIVED"
+   }
+  ],
+  "lines": [
+   {
+    "lineNo": 1,
+    "template": "CASH",
+    "class": "PR0",
+    "side": "D",
+    "amount": "1099.50",
+    "currency": "AUD",
+    "entity": "C09",
+    "keys": {
+     "RECEIPT_NO": "R1"
+    },
+    "dimensions": {
+     "BANKING_COMPANY": "C09",
+     "BANK_ACCOUNT": "BANK-C09",
+     "BOOKING_CLASS": "C",
+     "COMPANY": "C01"
+    },
+    "explanation": "PR0 D = PAY_AMT",
+    "trace": {
+     "reads": [
+      {
+       "name": "PAY_AMT",
+       "value": "1099.5 AUD"
+      }
+     ]
+    },
+    "account": "1000900",
+    "ledger": "PRIMARY",
+    "assignment": {
+     "rule": "AA_PR0",
+     "account": "1000900",
+     "ledger": "PRIMARY",
+     "config": {
+      "configId": "GL_TEST_001",
+      "configVersion": 1,
+      "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+     },
+     "why": [
+      "default for class PR0 (matches any line)"
+     ],
+     "considered": [
+      {
+       "rule": "AA_PR0",
+       "account": "1000900",
+       "priority": 0,
+       "matched": true,
+       "reason": "default for class PR0 (matches any line)"
+      }
+     ]
+    }
+   },
+   {
+    "lineNo": 2,
+    "template": "DUE_TO",
+    "class": "IC1",
+    "side": "C",
+    "amount": "1099.50",
+    "currency": "AUD",
+    "entity": "C09",
+    "keys": {
+     "RECEIPT_NO": "R1"
+    },
+    "dimensions": {
+     "BANKING_COMPANY": "C09",
+     "BANK_ACCOUNT": "BANK-C09",
+     "BOOKING_CLASS": "C",
+     "COMPANY": "C01"
+    },
+    "explanation": "IC1 C = PAY_AMT",
+    "trace": {
+     "reads": [
+      {
+       "name": "PAY_AMT",
+       "value": "1099.5 AUD"
+      }
+     ]
+    },
+    "account": "2500101",
+    "ledger": "PRIMARY",
+    "assignment": {
+     "rule": "AA_IC1",
+     "account": "2500101",
+     "ledger": "PRIMARY",
+     "config": {
+      "configId": "GL_TEST_001",
+      "configVersion": 1,
+      "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+     },
+     "why": [
+      "default for class IC1 (matches any line)"
+     ],
+     "considered": [
+      {
+       "rule": "AA_IC1",
+       "account": "2500101",
+       "priority": 0,
+       "matched": true,
+       "reason": "default for class IC1 (matches any line)"
+      }
+     ]
+    }
+   },
+   {
+    "lineNo": 3,
+    "template": "DUE_FROM",
+    "class": "IC0",
+    "side": "D",
+    "amount": "1099.50",
+    "currency": "AUD",
+    "entity": "C01",
+    "keys": {
+     "RECEIPT_NO": "R1"
+    },
+    "dimensions": {
+     "BANKING_COMPANY": "C09",
+     "BANK_ACCOUNT": "BANK-C09",
+     "BOOKING_CLASS": "C",
+     "COMPANY": "C01"
+    },
+    "explanation": "IC0 D = PAY_AMT",
+    "trace": {
+     "reads": [
+      {
+       "name": "PAY_AMT",
+       "value": "1099.5 AUD"
+      }
+     ]
+    },
+    "account": "1500109",
+    "ledger": "PRIMARY",
+    "assignment": {
+     "rule": "AA_IC0",
+     "account": "1500109",
+     "ledger": "PRIMARY",
+     "config": {
+      "configId": "GL_TEST_001",
+      "configVersion": 1,
+      "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+     },
+     "why": [
+      "default for class IC0 (matches any line)"
+     ],
+     "considered": [
+      {
+       "rule": "AA_IC0",
+       "account": "1500109",
+       "priority": 0,
+       "matched": true,
+       "reason": "default for class IC0 (matches any line)"
+      }
+     ]
+    }
+   },
+   {
+    "lineNo": 4,
+    "template": "ALLOC",
+    "item": 1,
+    "class": "AR1",
+    "side": "C",
+    "amount": "550.00",
+    "currency": "AUD",
+    "entity": "C01",
+    "keys": {
+     "ALLOCATION_ID": "A1",
+     "INVOICE_NO": "INV1",
+     "RECEIPT_NO": "R1"
+    },
+    "dimensions": {
+     "BANKING_COMPANY": "C09",
+     "BANK_ACCOUNT": "BANK-C09",
+     "BOOKING_CLASS": "C",
+     "COMPANY": "C01"
+    },
+    "explanation": "AR1 C = ALLOC_AMT for ALLOCATION_LIST item 1",
+    "trace": {
+     "reads": [
+      {
+       "name": "ALLOC_AMT",
+       "value": "550 AUD"
+      }
+     ]
+    },
+    "account": "9948600",
+    "ledger": "PRIMARY",
+    "assignment": {
+     "rule": "AA_AR1",
+     "account": "9948600",
+     "ledger": "PRIMARY",
+     "config": {
+      "configId": "GL_TEST_001",
+      "configVersion": 1,
+      "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+     },
+     "why": [
+      "default for class AR1 (matches any line)"
+     ],
+     "considered": [
+      {
+       "rule": "AA_AR1",
+       "account": "9948600",
+       "priority": 0,
+       "matched": true,
+       "reason": "default for class AR1 (matches any line)"
+      }
+     ]
+    }
+   },
+   {
+    "lineNo": 5,
+    "template": "ALLOC",
+    "item": 2,
+    "class": "AR1",
+    "side": "C",
+    "amount": "549.50",
+    "currency": "AUD",
+    "entity": "C01",
+    "keys": {
+     "ALLOCATION_ID": "A2",
+     "INVOICE_NO": "INV2",
+     "RECEIPT_NO": "R1"
+    },
+    "dimensions": {
+     "BANKING_COMPANY": "C09",
+     "BANK_ACCOUNT": "BANK-C09",
+     "BOOKING_CLASS": "C",
+     "COMPANY": "C01"
+    },
+    "explanation": "AR1 C = ALLOC_AMT for ALLOCATION_LIST item 2",
+    "trace": {
+     "reads": [
+      {
+       "name": "ALLOC_AMT",
+       "value": "549.5 AUD"
+      }
+     ]
+    },
+    "account": "9948600",
+    "ledger": "PRIMARY",
+    "assignment": {
+     "rule": "AA_AR1",
+     "account": "9948600",
+     "ledger": "PRIMARY",
+     "config": {
+      "configId": "GL_TEST_001",
+      "configVersion": 1,
+      "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+     },
+     "why": [
+      "default for class AR1 (matches any line)"
+     ],
+     "considered": [
+      {
+       "rule": "AA_AR1",
+       "account": "9948600",
+       "priority": 0,
+       "matched": true,
+       "reason": "default for class AR1 (matches any line)"
+      }
+     ]
+    }
+   }
+  ],
+  "skipped": [],
+  "totals": [
+   {
+    "entity": "C09",
+    "currency": "AUD",
+    "debit": "1099.50",
+    "credit": "1099.50",
+    "balanced": true
+   },
+   {
+    "entity": "C01",
+    "currency": "AUD",
+    "debit": "1099.50",
+    "credit": "1099.50",
+    "balanced": true
+   }
+  ],
+  "balanced": true,
+  "dimensions": [
+   {
+    "dimension": "BANK_ACCOUNT",
+    "value": "BANK-C09",
+    "via": "EVENT",
+    "config": {
+     "configId": "GL_TEST_001",
+     "configVersion": 1,
+     "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+    }
+   },
+   {
+    "dimension": "COMPANY",
+    "value": "C01",
+    "via": "EVENT",
+    "config": {
+     "configId": "GL_TEST_001",
+     "configVersion": 1,
+     "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+    }
+   },
+   {
+    "dimension": "BANKING_COMPANY",
+    "value": "C09",
+    "via": "LOOKUP",
+    "lookup": "BANKING_COMPANY_BY_ACCOUNT",
+    "key": "BANK-C09",
+    "config": {
+     "configId": "GL_TEST_001",
+     "configVersion": 1,
+     "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+    }
+   },
+   {
+    "dimension": "BOOKING_CLASS",
+    "value": "C",
+    "via": "DATE_POLICY",
+    "lookup": "DP_STANDARD",
+    "config": {
+     "configId": "GL_TEST_001",
+     "configVersion": 1,
+     "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+    }
+   }
+  ],
+  "period": {
+   "policy": "DP_STANDARD",
+   "transactionDate": "2026-01-10",
+   "effectiveDate": "2026-01-10",
+   "bookDate": "2026-01-10",
+   "accountingPeriod": "2026-01",
+   "fiscalYear": 2026,
+   "fiscalPeriod": 7,
+   "bookingClass": "C",
+   "steps": [
+    "book date = transaction date 2026-01-10 (policy DP_STANDARD)",
+    "effective 2026-01-10 falls on or before the end of period 2026-01: current (C)"
+   ]
+  },
+  "bookDate": "2026-01-10",
+  "derived": []
+ },
+ "status": "approved",
+ "version": 1
+}

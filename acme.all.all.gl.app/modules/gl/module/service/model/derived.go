@@ -249,7 +249,7 @@ type EventInput struct {
 	EffectiveDate      string                         `json:"effectiveDate,omitempty"`
 	RecordedAt         string                         `json:"recordedAt,omitempty"` // RFC 3339 instant
 	AsOf               string                         `json:"asOf,omitempty"`       // processing date for period decisions (default: the transaction date)
-	Measures           map[string]string              `json:"measures"`
+	Measures           map[string]string              `json:"measures,omitempty"`
 	Dimensions         map[string]string              `json:"dimensions,omitempty"` // canonical values (normalised at intake)
 	Lists              map[string][]map[string]string `json:"lists,omitempty"`
 }

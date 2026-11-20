@@ -350,14 +350,14 @@ func diffFields(from, to []ManifestField) []FieldChange {
 		now[fieldKey(f)] = true
 		o, existed := old[fieldKey(f)]
 		if !existed {
-			var det []string
+			det := []string{}
 			for _, r := range f.RequiredBy {
 				det = append(det, "required by "+reqText(r))
 			}
 			out = append(out, FieldChange{FieldCode: f.FieldCode, ListCode: f.ListCode, Kind: f.Kind, Change: "ADDED", Details: det, Remap: f.Kind == "SOURCE"})
 			continue
 		}
-		var det []string
+		det := []string{}
 		remap := false
 		if o.Kind != f.Kind {
 			det = append(det, fmt.Sprintf("kind %s → %s", o.Kind, f.Kind))

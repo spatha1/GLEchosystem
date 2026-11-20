@@ -54,8 +54,11 @@ func versionEvents(c *call) modulesdk.Response {
 	if e != nil {
 		return e.response()
 	}
+	if fs == nil {
+		fs = []model.Finding{}
+	}
 	return jsonResponse(200, map[string]any{"configId": v.ConfigID, "version": v.Version, "status": v.Status, "contentDigest": v.ContentDigest,
-		"blockingFindings": blocking(fs), "findings": len(fs), "events": model.SummarizeEvents(doc, fs, c.id.Tenant, ref)})
+		"blockingFindings": blocking(fs), "findings": fs, "events": model.SummarizeEvents(doc, fs, c.id.Tenant, ref)})
 }
 
 // versionEvent — GET …/versions/{n}/events/{eventType}: one event type explained.
