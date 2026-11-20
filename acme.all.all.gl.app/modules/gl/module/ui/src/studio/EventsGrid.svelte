@@ -6,14 +6,10 @@
 	const open = (code: string) => ctx.go({ configId: ctx.version.configId, version: ctx.version.version, event: code });
 </script>
 
-<p class="muted lead">
-	The business events this version configures. Select one to see what it is, where its data comes from, how its measures are calculated, which rules
-	post it, which source fields it needs, and to simulate it.
-</p>
 {#if events.length === 0}
 	<div class="card"><p class="muted">This version configures no events yet.</p></div>
 {:else}
-	<div class="grid3">
+	<div class="grid3 evgrid">
 		{#each events as e (e.code)}
 			<button class="card ev" onclick={() => open(e.code)} aria-label="Open event {e.code}">
 				<div class="row top">
@@ -22,7 +18,7 @@
 					{#if e.errors}<span class="badge bad">{e.errors} error{e.errors === 1 ? '' : 's'}</span>{/if}
 					{#if e.warnings}<span class="badge warn">{e.warnings} warning{e.warnings === 1 ? '' : 's'}</span>{/if}
 				</div>
-				<div class="desc">{e.description || 'No description'}</div>
+				<div class="desc" title={e.description}>{e.description || 'No description'}</div>
 				<div class="row src">
 					<span class="muted small">From</span>
 					{#each e.sourceSystems as s (s)}<span class="chip">{s}</span>{:else}<span class="badge warn">no source</span>{/each}
@@ -45,9 +41,8 @@
 {/if}
 
 <style>
-	.lead {
-		margin: 0 0 12px;
-		max-width: 900px;
+	.evgrid {
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
 	}
 	.ev {
 		font: inherit;
@@ -56,19 +51,28 @@
 		cursor: pointer;
 		display: grid;
 		gap: 8px;
-		transition: border-color 0.12s, transform 0.12s;
+		transition:
+			border-color 0.12s,
+			box-shadow 0.12s;
 	}
 	.ev:hover {
 		border-color: var(--gl-accent);
-		transform: translateY(-1px);
+		box-shadow: var(--gl-shadow-pop);
 	}
 	.code {
-		font-weight: 700;
-		font-size: 15px;
+		font-weight: 600;
+		font-size: 14px;
 		color: var(--gl-accent);
 	}
 	.desc {
-		font-weight: 550;
+		font-weight: 600;
+		font-size: 15px;
+		line-height: 1.4;
+		display: -webkit-box;
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
 	}
 	.src {
 		gap: 5px;
@@ -78,24 +82,25 @@
 	}
 	.stats {
 		display: grid;
-		grid-template-columns: repeat(5, 1fr);
-		gap: 4px;
-		margin: 4px 0 0;
-		padding-top: 8px;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 4px 10px;
+		margin: 6px 0 0;
+		padding-top: 12px;
 		border-top: 1px solid var(--gl-border);
 	}
 	.stats div {
-		display: grid;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
 	}
 	.stats dt {
-		font-size: 10px;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--gl-muted);
+		font-size: 12px;
+		line-height: 1.3;
+		color: var(--gl-subtle);
 	}
 	.stats dd {
-		margin: 0;
+		margin: 2px 0 0;
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 18px;
 	}
 </style>

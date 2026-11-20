@@ -7,24 +7,23 @@
 <style>
 	.chip {
 		display: inline-block;
-		padding: 1px 9px;
+		padding: 2px 8px;
 		border-radius: 999px;
 		font-size: 12px;
 		font-weight: 600;
+		line-height: 1.4;
 		text-transform: capitalize;
-		background: var(--gl-surface-2);
-		color: var(--gl-muted);
-		border: 1px solid var(--gl-border);
+		background: var(--gl-off-soft);
+		color: var(--gl-off);
+		border: 1px solid transparent;
 	}
 	.validated {
 		background: var(--gl-info-soft);
 		color: var(--gl-info);
-		border-color: transparent;
 	}
 	.approved {
 		background: var(--gl-ok-soft);
 		color: var(--gl-ok);
-		border-color: transparent;
 	}
 	.retired {
 		text-decoration: line-through;

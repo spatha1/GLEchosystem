@@ -1,7 +1,7 @@
 body {
 	margin: 0;
-	background: #eef1f5;
-	font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	background: #f5f7fa;
+	font: 14px/1.4 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
 	body {
@@ -10,6 +10,8 @@ body {
 	}
 }
 .devbar {
+	position: relative;
+	z-index: 30;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 16px;
@@ -26,4 +28,20 @@ body {
 }
 .devbar .note {
 	opacity: 0.7;
+}
+
+/* On a desktop the bar stays put above the studio; the studio's sticky navigation sits under it. */
+@media (min-width: 1024px) {
+	.devbar {
+		position: sticky;
+		top: 0;
+		height: 32px;
+		box-sizing: border-box;
+		flex-wrap: nowrap;
+		overflow: hidden;
+		white-space: nowrap;
+	}
+	gl-app {
+		--gl-top-offset: 32px;
+	}
 }

@@ -109,6 +109,8 @@ Every `/m/gl/…` request other than `/info` and `/openapi.json` needs `x-mycel-
 
 The studio is event-centric and follows the GL flow: client → configuration → version → business event → definition → rules → lines → required fields → mapping → simulation → journal. Everything it shows is read from the stored, versioned configuration through the API (nothing is hard-coded, including the sample events, which are the version's `scenarios`), and every change is saved to a draft through the API.
 
+Layout: a side navigation lists the configurations and, inside a version, its views (the screens below), with the open event under *Business events*. It narrows to a 72px icon rail and becomes a drawer on a phone. A top bar shows the client, the breadcrumbs and a light/dark theme switch; by default the theme follows the system. The rail and theme choices are kept in the viewer's browser only. Each page opens with an eyebrow (where you are), a title and its purpose. The studio draws with the Inter font, which the host page loads (a shadow root cannot), falling back to the system font. A host page that keeps a bar fixed above the studio sets `--gl-top-offset` on `<gl-app>` to that bar's height.
+
 | Screen | What it shows and does |
 |---|---|
 | **Configurations** | The client's configurations and versions: status, effective window, based-on version, editors, approver, digest; which version is in force |

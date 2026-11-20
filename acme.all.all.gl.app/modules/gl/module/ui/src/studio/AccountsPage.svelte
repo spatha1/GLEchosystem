@@ -10,18 +10,8 @@
 	let { ctx, findings = [] }: { ctx: Ctx; findings?: Finding[] } = $props();
 </script>
 
-<p class="muted small lead">
-	Posting rules name accounting classes; each class is served by the client's accounts; assignment rules choose the account for each line by dimension,
-	priority and date. A line with no matching account, or two equally good ones, is refused — never guessed.
-</p>
 <div class="stack">
 	<SectionEditor {ctx} spec={specs.accountingClasses} {findings} />
 	<SectionEditor {ctx} spec={specs.accounts} {findings} />
 	<SectionEditor {ctx} spec={specs.accountAssignmentRules} {findings} />
 </div>
-
-<style>
-	.lead {
-		margin: 0 0 12px;
-	}
-</style>

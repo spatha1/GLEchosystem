@@ -22,6 +22,7 @@
 	import HistoryPage from './HistoryPage.svelte';
 	import SectionEditor from './SectionEditor.svelte';
 	import { specs } from '../lib/sections';
+	import { viewOf } from '../lib/views';
 
 	let { api, me, route, go }: { api: Client; me: Me; route: Route; go: (r: Route) => void } = $props();
 
@@ -73,15 +74,7 @@
 	});
 
 	const tab = $derived<VersionTab>(route.tab ?? 'events');
-	const tabs: { key: VersionTab; label: string }[] = [
-		{ key: 'events', label: 'Business events' },
-		{ key: 'fields', label: 'Required fields' },
-		{ key: 'mapping', label: 'Data Workbench mapping' },
-		{ key: 'simulate', label: 'Simulation' },
-		{ key: 'impact', label: 'Change impact' },
-		{ key: 'accounts', label: 'Chart of accounts' },
-		{ key: 'history', label: 'Findings and history' }
-	];
+	const view = $derived(viewOf(tab));
 
 	const stageTab: Record<string, VersionTab> = {
 		configured: 'events',
@@ -173,95 +166,102 @@
 {:else if !version || !ctx}
 	<p class="muted">Loading version {n}…</p>
 {:else}
-	<section class="card head">
-		<div class="title">
-			<div>
-				<div class="row">
-					<h2><span class="mono">{version.configId}</span> <span class="ver">v{version.version}</span></h2>
-					<StatusChip status={version.status} />
-					{#if version.basedOnVersion}<span class="chip">based on v{version.basedOnVersion}</span>{/if}
+	{#snippet versionCard()}
+		<section class="card vcard" aria-label="Version {version!.configId} v{version!.version}">
+			<header class="vhead">
+				<div class="vtitle">
+					<div class="row">
+						<h2><span class="mono">{version!.configId}</span> <span class="ver">v{version!.version}</span></h2>
+						<StatusChip status={version!.status} />
+						{#if version!.basedOnVersion}<span class="chip">based on v{version!.basedOnVersion}</span>{/if}
+					</div>
+					<div class="meta">
+						Effective {version!.effectiveFrom} → {version!.effectiveTo ?? 'open'} · digest <span class="mono">{digest(version!.contentDigest)}</span> · changed by {version!.editors.join(
+							', '
+						)}
+						{#if version!.approvedBy}· approved by {version!.approvedBy} {when(version!.approvedAt)}{/if}
+					</div>
 				</div>
-				<div class="meta muted small">
-					Effective {version.effectiveFrom} → {version.effectiveTo ?? 'open'} · digest <span class="mono">{digest(version.contentDigest)}</span> · changed by {version.editors.join(
-						', '
-					)}
-					{#if version.approvedBy}· approved by {version.approvedBy} {when(version.approvedAt)}{/if}
+				<div class="row acts">
+					{#each actions as a (a.kind)}
+						<button
+							class="btn"
+							class:primary={a.kind !== 'retire'}
+							disabled={!a.enabled || busy}
+							title={a.why ?? ''}
+							onclick={() => a.enabled && (a.kind === 'validate' ? act('validate') : (acting = a.kind))}>{a.label}</button
+						>
+					{/each}
+					{#if ctx!.isEditor}
+						<button class="btn" onclick={() => ctx!.startDraft()}>New draft from v{version!.version}</button>
+					{/if}
 				</div>
-			</div>
-			<div class="row acts">
-				{#each actions as a (a.kind)}
-					<button
-						class="btn"
-						class:primary={a.kind !== 'retire'}
-						disabled={!a.enabled || busy}
-						title={a.why ?? ''}
-						onclick={() => a.enabled && (a.kind === 'validate' ? act('validate') : (acting = a.kind))}>{a.label}</button
-					>
+			</header>
+			<div class="vbody">
+				{#each actions.filter((a) => !a.enabled && a.why) as a (a.kind)}
+					<p class="why small">{a.label}: {a.why}</p>
 				{/each}
-				{#if ctx.isEditor}
-					<button class="btn" onclick={() => ctx.startDraft()}>New draft from v{version.version}</button>
+				{#if actionError}<div class="notice bad" role="alert">{actionError}</div>{/if}
+				{#if version!.status === 'approved' || version!.status === 'retired'}
+					<p class="small muted lock">This version is {version!.status} and can no longer change. To change a rule or measure, start a new draft from it.</p>
+				{/if}
+				<Pipeline {stages} selected={stageNote?.stage ?? ''} onselect={pickStage} />
+				{#if stageNote}
+					<div class="notice {stageNote.status === 'NOT_IMPLEMENTED' ? 'info' : 'warn'}">
+						<strong>{stageNote.label}:</strong>
+						{stageNote.detail}{#if stageNote.story}
+							<span class="muted"> · backlog {stageNote.story}</span>{/if}
+					</div>
 				{/if}
 			</div>
-		</div>
-		{#each actions.filter((a) => !a.enabled && a.why) as a (a.kind)}
-			<p class="why small">{a.label}: {a.why}</p>
-		{/each}
-		{#if actionError}<div class="notice bad" role="alert">{actionError}</div>{/if}
-		{#if version.status === 'approved' || version.status === 'retired'}
-			<p class="small muted lock">This version is {version.status} and can no longer change. To change a rule or measure, start a new draft from it.</p>
-		{/if}
-		<div class="flowwrap">
-			<Pipeline {stages} selected={stageNote?.stage ?? ''} onselect={pickStage} />
-			{#if stageNote}
-				<div class="notice {stageNote.status === 'NOT_IMPLEMENTED' ? 'info' : 'warn'}">
-					<strong>{stageNote.label}:</strong>
-					{stageNote.detail}{#if stageNote.story}
-						<span class="muted"> · backlog {stageNote.story}</span>{/if}
-				</div>
-			{/if}
-		</div>
-	</section>
+		</section>
+	{/snippet}
 
 	{#if route.event}
 		{#key route.event}
-			<EventPage {ctx} />
+			<EventPage {ctx} {versionCard} />
 		{/key}
 	{:else}
-		<div class="tabs" role="tablist" aria-label="Version views">
-			{#each tabs as t (t.key)}
-				<button role="tab" aria-selected={tab === t.key} class:active={tab === t.key} onclick={() => go({ configId, version: n, tab: t.key })}>
-					{t.label}
-					{#if t.key === 'events'}<span class="count">{events.length}</span>{/if}
-					{#if t.key === 'history' && findings.length}<span class="count">{findings.length}</span>{/if}
-				</button>
-			{/each}
-		</div>
-		{#if tab === 'events'}
-			<EventsGrid {ctx} {events} />
-			<div class="addev">
-				<SectionEditor
-					{ctx}
-					spec={specs.events}
-					listing={false}
-					title="Add a business event"
-					help="Its code, purpose, source, economic key, measures, dimensions and lists. After saving, the event opens at step 4 of its flow."
-					{findings}
-					onsaved={(code) => code && go({ configId, version: n, event: code })}
-				/>
+		<div class="pagehead">
+			<div class="titles">
+				<span class="eyebrow">{version.configId} · Version {version.version}</span>
+				<h1>
+					{view.label}
+					{#if tab === 'events'}<span class="badge off">{events.length}</span>{/if}
+					{#if tab === 'history' && findings.length}<span class="badge warn">{findings.length} finding{findings.length === 1 ? '' : 's'}</span>{/if}
+				</h1>
+				<p class="purpose">{view.purpose}</p>
 			</div>
-		{:else if tab === 'fields'}
-			<FieldsPage {ctx} />
-		{:else if tab === 'mapping'}
-			<MappingPage {ctx} />
-		{:else if tab === 'simulate'}
-			<Simulator {ctx} />
-		{:else if tab === 'impact'}
-			<ImpactPage {ctx} />
-		{:else if tab === 'accounts'}
-			<AccountsPage {ctx} {findings} />
-		{:else}
-			<HistoryPage {ctx} {findings} />
-		{/if}
+		</div>
+		{@render versionCard()}
+		<div class="viewbody">
+			{#if tab === 'events'}
+				<EventsGrid {ctx} {events} />
+				<div class="addev">
+					<SectionEditor
+						{ctx}
+						spec={specs.events}
+						listing={false}
+						title="Add a business event"
+						help="Its code, purpose, source, economic key, measures, dimensions and lists. After saving, the event opens at step 4 of its flow."
+						{findings}
+						onsaved={(code) => code && go({ configId, version: n, event: code })}
+					/>
+				</div>
+			{:else if tab === 'fields'}
+				<FieldsPage {ctx} />
+			{:else if tab === 'mapping'}
+				<MappingPage {ctx} />
+			{:else if tab === 'simulate'}
+				<Simulator {ctx} />
+			{:else if tab === 'impact'}
+				<ImpactPage {ctx} />
+			{:else if tab === 'accounts'}
+				<AccountsPage {ctx} {findings} />
+			{:else}
+				<HistoryPage {ctx} {findings} />
+			{/if}
+		</div>
 	{/if}
 {/if}
 
@@ -280,18 +280,25 @@
 {/if}
 
 <style>
-	.head {
-		padding-bottom: 12px;
+	.vcard {
+		padding: 0;
 	}
-	.title {
+	.vhead {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: space-between;
+		align-items: flex-start;
 		gap: 12px;
+		padding: 16px 20px 14px;
+		border-bottom: 1px solid var(--gl-border);
+	}
+	.vtitle {
+		min-width: 0;
 	}
 	h2 {
 		margin: 0;
-		font-size: 18px;
+		font-size: 16px;
+		font-weight: 600;
 	}
 	.ver {
 		font-family: var(--gl-mono);
@@ -299,23 +306,32 @@
 	}
 	.meta {
 		margin-top: 4px;
+		font-size: 12px;
+		color: var(--gl-muted);
 	}
 	.acts {
 		align-items: flex-start;
 	}
+	.vbody {
+		display: grid;
+		gap: 10px;
+		padding: 14px 20px 16px;
+	}
+	.why,
+	.lock {
+		margin: 0;
+	}
 	.why {
-		margin: 8px 0 0;
 		color: var(--gl-warn);
 	}
-	.lock {
-		margin: 8px 0 0;
+	h1 .badge {
+		vertical-align: middle;
+		margin-left: 4px;
+	}
+	.viewbody {
+		margin-top: 16px;
 	}
 	.addev {
-		margin-top: 14px;
-	}
-	.flowwrap {
-		margin-top: 12px;
-		display: grid;
-		gap: 8px;
+		margin-top: 16px;
 	}
 </style>

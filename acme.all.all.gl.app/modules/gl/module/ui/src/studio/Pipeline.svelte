@@ -43,8 +43,8 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		padding: 7px 10px 7px 8px;
-		border-radius: 999px;
+		padding: 7px 12px 7px 8px;
+		border-radius: 8px;
 		border: 1px solid var(--gl-border);
 		background: var(--gl-surface);
 		color: var(--gl-text);
@@ -55,7 +55,8 @@
 		border-color: var(--gl-accent);
 	}
 	.sel button {
-		box-shadow: 0 0 0 2px var(--gl-accent);
+		border-color: var(--gl-accent);
+		background: var(--gl-accent-soft);
 	}
 	.dot {
 		display: grid;
@@ -72,18 +73,18 @@
 		line-height: 1.15;
 	}
 	.lbl {
-		font-size: 12.5px;
+		font-size: 13px;
 		font-weight: 600;
 		white-space: nowrap;
 	}
 	.st {
-		font-size: 10.5px;
-		color: var(--gl-muted);
+		font-size: 11px;
+		color: var(--gl-subtle);
 		white-space: nowrap;
 	}
 	.DONE .dot {
-		background: var(--gl-ok);
-		color: #fff;
+		background: var(--gl-ok-soft);
+		color: var(--gl-ok);
 	}
 	.PENDING .dot {
 		background: var(--gl-warn-soft);
@@ -91,8 +92,9 @@
 		border: 1px solid var(--gl-warn);
 	}
 	.FAILED .dot {
-		background: var(--gl-bad);
-		color: #fff;
+		background: var(--gl-bad-soft);
+		color: var(--gl-bad);
+		border: 1px solid var(--gl-bad-line);
 	}
 	.FAILED .st {
 		color: var(--gl-bad);

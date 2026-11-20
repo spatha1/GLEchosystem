@@ -4,6 +4,7 @@
 	// debit/credit lines and accounts → required source fields → mapping → collection →
 	// simulation → journal → subledger → reconciliation → reports. Each step shows its state;
 	// every configuration step is editable in a draft.
+	import type { Snippet } from 'svelte';
 	import type { ApiError } from '../lib/api';
 	import type { Ctx } from '../lib/ctx';
 	import type { EventView } from '../lib/studio';
@@ -18,7 +19,8 @@
 	import SectionEditor from './SectionEditor.svelte';
 	import StepNotBuilt from './StepNotBuilt.svelte';
 
-	let { ctx }: { ctx: Ctx } = $props();
+	// versionCard: the version's status, actions and pipeline, shown under the event's title.
+	let { ctx, versionCard }: { ctx: Ctx; versionCard?: Snippet } = $props();
 
 	let view = $state<EventView | null>(null);
 	let failure = $state<ApiError | null>(null);
@@ -101,10 +103,10 @@
 {:else if !view}
 	<p class="muted">Loading event {ev}…</p>
 {:else}
-	<section class="evhead">
-		<div>
-			<span class="kind">Business event</span>
-			<h2 class="mono">{view.event.code}</h2>
+	<section class="pagehead evhead">
+		<div class="titles">
+			<span class="eyebrow">{ctx.version.configId} · Version {ctx.version.version} · Business event</span>
+			<h1>{view.event.code}</h1>
 			<p class="purpose">{view.event.description || 'No business purpose written yet.'}</p>
 		</div>
 		<div class="row">
@@ -112,6 +114,7 @@
 			<button class="btn" class:primary={step === 'lineage'} onclick={() => to('lineage')}>Lineage map</button>
 		</div>
 	</section>
+	{#if versionCard}<div class="vc">{@render versionCard()}</div>{/if}
 
 	<div class="flow">
 		<nav class="stepper" aria-label="Steps for {view.event.code}">
@@ -310,32 +313,15 @@
 
 <style>
 	.evhead {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: space-between;
 		align-items: flex-end;
-		gap: 12px;
-		margin: 18px 0 14px;
 	}
-	.kind {
-		font-size: 11px;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		color: var(--gl-muted);
-		font-weight: 600;
-	}
-	h2 {
-		margin: 2px 0;
-		font-size: 22px;
-	}
-	.purpose {
-		margin: 0;
-		font-size: 15px;
+	.vc {
+		margin-bottom: 20px;
 	}
 	.flow {
 		display: grid;
-		grid-template-columns: 270px minmax(0, 1fr);
-		gap: 18px;
+		grid-template-columns: 264px minmax(0, 1fr);
+		gap: 20px;
 		align-items: start;
 	}
 	@media (max-width: 960px) {
@@ -345,11 +331,7 @@
 	}
 	.stepper {
 		position: sticky;
-		top: 10px;
-		background: var(--gl-surface);
-		border: 1px solid var(--gl-border);
-		border-radius: var(--gl-radius);
-		padding: 8px;
+		top: calc(var(--gl-top-offset, 0px) + 64px);
 	}
 	.stepper ol {
 		list-style: none;
@@ -365,32 +347,36 @@
 		gap: 10px;
 		align-items: center;
 		text-align: left;
-		padding: 6px 8px;
+		padding: 7px 12px;
 		border: 0;
-		border-radius: 6px;
+		border-radius: 8px;
 		background: none;
 		color: var(--gl-text);
 		cursor: pointer;
 	}
 	.stepper button:hover {
-		background: var(--gl-surface-2);
+		background: color-mix(in srgb, var(--gl-accent) 6%, transparent);
 	}
 	.stepper li.current button {
 		background: var(--gl-accent-soft);
 	}
 	.stepper b {
 		display: block;
-		font-size: 12.5px;
+		font-size: 14px;
+		font-weight: 500;
+		line-height: 1.35;
+	}
+	.stepper li.current b {
+		color: var(--gl-accent);
 		font-weight: 600;
 	}
 	.stepper small {
 		display: block;
-		font-size: 11px;
-		color: var(--gl-muted);
+		font-size: 12px;
+		color: var(--gl-subtle);
 	}
 	.stepper li.off b {
-		color: var(--gl-muted);
-		font-weight: 500;
+		color: var(--gl-subtle);
 	}
 	.ctxstep {
 		opacity: 0.85;
@@ -414,14 +400,14 @@
 		background: var(--gl-surface);
 	}
 	.num.ok {
-		background: var(--gl-ok);
-		border-color: var(--gl-ok);
-		color: #fff;
+		background: var(--gl-ok-soft);
+		border-color: transparent;
+		color: var(--gl-ok);
 	}
 	.num.bad {
-		background: var(--gl-bad);
-		border-color: var(--gl-bad);
-		color: #fff;
+		background: var(--gl-bad-soft);
+		border-color: var(--gl-bad-line);
+		color: var(--gl-bad);
 	}
 	.num.warn {
 		background: var(--gl-warn-soft);
@@ -440,7 +426,7 @@
 	.content {
 		min-width: 0;
 		display: grid;
-		gap: 14px;
+		gap: 16px;
 		align-content: start;
 	}
 	.content :global(.sec + .sec) {
@@ -453,24 +439,26 @@
 	}
 	.stephead h3 {
 		margin: 0;
-		font-size: 17px;
+		font-size: 18px;
+		font-weight: 600;
 		display: flex;
-		gap: 8px;
+		gap: 10px;
 		align-items: center;
 	}
 	.sn {
 		display: grid;
 		place-items: center;
-		width: 26px;
-		height: 26px;
-		border-radius: 50%;
+		width: 28px;
+		height: 28px;
+		border-radius: 8px;
 		background: var(--gl-accent);
 		color: var(--gl-accent-ink);
 		font-size: 13px;
 	}
 	.lead {
 		margin: 0;
-		font-size: 14.5px;
+		font-size: 14px;
+		color: var(--gl-muted);
 	}
 	.bar {
 		align-items: flex-start;
@@ -482,7 +470,7 @@
 	}
 	.rule .code {
 		font-size: 15px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.rule.off {
 		opacity: 0.75;
@@ -495,7 +483,8 @@
 	}
 	.sub {
 		margin: 8px 0 0;
-		font-size: 15px;
+		font-size: 16px;
+		font-weight: 600;
 	}
 	.catalog summary {
 		cursor: pointer;
@@ -507,8 +496,8 @@
 		white-space: nowrap;
 	}
 	.nav {
-		margin-top: 6px;
-		padding-top: 12px;
+		margin-top: 8px;
+		padding-top: 16px;
 		border-top: 1px solid var(--gl-border);
 	}
 </style>

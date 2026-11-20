@@ -67,10 +67,11 @@
 	}
 </script>
 
-<section class="intro">
-	<div class="grow">
-		<h2>Configurations of client <span class="mono">{me.tenantId}</span></h2>
-		<p class="muted">
+<section class="pagehead">
+	<div class="titles">
+		<span class="eyebrow">1 · Configurations · Client {me.tenantId}</span>
+		<h1>Configurations</h1>
+		<p class="purpose">
 			Each configuration is versioned. A version holds the business events, their measures and formulas, keys, dates, posting rules and accounts, and
 			moves from draft to validated to approved (by someone other than its editors). Open a version to follow an event from its configuration to its
 			journal.
@@ -190,50 +191,40 @@
 {/if}
 
 <style>
-	.intro {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 12px 24px;
-		align-items: flex-start;
-		margin-bottom: 16px;
-	}
-	.grow {
-		flex: 1;
-		min-width: 300px;
-	}
-	.intro h2 {
-		margin: 0 0 4px;
-		font-size: 18px;
-	}
-	.intro p {
-		margin: 0;
-		max-width: 900px;
-	}
 	.newbox {
 		display: grid;
 		gap: 4px;
 		justify-items: end;
 	}
-	.newbox .btn {
-		padding: 8px 16px;
-		font-size: 14px;
+	.config {
+		padding: 0;
+		overflow: hidden;
 	}
 	.config header {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: space-between;
+		align-items: flex-start;
 		gap: 10px;
-		margin-bottom: 10px;
+		padding: 16px 20px 14px;
+		border-bottom: 1px solid var(--gl-border);
+	}
+	.config .scroll {
+		padding: 0 8px 4px;
 	}
 	.config.focus {
 		border-color: var(--gl-accent);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--gl-accent) 15%, transparent);
 	}
 	.cid {
-		font-weight: 700;
-		font-size: 15px;
+		font-weight: 600;
+		font-size: 13px;
+		color: var(--gl-accent);
 	}
 	.title {
-		font-weight: 550;
+		font-weight: 600;
+		font-size: 16px;
+		margin: 2px 0;
 	}
 	.nowrap {
 		white-space: nowrap;
@@ -242,7 +233,7 @@
 		text-align: right;
 	}
 	.right .btn + .btn {
-		margin-left: 6px;
+		margin-left: 8px;
 	}
 	.empty p {
 		margin: 0 0 8px;
