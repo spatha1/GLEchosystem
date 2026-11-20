@@ -23,3 +23,5 @@ go test -count=1 -v ./...
 | `TestWalkPaymentPath` | E3 → two entity entries (C09 bank, C01 policy), each balanced; intercompany nets to zero; allocations reduce each invoice; PAY_AMT is never multiplied |
 | `TestSourceJournalImportAddsNoCounterLegAndPostsOnce` | Setup B imports Billing journals line for line (no counter-leg); the raw payment event does not also post; unbalanced or unmapped journals are refused |
 | `TestGLTest001FixtureIsConsistent` | The fixture's 7 groups / 22 lines add up |
+| `TestManifestEnumerationsMatchTheSchema` | The C2 validator's enumerations are exactly the schema's |
+| `TestGLTest001ManifestSatisfiesC2` / `TestTheManifestContractRejectsBadFields` | The engine's GL-TEST-001 manifest snapshot (US-014) satisfies C2: every field has a reason, list fields carry their list, derived values (`BANKING_COMPANY`, `BOOKING_CLASS`) are never requested from a source; fields C2 forbids are refused |

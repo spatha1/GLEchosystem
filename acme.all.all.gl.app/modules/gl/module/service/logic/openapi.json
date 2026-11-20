@@ -469,6 +469,56 @@
         }
       }
     },
+    "/m/gl/configs/{configId}/effective/manifest": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "name": "date",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        {
+          "name": "eventType",
+          "in": "query",
+          "required": false,
+          "description": "Only this event type",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_effectiveManifest",
+        "summary": "The manifest of the approved version in force on a date: what collection asks sources for",
+        "responses": {
+          "200": {
+            "description": "as for a version's manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gl_ManifestView"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
     "/m/gl/configs/{configId}/audit": {
       "parameters": [
         {
@@ -867,6 +917,91 @@
         }
       }
     },
+    "/m/gl/configs/{configId}/versions/{version}/manifest": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        },
+        {
+          "name": "eventType",
+          "in": "query",
+          "required": false,
+          "description": "Only this event type",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_versionManifest",
+        "summary": "Required-field manifest (US-014, contract C2) compiled from the version, with its explanation: every use of every field through formulas, lookups, lists and the date policy, and the fields declared but unused",
+        "responses": {
+          "200": {
+            "description": "manifest, explanation, complete (false while the version has blocking findings)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gl_ManifestView"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/manifest/diff": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        },
+        {
+          "name": "against",
+          "in": "query",
+          "required": true,
+          "description": "The version to compare with",
+          "schema": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_manifestDiff",
+        "summary": "Which fields the version's manifest adds, drops or changes against another version, and which changes need a source mapping added, reviewed or dropped",
+        "responses": {
+          "200": {
+            "description": "the field-level diff (changed: whether the manifest digest differs)"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
     "/m/gl/configs/{configId}/versions/{version}/plan": {
       "parameters": [
         {
@@ -1207,6 +1342,43 @@
               }
             },
             "description": "1:N items, e.g. ALLOCATION_LIST; item keys and measures as flat fields."
+          }
+        }
+      },
+      "gl_ManifestView": {
+        "type": "object",
+        "required": [
+          "configId",
+          "version",
+          "status",
+          "complete",
+          "blockingFindings",
+          "manifest",
+          "explanation"
+        ],
+        "properties": {
+          "configId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "blockingFindings": {
+            "type": "integer"
+          },
+          "manifest": {
+            "description": "Contract C2 (spec design/02_canonical_contracts/schemas/field-manifest.schema.json)",
+            "type": "object"
+          },
+          "explanation": {
+            "type": "object",
+            "description": "Per event: fields (in manifest order) with reasons and via chains, lists, unused fields"
           }
         }
       }

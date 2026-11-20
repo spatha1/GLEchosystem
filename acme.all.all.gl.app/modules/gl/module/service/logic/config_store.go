@@ -692,25 +692,34 @@ func effectiveVersion(c *call) modulesdk.Response {
 	if e := pathCode("configId", configID); e != nil {
 		return e.response()
 	}
-	date := c.query("date")
-	if _, e := ParseDate("date", date); e != nil {
+	v, e := loadEffective(c, configID, c.query("date"))
+	if e != nil {
 		return e.response()
+	}
+	return jsonResponse(200, v)
+}
+
+// loadEffective loads, with its content, the approved version of a configuration effective
+// on a date.
+func loadEffective(c *call, configID, date string) (VersionView, *apiError) {
+	if _, e := ParseDate("date", date); e != nil {
+		return VersionView{}, e
 	}
 	rows, err := c.host.Query("select "+versionCols+withContentCols+` from config_version
 		where tenant_id = $1 and config_id = $2 and status = 'approved'
 		  and effective_from <= $3::date and (effective_to is null or $3::date < effective_to)
 		order by effective_from desc limit 1`, []string{c.id.Tenant, configID, date})
 	if err != nil {
-		return errInternal("storage error").response()
+		return VersionView{}, errInternal("storage error")
 	}
 	if len(rows) == 0 {
-		return (&apiError{Status: 404, Code: "NO_EFFECTIVE_VERSION", Message: fmt.Sprintf("no approved version of %s is effective on %s", configID, date)}).response()
+		return VersionView{}, &apiError{Status: 404, Code: "NO_EFFECTIVE_VERSION", Message: fmt.Sprintf("no approved version of %s is effective on %s", configID, date)}
 	}
 	v, err := scanVersion(rows[0], true)
 	if err != nil {
-		return errInternal("storage error").response()
+		return VersionView{}, errInternal("storage error")
 	}
-	return jsonResponse(200, v)
+	return v, nil
 }
 
 // AuditEntry is one configuration audit record.

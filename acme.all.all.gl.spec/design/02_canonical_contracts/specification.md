@@ -38,6 +38,17 @@ Compiled from one configuration version. It never names physical tables or colum
 
 The manifest has its own `manifestDigest`. Any change to the approved configuration that changes the manifest changes the digest, which makes every mapping bound to the old digest **stale**.
 
+How the `gl` module compiles it (US-014):
+
+- **One dependency graph per event.** Every configured behaviour is traced back to the raw values it reads: posting-rule filters, line amounts, conditions and legal entities, derived-measure formulas, lookup-derived dimensions, the date policy, account-assignment matches, the subledger keys and dimensions accounts require, and identity and business keys. A source field is in the manifest only if something reads it; a field the event declares but nothing reads is left out (and reported as unused).
+- **Derived values are listed, never requested.** Derived measures (`GROSS`), lookup-derived dimensions (`BANKING_COMPANY`) and date-policy values (`BOOKING_CLASS`, `BOOK_DATE`) are `DERIVED` with `derivedFrom`; their inputs are the `SOURCE` fields. `LEDGER_STATE` (e.g. `OPEN_BALANCE`) is produced once the subledger exists (US-022/US-024).
+- **`requiredBy`** names every element on the way: the formula or lookup in between and the rule line, filter, key profile, date policy, assignment rule or account that finally needs the value (`POSTING_RULE` refs are `RULE/LINE`).
+- **`mandatory`** is true when the engine refuses the event without the value: identity, currency, economic and business keys, line amounts and legal entities, list expansion, subledger keys and account dimensions, the date policy's dates, and assignment matches every rule of the class names. Filters, line conditions and matches a fallback rule does not need are required but not mandatory.
+- **Digest.** It covers exactly what the manifest says, not the configuration version. A cosmetic change (a name, a description) keeps it. A change that reads the same fields along a new path changes `requiredBy` and so the digest, but asks for no remapping; the diff (`GET …/manifest/diff?against=`) says per field whether a mapping must be added, reviewed or dropped.
+- **Explanation.** Alongside the manifest, the API returns every use of every field in words, with the chain through formulas and lookups (e.g. PREMIUM → `GROSS = PREMIUM + TAX` → amount of line `AR0_DR`), where the canonical event (C4) carries it, the source systems authoritative for it, and its constraints (key pattern, closed values, source normalisations).
+
+The GL-TEST-001 manifest is pinned as [`_harness/fixtures/GL-TEST-001.manifest.json`](../../_harness/fixtures/GL-TEST-001.manifest.json): the engine's tests regenerate and compare it, and the contract tests check it satisfies C2.
+
 ## C3 — Mapping version ([schema](schemas/mapping-version.schema.json))
 
 Binds manifest fields to source fields for one tenant and source system. It records `configId`, `configVersion`, `manifestDigest` and the Data Workbench connection used. Each field mapping holds the source object, column, optional transform, join path, cardinality, Data Workbench confidence and evidence, and `origin` (`DWB_RANK | DWB_SUGGEST | MANUAL`).

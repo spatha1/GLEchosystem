@@ -1,0 +1,721 @@
+{
+  "schemaVersion": "gl.manifest/v1",
+  "tenantId": "DEMO",
+  "configId": "GL_TEST_001",
+  "configVersion": 1,
+  "configDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "manifestDigest": "sha256:dc073fe0cf73e5cf6ca46c037ad36710a60db2139fe1d365d920e48992e637bf",
+  "events": [
+    {
+      "eventType": "PREM_ADDED",
+      "sourceSystem": "POLICY",
+      "fields": [
+        {
+          "fieldCode": "SOURCE_EVENT_ID",
+          "definition": "the source system's identifier of the record",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "DEDUP_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "PREM_ADDED"
+            }
+          ]
+        },
+        {
+          "fieldCode": "SOURCE_EVENT_VERSION",
+          "definition": "the source's version of the record; a correction has a higher version",
+          "kind": "SOURCE",
+          "dataType": "INTEGER",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "DEDUP_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "PREM_ADDED"
+            }
+          ]
+        },
+        {
+          "fieldCode": "CURRENCY",
+          "definition": "ISO 4217 currency of the event's amounts",
+          "kind": "SOURCE",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "PREM_ADDED"
+            }
+          ]
+        },
+        {
+          "fieldCode": "TRANSACTION_DATE",
+          "definition": "when the transaction happened at source",
+          "kind": "SOURCE",
+          "dataType": "DATE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "DATE_POLICY",
+              "ref": "DP_STANDARD"
+            }
+          ]
+        },
+        {
+          "fieldCode": "EFFECTIVE_DATE",
+          "definition": "when the cover or change takes effect",
+          "kind": "SOURCE",
+          "dataType": "DATE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "DATE_POLICY",
+              "ref": "DP_STANDARD"
+            }
+          ]
+        },
+        {
+          "fieldCode": "POLICY_NO",
+          "definition": "business key POLICY_NO",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "BUSINESS_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "PREM_ADDED"
+            },
+            {
+              "kind": "KEY_PROFILE",
+              "ref": "POLICY_NO"
+            },
+            {
+              "kind": "ACCOUNT_ASSIGNMENT",
+              "ref": "9948500"
+            },
+            {
+              "kind": "ACCOUNT_ASSIGNMENT",
+              "ref": "9948523"
+            }
+          ]
+        },
+        {
+          "fieldCode": "TERM_NO",
+          "definition": "business key TERM_NO",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "BUSINESS_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "PREM_ADDED"
+            },
+            {
+              "kind": "KEY_PROFILE",
+              "ref": "TERM_NO"
+            }
+          ]
+        },
+        {
+          "fieldCode": "LOB",
+          "definition": "Line of business",
+          "kind": "SOURCE",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": false,
+          "requiredBy": [
+            {
+              "kind": "ACCOUNT_ASSIGNMENT",
+              "ref": "AA_AR0_MOTOR"
+            }
+          ]
+        },
+        {
+          "fieldCode": "COMPANY",
+          "definition": "Legal company",
+          "kind": "SOURCE",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PREM_ADDED/AR0_DR"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PREM_ADDED/PW0_CR"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PREM_ADDED/TX0_CR"
+            }
+          ]
+        },
+        {
+          "fieldCode": "PREMIUM",
+          "definition": "Premium charged for the cover, excluding taxes and fees.",
+          "kind": "SOURCE",
+          "dataType": "DECIMAL",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "FORMULA",
+              "ref": "GROSS"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PREM_ADDED/AR0_DR"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PREM_ADDED/PW0_CR"
+            }
+          ]
+        },
+        {
+          "fieldCode": "TAX",
+          "definition": "Tax levied on premium (e.g. GST, IPT), as charged to the policyholder.",
+          "kind": "SOURCE",
+          "dataType": "DECIMAL",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "FORMULA",
+              "ref": "GROSS"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PREM_ADDED/AR0_DR"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PREM_ADDED/TX0_CR"
+            }
+          ]
+        },
+        {
+          "fieldCode": "GROSS",
+          "definition": "GROSS = PREMIUM + TAX",
+          "kind": "DERIVED",
+          "dataType": "DECIMAL",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "derivedFrom": [
+            "PREMIUM",
+            "TAX"
+          ],
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PREM_ADDED/AR0_DR"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "eventType": "INVOICED",
+      "sourceSystem": "BILLING",
+      "fields": [
+        {
+          "fieldCode": "SOURCE_EVENT_ID",
+          "definition": "the source system's identifier of the record",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "DEDUP_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "INVOICED"
+            }
+          ]
+        },
+        {
+          "fieldCode": "SOURCE_EVENT_VERSION",
+          "definition": "the source's version of the record; a correction has a higher version",
+          "kind": "SOURCE",
+          "dataType": "INTEGER",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "DEDUP_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "INVOICED"
+            }
+          ]
+        },
+        {
+          "fieldCode": "CURRENCY",
+          "definition": "ISO 4217 currency of the event's amounts",
+          "kind": "SOURCE",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "INVOICED"
+            }
+          ]
+        },
+        {
+          "fieldCode": "TRANSACTION_DATE",
+          "definition": "when the transaction happened at source",
+          "kind": "SOURCE",
+          "dataType": "DATE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "DATE_POLICY",
+              "ref": "DP_STANDARD"
+            }
+          ]
+        },
+        {
+          "fieldCode": "EFFECTIVE_DATE",
+          "definition": "when the cover or change takes effect",
+          "kind": "SOURCE",
+          "dataType": "DATE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "DATE_POLICY",
+              "ref": "DP_STANDARD"
+            }
+          ]
+        },
+        {
+          "fieldCode": "POLICY_NO",
+          "definition": "business key POLICY_NO",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "BUSINESS_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "INVOICED"
+            },
+            {
+              "kind": "KEY_PROFILE",
+              "ref": "POLICY_NO"
+            },
+            {
+              "kind": "ACCOUNT_ASSIGNMENT",
+              "ref": "9948500"
+            },
+            {
+              "kind": "ACCOUNT_ASSIGNMENT",
+              "ref": "9948523"
+            }
+          ]
+        },
+        {
+          "fieldCode": "TERM_NO",
+          "definition": "business key TERM_NO",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "BUSINESS_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "INVOICED"
+            },
+            {
+              "kind": "KEY_PROFILE",
+              "ref": "TERM_NO"
+            }
+          ]
+        },
+        {
+          "fieldCode": "INVOICE_RUN",
+          "definition": "business key INVOICE_RUN",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "BUSINESS_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "INVOICED"
+            },
+            {
+              "kind": "KEY_PROFILE",
+              "ref": "INVOICE_RUN"
+            }
+          ]
+        },
+        {
+          "fieldCode": "COMPANY",
+          "definition": "Legal company",
+          "kind": "SOURCE",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_INVOICED/AR1_DR"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_INVOICED/AR0_CR"
+            }
+          ]
+        },
+        {
+          "fieldCode": "LOB",
+          "definition": "Line of business",
+          "kind": "SOURCE",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": false,
+          "requiredBy": [
+            {
+              "kind": "ACCOUNT_ASSIGNMENT",
+              "ref": "AA_AR0_MOTOR"
+            }
+          ]
+        },
+        {
+          "fieldCode": "INVOICE_NO",
+          "definition": "business key INVOICE_NO",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "LIST",
+          "listCode": "INVOICE_LIST",
+          "mandatory": true,
+          "keyRole": "BUSINESS_KEY",
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_INVOICED/AR1_DR"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_INVOICED/AR0_CR"
+            },
+            {
+              "kind": "KEY_PROFILE",
+              "ref": "INVOICE_NO"
+            },
+            {
+              "kind": "ACCOUNT_ASSIGNMENT",
+              "ref": "9948600"
+            }
+          ]
+        },
+        {
+          "fieldCode": "INVOICE_AMT",
+          "definition": "Amount billed on one invoice; becomes an invoice receivable.",
+          "kind": "SOURCE",
+          "dataType": "DECIMAL",
+          "cardinality": "LIST",
+          "listCode": "INVOICE_LIST",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_INVOICED/AR1_DR"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_INVOICED/AR0_CR"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "eventType": "PAYMENT_RECEIVED",
+      "sourceSystem": "BILLING",
+      "fields": [
+        {
+          "fieldCode": "SOURCE_EVENT_ID",
+          "definition": "the source system's identifier of the record",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "DEDUP_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "PAYMENT_RECEIVED"
+            }
+          ]
+        },
+        {
+          "fieldCode": "SOURCE_EVENT_VERSION",
+          "definition": "the source's version of the record; a correction has a higher version",
+          "kind": "SOURCE",
+          "dataType": "INTEGER",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "DEDUP_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "PAYMENT_RECEIVED"
+            }
+          ]
+        },
+        {
+          "fieldCode": "CURRENCY",
+          "definition": "ISO 4217 currency of the event's amounts",
+          "kind": "SOURCE",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "PAYMENT_RECEIVED"
+            }
+          ]
+        },
+        {
+          "fieldCode": "TRANSACTION_DATE",
+          "definition": "when the transaction happened at source",
+          "kind": "SOURCE",
+          "dataType": "DATE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "DATE_POLICY",
+              "ref": "DP_STANDARD"
+            }
+          ]
+        },
+        {
+          "fieldCode": "EFFECTIVE_DATE",
+          "definition": "when the cover or change takes effect",
+          "kind": "SOURCE",
+          "dataType": "DATE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "DATE_POLICY",
+              "ref": "DP_STANDARD"
+            },
+            {
+              "kind": "LOOKUP",
+              "ref": "BANKING_COMPANY_BY_ACCOUNT"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/CASH"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_TO"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_FROM"
+            }
+          ]
+        },
+        {
+          "fieldCode": "RECEIPT_NO",
+          "definition": "business key RECEIPT_NO",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "keyRole": "BUSINESS_KEY",
+          "requiredBy": [
+            {
+              "kind": "EVENT_RECOGNITION",
+              "ref": "PAYMENT_RECEIVED"
+            },
+            {
+              "kind": "KEY_PROFILE",
+              "ref": "RECEIPT_NO"
+            }
+          ]
+        },
+        {
+          "fieldCode": "BANK_ACCOUNT",
+          "definition": "Bank account",
+          "kind": "SOURCE",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "LOOKUP",
+              "ref": "BANKING_COMPANY_BY_ACCOUNT"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/CASH"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_TO"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_FROM"
+            },
+            {
+              "kind": "ACCOUNT_ASSIGNMENT",
+              "ref": "1000900"
+            }
+          ]
+        },
+        {
+          "fieldCode": "COMPANY",
+          "definition": "Legal company",
+          "kind": "SOURCE",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_TO"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_FROM"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/ALLOC"
+            }
+          ]
+        },
+        {
+          "fieldCode": "PAY_AMT",
+          "definition": "Cash received in one payment (receipt), before allocation.",
+          "kind": "SOURCE",
+          "dataType": "DECIMAL",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/CASH"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_TO"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_FROM"
+            }
+          ]
+        },
+        {
+          "fieldCode": "ALLOCATION_ID",
+          "definition": "business key ALLOCATION_ID",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "LIST",
+          "listCode": "ALLOCATION_LIST",
+          "mandatory": true,
+          "keyRole": "BUSINESS_KEY",
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/ALLOC"
+            },
+            {
+              "kind": "KEY_PROFILE",
+              "ref": "ALLOCATION_ID"
+            }
+          ]
+        },
+        {
+          "fieldCode": "INVOICE_NO",
+          "definition": "business key INVOICE_NO",
+          "kind": "SOURCE",
+          "dataType": "STRING",
+          "cardinality": "LIST",
+          "listCode": "ALLOCATION_LIST",
+          "mandatory": true,
+          "keyRole": "LINK_KEY",
+          "requiredBy": [
+            {
+              "kind": "KEY_PROFILE",
+              "ref": "INVOICE_NO"
+            },
+            {
+              "kind": "ACCOUNT_ASSIGNMENT",
+              "ref": "9948600"
+            }
+          ]
+        },
+        {
+          "fieldCode": "ALLOC_AMT",
+          "definition": "Part of a payment applied to one invoice.",
+          "kind": "SOURCE",
+          "dataType": "DECIMAL",
+          "cardinality": "LIST",
+          "listCode": "ALLOCATION_LIST",
+          "mandatory": true,
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/ALLOC"
+            }
+          ]
+        },
+        {
+          "fieldCode": "BANKING_COMPANY",
+          "definition": "Banking company (derived by lookup BANKING_COMPANY_BY_ACCOUNT)",
+          "kind": "DERIVED",
+          "dataType": "CODE",
+          "cardinality": "ONE",
+          "mandatory": true,
+          "derivedFrom": [
+            "BANK_ACCOUNT"
+          ],
+          "requiredBy": [
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/CASH"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_TO"
+            },
+            {
+              "kind": "POSTING_RULE",
+              "ref": "PR_PAYMENT_RECEIVED/DUE_FROM"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

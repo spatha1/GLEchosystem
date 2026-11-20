@@ -331,3 +331,102 @@ func ImportSourceJournal(sj SourceJournal, refs map[string]AccountRef, configID 
 	}
 	return j, nil
 }
+
+// Manifest is C2, the required-field manifest compiled from one configuration version.
+type Manifest struct {
+	SchemaVersion  string `json:"schemaVersion"`
+	TenantID       string `json:"tenantId"`
+	ConfigID       string `json:"configId"`
+	ConfigVersion  int    `json:"configVersion"`
+	ConfigDigest   string `json:"configDigest"`
+	ManifestDigest string `json:"manifestDigest"`
+	Events         []struct {
+		EventType    string          `json:"eventType"`
+		SourceSystem string          `json:"sourceSystem,omitempty"`
+		Fields       []ManifestField `json:"fields"`
+	} `json:"events"`
+}
+
+// ManifestField is one C2 field.
+type ManifestField struct {
+	FieldCode   string   `json:"fieldCode"`
+	Definition  string   `json:"definition,omitempty"`
+	Kind        string   `json:"kind"`
+	DataType    string   `json:"dataType"`
+	Cardinality string   `json:"cardinality"`
+	ListCode    string   `json:"listCode,omitempty"`
+	Mandatory   bool     `json:"mandatory"`
+	KeyRole     string   `json:"keyRole,omitempty"`
+	DerivedFrom []string `json:"derivedFrom,omitempty"`
+	RequiredBy  []struct {
+		Kind string `json:"kind"`
+		Ref  string `json:"ref"`
+	} `json:"requiredBy"`
+}
+
+// C2 enumerations, as the schema declares them.
+var (
+	ManifestKinds         = []string{"SOURCE", "DERIVED", "LEDGER_STATE"}
+	ManifestDataTypes     = []string{"STRING", "DECIMAL", "INTEGER", "DATE", "TIMESTAMP", "BOOLEAN", "CODE"}
+	ManifestCardinalities = []string{"ONE", "LIST"}
+	ManifestKeyRoles      = []string{"BUSINESS_KEY", "LINK_KEY", "DEDUP_KEY", "NONE"}
+	ManifestRequirements  = []string{"POSTING_RULE", "FORMULA", "FILTER", "KEY_PROFILE", "DATE_POLICY", "ACCOUNT_ASSIGNMENT", "LOOKUP", "EVENT_RECOGNITION", "RECONCILIATION"}
+)
+
+var digestRe = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+
+func in(s string, set []string) bool {
+	for _, x := range set {
+		if x == s {
+			return true
+		}
+	}
+	return false
+}
+
+// ValidateManifest checks the C2 invariants: shapes and enumerations, a reason for every
+// field, a list code exactly on LIST fields, DERIVED fields saying what they derive from and
+// SOURCE fields not, and no field listed twice.
+func ValidateManifest(m Manifest) []string {
+	var p []string
+	if m.SchemaVersion != "gl.manifest/v1" {
+		p = append(p, "schemaVersion must be gl.manifest/v1")
+	}
+	if !codeRe.MatchString(m.TenantID) || !codeRe.MatchString(m.ConfigID) || m.ConfigVersion < 1 {
+		p = append(p, "tenantId, configId and configVersion identify the configuration version")
+	}
+	if !digestRe.MatchString(m.ConfigDigest) || !digestRe.MatchString(m.ManifestDigest) {
+		p = append(p, "configDigest and manifestDigest must be sha256 digests")
+	}
+	for _, e := range m.Events {
+		seen := map[string]bool{}
+		for _, f := range e.Fields {
+			at := e.EventType + " " + f.ListCode + "." + f.FieldCode
+			switch {
+			case !codeRe.MatchString(f.FieldCode):
+				p = append(p, at+": fieldCode must be a code")
+			case seen[f.ListCode+"."+f.FieldCode]:
+				p = append(p, at+": listed twice")
+			case !in(f.Kind, ManifestKinds) || !in(f.DataType, ManifestDataTypes) || !in(f.Cardinality, ManifestCardinalities):
+				p = append(p, at+": kind, dataType or cardinality outside C2")
+			case f.KeyRole != "" && !in(f.KeyRole, ManifestKeyRoles):
+				p = append(p, at+": keyRole outside C2")
+			case (f.Cardinality == "LIST") != (f.ListCode != ""):
+				p = append(p, at+": listCode is required exactly on LIST fields")
+			case f.Kind == "DERIVED" && len(f.DerivedFrom) == 0:
+				p = append(p, at+": a DERIVED field says what it is derived from")
+			case f.Kind == "SOURCE" && len(f.DerivedFrom) > 0:
+				p = append(p, at+": a SOURCE field is collected, not derived")
+			case len(f.RequiredBy) == 0:
+				p = append(p, at+": every field needs a reason (requiredBy)")
+			}
+			seen[f.ListCode+"."+f.FieldCode] = true
+			for _, r := range f.RequiredBy {
+				if !in(r.Kind, ManifestRequirements) || r.Ref == "" {
+					p = append(p, at+": requiredBy "+r.Kind+" "+r.Ref+" is outside C2")
+				}
+			}
+		}
+	}
+	return p
+}

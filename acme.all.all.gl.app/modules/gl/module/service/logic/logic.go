@@ -111,6 +111,7 @@ var routes = []route{
 	r("POST", "/configs/{configId}/versions/{version}/approve", roleGated, approveVersion, roleApprovers...),
 	r("POST", "/configs/{configId}/versions/{version}/retire", roleGated, retireVersion, roleApprovers...),
 	r("GET", "/configs/{configId}/effective", roleGated, effectiveVersion, roleReaders...),
+	r("GET", "/configs/{configId}/effective/manifest", roleGated, effectiveManifest, roleReaders...),
 	r("GET", "/configs/{configId}/audit", roleGated, listAudit, roleReaders...),
 	r("GET", "/catalog/measures", authenticated, ootbMeasures),
 	r("GET", "/configs/{configId}/versions/{version}/measures", roleGated, versionMeasures, roleReaders...),
@@ -118,6 +119,8 @@ var routes = []route{
 	r("POST", "/configs/{configId}/versions/{version}/keygraph", roleGated, keyGraphVersion, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/plan", roleGated, planVersion, roleReaders...),
 	r("GET", "/configs/{configId}/versions/{version}/accounts", roleGated, listAccounts, roleReaders...),
+	r("GET", "/configs/{configId}/versions/{version}/manifest", roleGated, versionManifest, roleReaders...),
+	r("GET", "/configs/{configId}/versions/{version}/manifest/diff", roleGated, manifestDiff, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/accounts/check", roleGated, checkAccount, roleReaders...),
 }
 
