@@ -5,6 +5,7 @@
 	import type { Finding } from '../lib/types';
 	import type { Route, VersionTab } from '../lib/route';
 	import { editable, type Ctx } from '../lib/ctx';
+	import type { Catalog } from '../lib/sections';
 	import { actionsFor, type ActionKind } from '../lib/permissions';
 	import { digest, when } from '../lib/format';
 	import StatusChip from '../components/StatusChip.svelte';
@@ -19,6 +20,8 @@
 	import ImpactPage from './ImpactPage.svelte';
 	import AccountsPage from './AccountsPage.svelte';
 	import HistoryPage from './HistoryPage.svelte';
+	import SectionEditor from './SectionEditor.svelte';
+	import { specs } from '../lib/sections';
 
 	let { api, me, route, go }: { api: Client; me: Me; route: Route; go: (r: Route) => void } = $props();
 
@@ -28,6 +31,7 @@
 	let findings = $state<Finding[]>([]);
 	let failure = $state<ApiError | null>(null);
 	let tick = $state(0);
+	let catalog = $state<Catalog>({ measures: [], dimensions: [] });
 	let stageNote = $state<Stage | null>(null);
 	let acting = $state<ActionKind | null>(null);
 	let actionError = $state('');
@@ -54,6 +58,12 @@
 
 	$effect(() => {
 		load();
+	});
+	$effect(() => {
+		Promise.all([api.catalogMeasures(), api.catalogDimensions()]).then(
+			([measures, dimensions]) => (catalog = { measures, dimensions }),
+			() => {}
+		);
 	});
 
 	const tab = $derived<VersionTab>(route.tab ?? 'events');
@@ -112,7 +122,7 @@
 		}
 	}
 
-	async function createDraft(effectiveFrom: string, reason: string) {
+	async function createDraft(effectiveFrom: string, reason: string, _from?: number) {
 		busy = true;
 		draftError = '';
 		try {
@@ -144,7 +154,8 @@
 						draftError = '';
 						drafting = { then };
 					},
-					tick
+					tick,
+					catalog
 				}
 			: null
 	);
@@ -221,6 +232,17 @@
 		</div>
 		{#if tab === 'events'}
 			<EventsGrid {ctx} {events} />
+			<div class="addev">
+				<SectionEditor
+					{ctx}
+					spec={specs.events}
+					listing={false}
+					title="Add a business event"
+					help="Its code, purpose, source, economic key, measures, dimensions and lists. After saving, the event opens at step 4 of its flow."
+					{findings}
+					onsaved={(code) => code && go({ configId, version: n, event: code })}
+				/>
+			</div>
 		{:else if tab === 'fields'}
 			<FieldsPage {ctx} />
 		{:else if tab === 'mapping'}
@@ -230,7 +252,7 @@
 		{:else if tab === 'impact'}
 			<ImpactPage {ctx} />
 		{:else if tab === 'accounts'}
-			<AccountsPage {ctx} />
+			<AccountsPage {ctx} {findings} />
 		{:else}
 			<HistoryPage {ctx} {findings} />
 		{/if}
@@ -281,6 +303,9 @@
 	}
 	.lock {
 		margin: 8px 0 0;
+	}
+	.addev {
+		margin-top: 14px;
 	}
 	.flowwrap {
 		margin-top: 12px;

@@ -3,7 +3,23 @@
 // the URL so a view can be linked to and the browser's back button works.
 
 export type VersionTab = 'events' | 'fields' | 'mapping' | 'simulate' | 'impact' | 'accounts' | 'history';
-export type EventTab = 'overview' | 'lineage' | 'rules' | 'fields' | 'simulate';
+/** The steps of an event's guided flow (plus the lineage map). */
+export type EventTab =
+	| 'details'
+	| 'measures'
+	| 'context'
+	| 'rules'
+	| 'lines'
+	| 'fields'
+	| 'mapping'
+	| 'collection'
+	| 'simulate'
+	| 'journal'
+	| 'subledger'
+	| 'reconciliation'
+	| 'reports'
+	| 'lineage'
+	| 'overview';
 
 export interface Route {
 	configId?: string;
@@ -18,7 +34,23 @@ export interface Route {
 }
 
 const versionTabs: VersionTab[] = ['events', 'fields', 'mapping', 'simulate', 'impact', 'accounts', 'history'];
-const eventTabs: EventTab[] = ['overview', 'lineage', 'rules', 'fields', 'simulate'];
+const eventTabs: EventTab[] = [
+	'details',
+	'measures',
+	'context',
+	'rules',
+	'lines',
+	'fields',
+	'mapping',
+	'collection',
+	'simulate',
+	'journal',
+	'subledger',
+	'reconciliation',
+	'reports',
+	'lineage',
+	'overview'
+];
 
 export function toHash(r: Route): string {
 	let p = '#/';
@@ -30,7 +62,7 @@ export function toHash(r: Route): string {
 			if (r.event) {
 				p += `/e/${encodeURIComponent(r.event)}`;
 				if (r.rule) p += `/r/${encodeURIComponent(r.rule)}`;
-				else if (r.etab && r.etab !== 'overview') q.set('tab', r.etab);
+				else if (r.etab && r.etab !== 'overview' && r.etab !== 'details') q.set('tab', r.etab);
 			} else if (r.tab && r.tab !== 'events') {
 				q.set('tab', r.tab);
 			}

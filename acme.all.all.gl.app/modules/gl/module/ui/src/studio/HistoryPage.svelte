@@ -20,6 +20,7 @@
 
 	const action: Record<string, string> = {
 		create_config: 'Created the configuration',
+		create_artifact: 'Created the configuration',
 		create_version: 'Created the version',
 		update_draft: 'Saved changes',
 		validate: 'Validated',

@@ -18,6 +18,10 @@ import FieldsTable from './FieldsTable.svelte';
 import Simulator from './Simulator.svelte';
 import Pipeline from './Pipeline.svelte';
 import LineageMap from './LineageMap.svelte';
+import Home from './Home.svelte';
+import SectionEditor from './SectionEditor.svelte';
+import EventPage from './EventPage.svelte';
+import { cleanItem, specs, withItem } from '../lib/sections';
 
 const prem = (premRaw as unknown as { view: EventView }).view;
 const pay = (payRaw as unknown as { view: EventView }).view;
@@ -62,6 +66,7 @@ function ctxFor(over: Partial<Ctx> & { route: Route }): Ctx {
 		save: vi.fn(async () => {}),
 		startDraft: vi.fn(),
 		tick: 0,
+		catalog: { measures: [{ value: 'PREMIUM', label: 'PREMIUM · Premium' }, { value: 'FEE', label: 'FEE · Fee' }], dimensions: [{ value: 'LOB', label: 'LOB' }] },
 		...over
 	};
 }
@@ -74,7 +79,8 @@ describe('routes', () => {
 			{ configId: 'GL_TEST_001', version: 2, tab: 'impact' },
 			{ configId: 'GL_TEST_001', version: 1, event: 'PREM_ADDED', etab: 'lineage', select: 'field:PREMIUM' },
 			{ configId: 'GL_TEST_001', version: 2, event: 'PREM_ADDED', rule: 'PR_PREM_ADDED', edit: true },
-			{ configId: 'GL_TEST_001', version: 1, event: 'PAYMENT_RECEIVED', etab: 'simulate', scenario: 'E3' }
+			{ configId: 'GL_TEST_001', version: 1, event: 'PAYMENT_RECEIVED', etab: 'simulate', scenario: 'E3' },
+			{ configId: 'GL_TEST_001', version: 1, event: 'PREM_ADDED', etab: 'journal' }
 		];
 		for (const r of cases) expect(fromHash(toHash(r))).toEqual(r);
 	});
@@ -206,5 +212,140 @@ describe('lineage map', () => {
 		const panel = screen.getByRole('heading', { name: 'PREMIUM' }).closest('aside')!;
 		expect(within(panel).getByRole('button', { name: 'GROSS' })).toBeTruthy();
 		expect(within(panel).getByRole('button', { name: 'PR_PREM_ADDED · PW0_CR' })).toBeTruthy();
+	});
+});
+
+describe('landing page', () => {
+	const v = (version: number, status: string, extra = {}) => ({
+		tenantId: 'CLIENT_A', configId: 'GL_TEST_001', version, status, effectiveFrom: '2026-01-01', effectiveTo: null,
+		contentDigest: 'sha256:abc', createdBy: 'ba@example.com', createdAt: '', updatedBy: '', updatedAt: '', editors: ['ba@example.com'], ...extra
+	});
+	function homeApi() {
+		return {
+			configs: vi.fn(async () => [{ configId: 'GL_TEST_001', title: 'GL-TEST-001', createdBy: 'ba@example.com', createdAt: '', latestVersion: 2 }]),
+			versions: vi.fn(async () => [v(1, 'approved'), v(2, 'draft', { basedOnVersion: 1 })]),
+			version: vi.fn(async () => ({ ...v(1, 'approved'), content })),
+			createConfig: vi.fn(async (configId: string) => ({ ...v(1, 'draft'), configId })),
+			newDraft: vi.fn(async () => v(3, 'draft'))
+		};
+	}
+	const editor = { tenantId: 'CLIENT_A', actor: 'ba@example.com', roles: ['CONFIG_EDITOR'] as any };
+
+	it('creates a new configuration only from what the user chooses: nothing is copied by default', async () => {
+		const api = homeApi();
+		const go = vi.fn();
+		render(Home, { api: api as any, me: editor, go });
+		await vi.waitFor(() => expect(screen.getAllByRole('button', { name: 'Open' })).toHaveLength(2));
+		await fireEvent.click(screen.getByRole('button', { name: '+ New configuration' }));
+		const dialog = screen.getByRole('dialog');
+		const start = within(dialog).getByLabelText('Start from') as HTMLSelectElement;
+		expect(start.value).toBe(''); // nothing preselected
+		const [code, title] = within(dialog).getAllByRole('textbox');
+		await fireEvent.input(code, { target: { value: 'gl_motor_2027' } });
+		await fireEvent.input(title, { target: { value: 'Motor 2027' } });
+		await fireEvent.input(within(dialog).getByPlaceholderText('Why is this configuration needed?'), { target: { value: 'new motor book' } });
+		const create = within(dialog).getByRole('button', { name: 'Create configuration' }) as HTMLButtonElement;
+		expect(create.disabled).toBe(true); // the start is not chosen yet
+		await fireEvent.change(start, { target: { value: 'GL_TEST_001@1' } });
+		await vi.waitFor(() => expect(within(dialog).getByText('PREM_ADDED')).toBeTruthy());
+		// Only PREM_ADDED is ticked.
+		await fireEvent.click(within(dialog).getByText('PREM_ADDED').closest('label')!.querySelector('input')!);
+		expect(within(dialog).getByText(/Will copy: 1 events, 1 postingRules, 1 sourceAuthority, 2 scenarios, 1 derivedMeasures, 1 datePolicies/)).toBeTruthy();
+		await fireEvent.click(create);
+		await vi.waitFor(() => expect(go).toHaveBeenCalledWith({ configId: 'GL_MOTOR_2027', version: 1 }));
+		const [configId, t, , copied, reason] = (api.createConfig as any).mock.calls[0];
+		expect([configId, t, reason]).toEqual(['GL_MOTOR_2027', 'Motor 2027', 'new motor book']);
+		expect(copied.events.map((e: any) => e.code)).toEqual(['PREM_ADDED']);
+		expect(copied.postingRules.map((r: any) => r.code)).toEqual(['PR_PREM_ADDED']);
+		expect(copied.scenarios.map((r: any) => r.code)).toEqual(['E1', 'E1_HOME']);
+		expect(copied.accounts.length).toBe(content.accounts.length); // reference data, as chosen
+	});
+
+	it('asks which version a new version starts from', async () => {
+		const api = homeApi();
+		const go = vi.fn();
+		render(Home, { api: api as any, me: editor, go });
+		await vi.waitFor(() => expect(screen.getByRole('button', { name: '+ New version' })).toBeTruthy());
+		await fireEvent.click(screen.getByRole('button', { name: '+ New version' }));
+		const dialog = screen.getByRole('dialog');
+		const base = within(dialog).getByLabelText('Start from version') as HTMLSelectElement;
+		await fireEvent.input(within(dialog).getByRole('textbox'), { target: { value: 'next year' } });
+		expect((within(dialog).getByRole('button', { name: 'Create draft' }) as HTMLButtonElement).disabled).toBe(true);
+		await fireEvent.change(base, { target: { value: '2' } });
+		await fireEvent.click(within(dialog).getByRole('button', { name: 'Create draft' }));
+		await vi.waitFor(() => expect(go).toHaveBeenCalledWith({ configId: 'GL_TEST_001', version: 3 }));
+		expect((api.newDraft as any).mock.calls[0][1]).toBe(2);
+	});
+
+	it('shows a viewer why they cannot create', async () => {
+		render(Home, { api: homeApi() as any, me: { ...editor, actor: 'viewer@example.com', roles: ['VIEWER'] as any }, go: vi.fn() });
+		await vi.waitFor(() => expect(screen.getAllByRole('button', { name: 'Open' })).toHaveLength(2));
+		expect((screen.getByRole('button', { name: '+ New configuration' }) as HTMLButtonElement).disabled).toBe(true);
+		expect((screen.getByRole('button', { name: '+ New version' }) as HTMLButtonElement).disabled).toBe(true);
+		expect(screen.getByText('Needs the CONFIG_EDITOR role.')).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'New draft' })).toBeNull();
+	});
+});
+
+describe('configuring every section', () => {
+	it('adds, replaces and removes items, storing only what was entered', () => {
+		const acct = { code: '9948999', name: 'Fee receivable', class: 'AR0', activeFrom: '2026-01-01', entities: [], ledger: '', subledgerKey: '' };
+		const added = withItem(content, specs.accounts, acct);
+		expect(added.accounts.at(-1)).toEqual({ code: '9948999', name: 'Fee receivable', class: 'AR0', activeFrom: '2026-01-01' });
+		const renamed = withItem(added, specs.accounts, { ...acct, name: 'Fee receivable (motor)' }, '9948999');
+		expect(renamed.accounts.filter((a: any) => a.code === '9948999')).toHaveLength(1);
+		expect(withItem(renamed, specs.accounts, null, '9948999').accounts.some((a: any) => a.code === '9948999')).toBe(false);
+		expect(cleanItem(specs.dimensions.fields, { code: 'LOB', 'derivedBy': { lookup: '' }, values: ['MOTOR'], extra: 'kept' })).toEqual({ code: 'LOB', values: ['MOTOR'], extra: 'kept' });
+	});
+	it('creates a new event with its source authority', () => {
+		const ev = { code: 'ENDORSEMENT', description: 'Endorsement posted', economicKey: ['POLICY_NO', 'TERM_NO'], measures: ['PREMIUM'], dimensions: ['COMPANY'], _sourceSystem: 'POLICY', _intakeMode: 'RAW_EVENT' };
+		const c = withItem(content, specs.events, ev);
+		expect(c.events.at(-1)).toEqual({ code: 'ENDORSEMENT', description: 'Endorsement posted', economicKey: ['POLICY_NO', 'TERM_NO'], measures: ['PREMIUM'], dimensions: ['COMPANY'] });
+		expect(c.sourceAuthority.at(-1)).toEqual({ eventType: 'ENDORSEMENT', measure: '*', sourceSystem: 'POLICY', intakeMode: 'RAW_EVENT' });
+	});
+	it('adds an account number in a draft, checked by the server and saved with a reason', async () => {
+		const ctx = ctxFor({ route: { configId: 'GL_TEST_001', version: 2 }, canEdit: true });
+		ctx.version = { ...ctx.version, version: 2, status: 'draft' };
+		render(SectionEditor, { ctx, spec: specs.accounts });
+		await fireEvent.click(screen.getByRole('button', { name: '+ Add account' }));
+		await fireEvent.input(screen.getByLabelText('Account number *'), { target: { value: '9948999' } });
+		await fireEvent.input(screen.getByLabelText('Name *'), { target: { value: 'Fee receivable' } });
+		await fireEvent.change(screen.getByLabelText('Accounting class *'), { target: { value: 'AR0' } });
+		await fireEvent.input(screen.getByLabelText('Active from *'), { target: { value: '2026-01-01' } });
+		await vi.waitFor(() => expect(ctx.api.check).toHaveBeenCalled());
+		await fireEvent.click(screen.getByRole('button', { name: 'Save to draft v2' }));
+		const dialog = screen.getByRole('dialog');
+		await fireEvent.input(within(dialog).getByRole('textbox'), { target: { value: 'fee receivable account' } });
+		await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+		await vi.waitFor(() => expect(ctx.save).toHaveBeenCalledTimes(1));
+		const [saved, reason] = (ctx.save as any).mock.calls[0];
+		expect(reason).toBe('fee receivable account');
+		expect(saved.accounts.at(-1)).toEqual({ code: '9948999', name: 'Fee receivable', class: 'AR0', activeFrom: '2026-01-01' });
+	});
+	it('in an approved version shows the items but offers a draft instead of editing', () => {
+		const ctx = ctxFor({ route: { configId: 'GL_TEST_001', version: 1 } });
+		render(SectionEditor, { ctx, spec: specs.accounts });
+		expect(screen.queryByRole('button', { name: '+ Add account' })).toBeNull();
+		expect(screen.getByText('9948523')).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'start a new draft from v1' })).toBeTruthy();
+	});
+});
+
+describe('guided event flow', () => {
+	it('lists the steps in the GL order, marks the stages not built, and moves forward', async () => {
+		const ctx = ctxFor({ route: { configId: 'GL_TEST_001', version: 1, event: 'PREM_ADDED' } });
+		(ctx.api as any).event = vi.fn(async () => prem);
+		render(EventPage, { ctx });
+		const nav = await screen.findByRole('navigation', { name: 'Steps for PREM_ADDED' });
+		const labels = within(nav).getAllByRole('button').map((b) => b.querySelector('b')?.textContent);
+		expect(labels).toEqual([
+			'Client', 'Configuration version', 'Business event',
+			'4. Event details', '5. Measures and formulas', '6. Dimensions, filters, dates, keys', '7. Accounting rules', '8. Debit/credit lines and accounts',
+			'9. Required source fields', '10. Data Workbench mapping', '11. Data collection', '12. Rule execution (simulation)', '13. GL journal',
+			'14. Subledger', '15. Reconciliation', '16. Reports and files'
+		]);
+		expect(within(nav).getAllByText('not built yet')).toHaveLength(5);
+		await fireEvent.click(screen.getByRole('button', { name: '5. Measures and formulas →' }));
+		expect(ctx.go).toHaveBeenCalledWith({ configId: 'GL_TEST_001', version: 1, event: 'PREM_ADDED', etab: 'measures' });
 	});
 });

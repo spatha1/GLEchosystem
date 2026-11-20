@@ -114,6 +114,7 @@ var routes = []route{
 	r("GET", "/configs/{configId}/effective/manifest", roleGated, effectiveManifest, roleReaders...),
 	r("GET", "/configs/{configId}/audit", roleGated, listAudit, roleReaders...),
 	r("GET", "/catalog/measures", authenticated, ootbMeasures),
+	r("GET", "/catalog/dimensions", authenticated, ootbDimensions),
 	r("GET", "/configs/{configId}/versions/{version}/measures", roleGated, versionMeasures, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/evaluate", roleGated, evaluateVersion, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/keygraph", roleGated, keyGraphVersion, roleReaders...),

@@ -5,25 +5,46 @@
 
 	let {
 		from,
+		choices = [],
 		busy = false,
 		error = '',
 		onsubmit,
 		oncancel
-	}: { from: number; busy?: boolean; error?: string; onsubmit: (effectiveFrom: string, reason: string) => void; oncancel: () => void } = $props();
+	}: {
+		from: number;
+		choices?: { version: number; status: string }[];
+		busy?: boolean;
+		error?: string;
+		onsubmit: (effectiveFrom: string, reason: string, from: number) => void;
+		oncancel: () => void;
+	} = $props();
+
+	// With choices, the user picks the version to start from; nothing is preselected.
+	let base = $state(0);
+	const basedOn = $derived(choices.length ? base : from);
 
 	let effectiveFrom = $state(nextMonth());
 	let reason = $state('');
-	const ok = $derived(/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom) && reason.trim().length > 0);
+	const ok = $derived(basedOn > 0 && /^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom) && reason.trim().length > 0);
 </script>
 
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && oncancel()}>
 	<div class="dialog card" role="dialog" aria-modal="true" aria-labelledby="nd-title">
-		<h3 id="nd-title">New draft from version {from}</h3>
+		<h3 id="nd-title">{choices.length ? 'New version' : `New draft from version ${from}`}</h3>
 		<p class="muted small">
-			Version {from} stays as it is. The draft starts as an exact copy; your changes are saved to the draft, validated, and approved by someone who did not
+			{choices.length ? 'The version you start from' : `Version ${from}`} stays as it is. The draft starts as an exact copy; your changes are saved to the draft, validated, and approved by someone who did not
 			edit it before they take effect.
 		</p>
 		<div class="fields">
+			{#if choices.length}
+				<label class="lbl"
+					>Start from version
+					<select class="field" bind:value={base}>
+						<option value={0} disabled>Choose…</option>
+						{#each choices as c (c.version)}<option value={c.version}>v{c.version} ({c.status})</option>{/each}
+					</select>
+				</label>
+			{/if}
 			<label class="lbl">Effective from <input class="field" type="date" bind:value={effectiveFrom} /></label>
 			<label class="lbl">Reason (audit trail) <textarea class="field" rows="3" bind:value={reason} placeholder="Why is this change needed?"></textarea></label>
 		</div>
@@ -31,7 +52,7 @@
 		<div class="row actions">
 			<span class="spacer"></span>
 			<button class="btn" onclick={oncancel} disabled={busy}>Cancel</button>
-			<button class="btn primary" disabled={!ok || busy} onclick={() => ok && onsubmit(effectiveFrom, reason.trim())}>Create draft</button>
+			<button class="btn primary" disabled={!ok || busy} onclick={() => ok && onsubmit(effectiveFrom, reason.trim(), basedOn)}>Create draft</button>
 		</div>
 	</div>
 </div>

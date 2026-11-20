@@ -1,16 +1,25 @@
 <script lang="ts">
 	import type { Client, ApiError } from '../lib/api';
 	import type { ConfigSummary, Me } from '../lib/types';
-	import type { VersionFull } from '../lib/studio';
+	import type { Content, VersionFull } from '../lib/studio';
 	import type { Route } from '../lib/route';
 	import { digest, when } from '../lib/format';
 	import StatusChip from '../components/StatusChip.svelte';
+	import NewConfigDialog from './NewConfigDialog.svelte';
+	import NewDraftDialog from './NewDraftDialog.svelte';
 
 	let { api, me, focus, go }: { api: Client; me: Me; focus?: string; go: (r: Route) => void } = $props();
 
 	let configs = $state<ConfigSummary[] | null>(null);
 	let versions = $state<Record<string, VersionFull[]>>({});
 	let failure = $state<ApiError | null>(null);
+	let creating = $state(false);
+	let drafting = $state<{ configId: string; from: number; choose: boolean } | null>(null);
+	let busy = $state(false);
+	let error = $state('');
+
+	const isEditor = $derived(me.roles.includes('CONFIG_EDITOR'));
+	const editorWhy = 'Needs the CONFIG_EDITOR role.';
 
 	$effect(() => {
 		api.configs().then(
@@ -25,16 +34,51 @@
 	});
 
 	const live = (vs: VersionFull[] | undefined) => vs?.find((v) => v.status === 'approved');
+
+	async function createConfig(r: { configId: string; title: string; effectiveFrom: string; content: Content; reason: string }) {
+		busy = true;
+		error = '';
+		try {
+			const v = await api.createConfig(r.configId, r.title, r.effectiveFrom, r.content, r.reason);
+			creating = false;
+			go({ configId: v.configId, version: v.version });
+		} catch (e) {
+			const err = e as ApiError;
+			error = `${err.code}: ${err.message}`;
+		} finally {
+			busy = false;
+		}
+	}
+
+	async function createDraft(effectiveFrom: string, reason: string, from: number) {
+		if (!drafting) return;
+		busy = true;
+		error = '';
+		try {
+			const d = await api.newDraft(drafting.configId, from, effectiveFrom, reason);
+			drafting = null;
+			go({ configId: d.configId, version: d.version });
+		} catch (e) {
+			const err = e as ApiError;
+			error = `${err.code}: ${err.message}`;
+		} finally {
+			busy = false;
+		}
+	}
 </script>
 
 <section class="intro">
-	<div>
+	<div class="grow">
 		<h2>Configurations of client <span class="mono">{me.tenantId}</span></h2>
 		<p class="muted">
 			Each configuration is versioned. A version holds the business events, their measures and formulas, keys, dates, posting rules and accounts, and
 			moves from draft to validated to approved (by someone other than its editors). Open a version to follow an event from its configuration to its
 			journal.
 		</p>
+	</div>
+	<div class="newbox">
+		<button class="btn primary" disabled={!isEditor || !configs} title={isEditor ? '' : editorWhy} onclick={() => ((error = ''), (creating = true))}>+ New configuration</button>
+		{#if !isEditor}<span class="small muted">{editorWhy}</span>{/if}
 	</div>
 </section>
 
@@ -46,6 +90,7 @@
 	<div class="card empty">
 		<h3>No configuration yet for {me.tenantId}</h3>
 		<p class="muted">Configurations are client-specific: nothing configured for another client is visible here.</p>
+		{#if isEditor}<p><button class="btn primary" onclick={() => ((error = ''), (creating = true))}>+ Create the first configuration</button></p>{/if}
 	</div>
 {:else}
 	<div class="stack">
@@ -66,6 +111,14 @@
 							<span class="badge warn">No approved version</span>
 						{/if}
 						<span class="chip">{c.latestVersion} version{c.latestVersion === 1 ? '' : 's'}</span>
+						{#if vs?.length}
+							<button
+								class="btn"
+								disabled={!isEditor}
+								title={isEditor ? '' : editorWhy}
+								onclick={() => ((error = ''), (drafting = { configId: c.configId, from: 0, choose: true }))}>+ New version</button
+							>
+						{/if}
 					</div>
 				</header>
 				{#if !vs}
@@ -95,7 +148,14 @@
 										<td class="small">{v.editors.join(', ')}</td>
 										<td class="small">{v.approvedBy ?? '—'}</td>
 										<td class="mono small">{digest(v.contentDigest)}</td>
-										<td class="right"><button class="btn" onclick={() => go({ configId: c.configId, version: v.version })}>Open</button></td>
+										<td class="right nowrap">
+											{#if isEditor}
+												<button class="btn" title="A new draft copied from v{v.version}" onclick={() => ((error = ''), (drafting = { configId: c.configId, from: v.version, choose: false }))}
+													>New draft</button
+												>
+											{/if}
+											<button class="btn" onclick={() => go({ configId: c.configId, version: v.version })}>Open</button>
+										</td>
 									</tr>
 								{/each}
 							</tbody>
@@ -107,14 +167,56 @@
 	</div>
 {/if}
 
+{#if creating && configs}
+	<NewConfigDialog
+		{configs}
+		{versions}
+		load={async (id, n) => ((await api.version(id, n)).content ?? {}) as Content}
+		{busy}
+		{error}
+		onsubmit={createConfig}
+		oncancel={() => (creating = false)}
+	/>
+{/if}
+{#if drafting}
+	<NewDraftDialog
+		from={drafting.from}
+		choices={drafting.choose ? (versions[drafting.configId] ?? []).map((v) => ({ version: v.version, status: v.status })) : []}
+		{busy}
+		{error}
+		onsubmit={createDraft}
+		oncancel={() => (drafting = null)}
+	/>
+{/if}
+
 <style>
+	.intro {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px 24px;
+		align-items: flex-start;
+		margin-bottom: 16px;
+	}
+	.grow {
+		flex: 1;
+		min-width: 300px;
+	}
 	.intro h2 {
 		margin: 0 0 4px;
 		font-size: 18px;
 	}
 	.intro p {
-		margin: 0 0 16px;
+		margin: 0;
 		max-width: 900px;
+	}
+	.newbox {
+		display: grid;
+		gap: 4px;
+		justify-items: end;
+	}
+	.newbox .btn {
+		padding: 8px 16px;
+		font-size: 14px;
 	}
 	.config header {
 		display: flex;
@@ -139,7 +241,10 @@
 	.right {
 		text-align: right;
 	}
+	.right .btn + .btn {
+		margin-left: 6px;
+	}
 	.empty p {
-		margin: 0;
+		margin: 0 0 8px;
 	}
 </style>

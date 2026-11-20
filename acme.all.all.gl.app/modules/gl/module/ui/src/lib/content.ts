@@ -94,3 +94,44 @@ export function nextMonth(today = new Date()): string {
 	const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1));
 	return d.toISOString().slice(0, 10);
 }
+
+/** Sections shared by every event: the client's reference data. */
+export const referenceSections = [
+	'sourceSystems',
+	'baseMeasures',
+	'dimensions',
+	'lookups',
+	'keyProfiles',
+	'calendars',
+	'accountingClasses',
+	'accounts',
+	'accountAssignmentRules',
+	'reconciliationEquations',
+	'outputProfiles'
+];
+
+/**
+ * The part of a version to copy into a new configuration: the chosen events with what
+ * belongs to them (their posting rules, source authority, scenarios, and the formulas and
+ * date policies that apply to them), plus, when asked, the shared reference data.
+ */
+export function pickEvents(content: Content, events: string[], reference: boolean): Content {
+	const keep = new Set(events);
+	const out: Content = {};
+	const narrow = (items: any[] | undefined) =>
+		(items ?? [])
+			.filter((x) => !x.eventTypes?.length || x.eventTypes.some((e: string) => keep.has(e)))
+			.filter((x) => x.eventTypes?.length || keep.size > 0)
+			.map((x) => (x.eventTypes?.length ? { ...clone(x), eventTypes: x.eventTypes.filter((e: string) => keep.has(e)) } : clone(x)));
+	const sections: Record<string, any[]> = {
+		events: (content.events ?? []).filter((e: any) => keep.has(e.code)),
+		postingRules: (content.postingRules ?? []).filter((r: any) => keep.has(r.eventType)),
+		sourceAuthority: (content.sourceAuthority ?? []).filter((a: any) => keep.has(a.eventType)),
+		scenarios: (content.scenarios ?? []).filter((s: any) => keep.has(s.eventType)),
+		derivedMeasures: narrow(content.derivedMeasures),
+		datePolicies: narrow(content.datePolicies)
+	};
+	for (const [k, v] of Object.entries(sections)) if (v.length) out[k] = clone(v);
+	if (reference) for (const k of referenceSections) if (content[k]?.length) out[k] = clone(content[k]);
+	return out;
+}

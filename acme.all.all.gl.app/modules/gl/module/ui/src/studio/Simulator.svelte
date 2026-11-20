@@ -14,7 +14,14 @@
 	import LegLineage from './LegLineage.svelte';
 	import ReasonDialog from '../components/ReasonDialog.svelte';
 
-	let { ctx, fixedEvent }: { ctx: Ctx; fixedEvent?: EventView } = $props();
+	let {
+		ctx,
+		fixedEvent,
+		section = 'all',
+		onjournal
+	}: { ctx: Ctx; fixedEvent?: EventView; section?: 'all' | 'run' | 'journal'; onjournal?: (ready: boolean) => void } = $props();
+	const showRun = $derived(section !== 'journal');
+	const showJournal = $derived(section !== 'run');
 
 	let events = $state<EventSummary[]>([]);
 	let eventCode = $state(untrack(() => fixedEvent?.event.code ?? ''));
@@ -135,6 +142,7 @@
 		const first = plan?.lines.find((l) => l.problem) ?? plan?.lines[0];
 		selected = first?.lineNo ?? null;
 		running = false;
+		onjournal?.(!!plan && !refusal);
 	}
 
 	async function runAll() {
@@ -182,7 +190,19 @@
 </script>
 
 <div class="sim">
-	<section class="card inputs">
+	{#if !showRun}
+		<section class="card">
+			{#if plan}
+				<p class="small">
+					The journal below is what <b>{ctx.version.configId} v{ctx.version.version}</b> produces for the {scenarioCode ? `scenario ${scenarioCode}` : 'simulated'}
+					{view?.event.code} event of step 12. Nothing is posted: posting is not built yet (US-019 to US-021). Select a line to see where it comes from.
+				</p>
+			{:else}
+				<p class="small">No journal yet: run a simulation in step 12 first.</p>
+			{/if}
+		</section>
+	{/if}
+	<section class="card inputs" class:hidden={!showRun}>
 		<div class="row">
 			<h3 class="grow">Simulate {view ? view.event.code : 'an event'} <span class="muted">· configuration {ctx.version.configId} v{ctx.version.version} ({ctx.version.status})</span></h3>
 			<button class="btn" onclick={runAll}>Run all scenarios</button>
@@ -315,7 +335,7 @@
 	{/if}
 
 	{#if plan && view}
-		<section class="summary">
+		<section class="summary" class:hidden={!showRun && !showJournal}>
 			<div><span class="k">Configuration</span><span class="v mono">{plan.config.configId} v{plan.config.configVersion}</span><span class="s">{ctx.version.status}</span></div>
 			<div><span class="k">Event</span><span class="v mono">{plan.eventType}</span><span class="s">{input.sourceSystem} {input.sourceEventId}</span></div>
 			<div>
@@ -335,7 +355,7 @@
 			<div class="notice warn">{check.mismatches.join(' · ')}</div>
 		{/if}
 
-		<div class="grid2">
+		<div class="grid2" class:hidden={!showRun}>
 			<section class="card">
 				<h3>Why this rule</h3>
 				<ul class="plain">
@@ -366,7 +386,13 @@
 			</section>
 		</div>
 
-		<section class="card journal">
+		{#if section === 'run'}
+			<div class="notice ok row">
+				<span class="grow">The rule produced {plan.lines.length} journal line{plan.lines.length === 1 ? '' : 's'} ({plan.balanced ? 'balanced' : 'not balanced'}).</span>
+				<button class="btn primary" onclick={() => ctx.go({ configId: ctx.version.configId, version: ctx.version.version, event: view!.event.code, etab: 'journal' })}>See the GL journal (step 13) →</button>
+			</div>
+		{/if}
+		<section class="card journal" class:hidden={!showJournal}>
 			<h3>Journal <span class="muted">— one entry per legal entity and currency; select a line to see where it comes from</span></h3>
 			{#each entries as e (e.key)}
 				<div class="entry">
@@ -397,7 +423,7 @@
 			{/each}
 		</section>
 
-		{#if sel}
+		{#if sel && showJournal}
 			<LegLineage {ctx} {view} {plan} line={sel} {input} scenario={pristine ? scenarioCode : undefined} {known} />
 		{/if}
 	{/if}
@@ -421,6 +447,9 @@
 	}
 	.grow {
 		flex: 1;
+	}
+	.hidden {
+		display: none;
 	}
 	.pick {
 		margin: 6px 0 10px;

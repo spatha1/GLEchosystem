@@ -4,6 +4,7 @@ import type { Client } from './api';
 import type { Me } from './types';
 import type { Content, VersionFull } from './studio';
 import type { Route } from './route';
+import type { Catalog } from './sections';
 
 export interface Ctx {
 	api: Client;
@@ -22,6 +23,8 @@ export interface Ctx {
 	startDraft: (then?: Route) => void;
 	/** Increments whenever the version is reloaded, so views refetch. */
 	tick: number;
+	/** The standard measure and dimension catalogs, for the editors' choices. */
+	catalog: Catalog;
 }
 
 export function editable(v: VersionFull, me: Me): boolean {

@@ -41,3 +41,9 @@ func versionMeasures(c *call) modulesdk.Response {
 		"ootbCatalogVersion": model.OOTBCatalogVersion(), "measures": out,
 	})
 }
+
+// ootbDimensions returns the global, read-only OOTB dimension catalog (US-008). Clients add
+// values and normalisations in their own configuration, or define custom dimensions.
+func ootbDimensions(c *call) modulesdk.Response {
+	return jsonResponse(200, map[string]any{"catalogVersion": model.OOTBDimensionCatalogVersion(), "dimensions": model.OOTBDimensions()})
+}

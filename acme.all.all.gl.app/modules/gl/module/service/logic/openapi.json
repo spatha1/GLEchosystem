@@ -569,6 +569,20 @@
         }
       }
     },
+    "/m/gl/catalog/dimensions": {
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_ootbDimensions",
+        "summary": "The global OOTB dimension catalog (read-only); clients add values and normalisations in their configuration or define custom dimensions",
+        "responses": {
+          "200": {
+            "description": "catalogVersion and dimensions"
+          }
+        }
+      }
+    },
     "/m/gl/configs/{configId}/versions/{version}/measures": {
       "parameters": [
         {

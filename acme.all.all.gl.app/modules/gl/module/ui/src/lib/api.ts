@@ -71,6 +71,9 @@ export function client(tenant: string, fetcher: Fetcher = (i, o) => fetch(i, o))
 		retire: (id: string, n: number, reason: string) => call<VersionFull>('POST', v(id, n) + '/retire', { reason }),
 		audit: (id: string) => call<{ entries: AuditEntryFull[] }>('GET', c(id) + '/audit').then((r) => r.entries),
 		plan: (id: string, n: number, event: unknown) => call<{ plan: Plan }>('POST', v(id, n) + '/plan', event).then((r) => r.plan),
+		/** A new configuration; version 1 is a draft with the given content. */
+		createConfig: (configId: string, title: string, effectiveFrom: string, content: unknown, reason: string) =>
+			call<VersionFull>('POST', '/configs', { configId, title, effectiveFrom, content, reason }),
 		/** A new draft copied from another version. */
 		newDraft: (id: string, basedOn: number, effectiveFrom: string, reason: string) =>
 			call<VersionFull>('POST', c(id) + '/versions', { basedOnVersion: basedOn, effectiveFrom, reason }),
@@ -87,6 +90,10 @@ export function client(tenant: string, fetcher: Fetcher = (i, o) => fetch(i, o))
 		runScenarios: (id: string, n: number, codes?: string[]) =>
 			call<{ summary: Record<string, number>; results: ScenarioResult[] }>('POST', v(id, n) + '/scenarios/run', codes ? { codes } : {}),
 		impact: (id: string, n: number, against?: number) => call<Impact>('GET', v(id, n) + '/impact' + (against ? `?against=${against}` : '')),
+		catalogMeasures: () =>
+			call<{ measures: { code: string; name: string }[] }>('GET', '/catalog/measures').then((r) => r.measures.map((m) => ({ value: m.code, label: `${m.code} · ${m.name}` }))),
+		catalogDimensions: () =>
+			call<{ dimensions: { code: string; name: string }[] }>('GET', '/catalog/dimensions').then((r) => r.dimensions.map((d) => ({ value: d.code, label: `${d.code} · ${d.name}` }))),
 		pipeline: (id: string, n: number) => call<{ stages: Stage[] }>('GET', v(id, n) + '/pipeline').then((r) => r.stages)
 	};
 }
