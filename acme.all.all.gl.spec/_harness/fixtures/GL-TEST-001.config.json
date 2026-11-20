@@ -515,6 +515,296 @@
       "rank": 10
     }
   ],
+  "scenarios": [
+    {
+      "code": "E1",
+      "description": "Premium 1,000 + tax 100 on motor policy P1",
+      "eventType": "PREM_ADDED",
+      "expect": {
+        "legs": [
+          {
+            "account": "9948523",
+            "amount": "1100.00",
+            "class": "AR0",
+            "entity": "C01",
+            "side": "D"
+          },
+          {
+            "account": "4100100",
+            "amount": "1000.00",
+            "class": "PW0",
+            "entity": "C01",
+            "side": "C"
+          },
+          {
+            "account": "2200100",
+            "amount": "100.00",
+            "class": "TX0",
+            "entity": "C01",
+            "side": "C"
+          }
+        ],
+        "rule": "PR_PREM_ADDED"
+      },
+      "input": {
+        "currency": "AUD",
+        "dimensions": {
+          "COMPANY": "C01",
+          "LOB": "MOTOR",
+          "PRODUCT": "MOTOR_PRIVATE"
+        },
+        "effectiveDate": "2026-01-01",
+        "keys": {
+          "POLICY_NO": "P1",
+          "TERM_NO": "1"
+        },
+        "measures": {
+          "PREMIUM": "1000.00",
+          "TAX": "100.00"
+        },
+        "sourceEventId": "E1",
+        "sourceEventVersion": 1,
+        "sourceSystem": "POLICY",
+        "transactionDate": "2026-01-01"
+      }
+    },
+    {
+      "code": "E1_HOME",
+      "description": "The same premium on a home policy: the receivable goes to the default AR0 account",
+      "eventType": "PREM_ADDED",
+      "expect": {
+        "legs": [
+          {
+            "account": "9948500",
+            "amount": "1100.00",
+            "class": "AR0",
+            "entity": "C01",
+            "side": "D"
+          },
+          {
+            "account": "4100100",
+            "amount": "1000.00",
+            "class": "PW0",
+            "entity": "C01",
+            "side": "C"
+          },
+          {
+            "account": "2200100",
+            "amount": "100.00",
+            "class": "TX0",
+            "entity": "C01",
+            "side": "C"
+          }
+        ],
+        "rule": "PR_PREM_ADDED"
+      },
+      "input": {
+        "currency": "AUD",
+        "dimensions": {
+          "COMPANY": "C01",
+          "LOB": "HOME",
+          "PRODUCT": "HOME_BUILDING"
+        },
+        "effectiveDate": "2026-01-01",
+        "keys": {
+          "POLICY_NO": "P2",
+          "TERM_NO": "1"
+        },
+        "measures": {
+          "PREMIUM": "1000.00",
+          "TAX": "100.00"
+        },
+        "sourceEventId": "E1H",
+        "sourceEventVersion": 1,
+        "sourceSystem": "POLICY",
+        "transactionDate": "2026-01-01"
+      }
+    },
+    {
+      "code": "E2",
+      "description": "Two invoices of 550 move the receivable from the policy to the invoices",
+      "eventType": "INVOICED",
+      "expect": {
+        "legs": [
+          {
+            "account": "9948600",
+            "amount": "550.00",
+            "class": "AR1",
+            "entity": "C01",
+            "side": "D"
+          },
+          {
+            "account": "9948523",
+            "amount": "550.00",
+            "class": "AR0",
+            "entity": "C01",
+            "side": "C"
+          },
+          {
+            "account": "9948600",
+            "amount": "550.00",
+            "class": "AR1",
+            "entity": "C01",
+            "side": "D"
+          },
+          {
+            "account": "9948523",
+            "amount": "550.00",
+            "class": "AR0",
+            "entity": "C01",
+            "side": "C"
+          }
+        ],
+        "rule": "PR_INVOICED"
+      },
+      "input": {
+        "currency": "AUD",
+        "dimensions": {
+          "COMPANY": "C01",
+          "LOB": "MOTOR"
+        },
+        "effectiveDate": "2026-01-05",
+        "keys": {
+          "INVOICE_RUN": "RUN1",
+          "POLICY_NO": "P1",
+          "TERM_NO": "1"
+        },
+        "lists": {
+          "INVOICE_LIST": [
+            {
+              "INVOICE_AMT": "550.00",
+              "INVOICE_NO": "INV1"
+            },
+            {
+              "INVOICE_AMT": "550.00",
+              "INVOICE_NO": "INV2"
+            }
+          ]
+        },
+        "sourceEventId": "E2",
+        "sourceEventVersion": 1,
+        "sourceSystem": "BILLING",
+        "transactionDate": "2026-01-05"
+      }
+    },
+    {
+      "code": "E3",
+      "description": "Receipt 1,099.50 into the C09 bank for C01's invoices INV1 and INV2, with intercompany",
+      "eventType": "PAYMENT_RECEIVED",
+      "expect": {
+        "legs": [
+          {
+            "account": "1000900",
+            "amount": "1099.50",
+            "class": "PR0",
+            "entity": "C09",
+            "side": "D"
+          },
+          {
+            "account": "2500101",
+            "amount": "1099.50",
+            "class": "IC1",
+            "entity": "C09",
+            "side": "C"
+          },
+          {
+            "account": "1500109",
+            "amount": "1099.50",
+            "class": "IC0",
+            "entity": "C01",
+            "side": "D"
+          },
+          {
+            "account": "9948600",
+            "amount": "550.00",
+            "class": "AR1",
+            "entity": "C01",
+            "side": "C"
+          },
+          {
+            "account": "9948600",
+            "amount": "549.50",
+            "class": "AR1",
+            "entity": "C01",
+            "side": "C"
+          }
+        ],
+        "rule": "PR_PAYMENT_RECEIVED"
+      },
+      "input": {
+        "currency": "AUD",
+        "dimensions": {
+          "BANK_ACCOUNT": "BANK-C09",
+          "COMPANY": "C01"
+        },
+        "effectiveDate": "2026-01-10",
+        "keys": {
+          "RECEIPT_NO": "R1"
+        },
+        "lists": {
+          "ALLOCATION_LIST": [
+            {
+              "ALLOCATION_ID": "A1",
+              "ALLOC_AMT": "550.00",
+              "INVOICE_NO": "INV1"
+            },
+            {
+              "ALLOCATION_ID": "A2",
+              "ALLOC_AMT": "549.50",
+              "INVOICE_NO": "INV2"
+            }
+          ]
+        },
+        "measures": {
+          "PAY_AMT": "1099.50"
+        },
+        "sourceEventId": "E3",
+        "sourceEventVersion": 1,
+        "sourceSystem": "BILLING",
+        "transactionDate": "2026-01-10"
+      }
+    },
+    {
+      "code": "E3_SAME_COMPANY",
+      "description": "The same receipt into a C01 bank: refused, because no cash account is open to C01 yet",
+      "eventType": "PAYMENT_RECEIVED",
+      "expect": {
+        "refused": "ENTITY_NOT_ALLOWED"
+      },
+      "input": {
+        "currency": "AUD",
+        "dimensions": {
+          "BANK_ACCOUNT": "BANK-C01",
+          "COMPANY": "C01"
+        },
+        "effectiveDate": "2026-01-10",
+        "keys": {
+          "RECEIPT_NO": "R2"
+        },
+        "lists": {
+          "ALLOCATION_LIST": [
+            {
+              "ALLOCATION_ID": "A1",
+              "ALLOC_AMT": "550.00",
+              "INVOICE_NO": "INV1"
+            },
+            {
+              "ALLOCATION_ID": "A2",
+              "ALLOC_AMT": "549.50",
+              "INVOICE_NO": "INV2"
+            }
+          ]
+        },
+        "measures": {
+          "PAY_AMT": "1099.50"
+        },
+        "sourceEventId": "E3X",
+        "sourceEventVersion": 1,
+        "sourceSystem": "BILLING",
+        "transactionDate": "2026-01-10"
+      }
+    }
+  ],
   "sourceAuthority": [
     {
       "eventType": "PREM_ADDED",

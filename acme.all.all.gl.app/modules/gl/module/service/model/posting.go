@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"time"
 
 	"gl/formula"
 )
@@ -31,6 +32,48 @@ type PostingRule struct {
 	Filter      string         `json:"filter,omitempty"` // BOOL formula; empty: every event of the type
 	Rank        int            `json:"rank"`             // among matching rules the lowest rank applies
 	Lines       []LineTemplate `json:"lines"`
+	// Active false keeps a rule in the version for the record but never applies it.
+	Active *bool `json:"active,omitempty"`
+	// EffectiveFrom/EffectiveTo narrow, within the version's own window, the book dates the
+	// rule applies on: [from, to). Empty ends are open.
+	EffectiveFrom string `json:"effectiveFrom,omitempty"`
+	EffectiveTo   string `json:"effectiveTo,omitempty"`
+}
+
+// IsActive says whether the rule is applied at all.
+func (r PostingRule) IsActive() bool { return r.Active == nil || *r.Active }
+
+func (r PostingRule) dated() bool { return r.EffectiveFrom != "" || r.EffectiveTo != "" }
+
+func (r PostingRule) window() (from, to time.Time) {
+	from, _ = ParseDay(r.EffectiveFrom)
+	to, _ = ParseDay(r.EffectiveTo)
+	return
+}
+
+// InForceOn says whether the rule's own window covers a book date.
+func (r PostingRule) InForceOn(day time.Time) bool {
+	from, to := r.window()
+	return (from.IsZero() || !day.Before(from)) && (to.IsZero() || day.Before(to))
+}
+
+func windowText(from, to string) string {
+	if from == "" {
+		from = "the start"
+	}
+	if to == "" {
+		return "from " + from + ", open-ended"
+	}
+	return "from " + from + " to " + to
+}
+
+// rulesOverlap says whether two rules' windows share a day.
+func rulesOverlap(a, b PostingRule) bool {
+	af, at := a.window()
+	bf, bt := b.window()
+	aEndsBeforeB := !at.IsZero() && !bf.IsZero() && !at.After(bf)
+	bEndsBeforeA := !bt.IsZero() && !af.IsZero() && !bt.After(af)
+	return !aEndsBeforeB && !bEndsBeforeA
 }
 
 // LineTemplate is one journal leg, or one leg per list item with expandBy.
@@ -116,6 +159,14 @@ func compileRules(d *Document) ([]compiledRule, []Finding) {
 			fs = append(fs, errf(p, "DUPLICATE_RULE", "rule %s is declared twice", r.Code))
 		}
 		seen[r.Code] = true
+		for _, d := range []struct{ name, v string }{{"effectiveFrom", r.EffectiveFrom}, {"effectiveTo", r.EffectiveTo}} {
+			if _, ok := ParseDay(d.v); d.v != "" && !ok {
+				fs = append(fs, errf(p, "INVALID_DATE", "rule %s %s %q must be a date (YYYY-MM-DD)", r.Code, d.name, d.v))
+			}
+		}
+		if f, t := r.window(); !f.IsZero() && !t.IsZero() && !t.After(f) {
+			fs = append(fs, errf(p, "INVALID_WINDOW", "rule %s ends (%s) before it starts (%s)", r.Code, r.EffectiveTo, r.EffectiveFrom))
+		}
 		ev, ok := events[r.EventType]
 		if !ok {
 			fs = append(fs, errf(p, "UNKNOWN_EVENT", "rule %s is for event %q, which is not in the catalog", r.Code, r.EventType))
@@ -206,17 +257,24 @@ func validatePostingRules(d *Document) []Finding {
 		return fs
 	}
 	byEvent := map[string][]compiledRule{}
+	declared := map[string]int{}
 	for _, r := range rules {
-		byEvent[r.EventType] = append(byEvent[r.EventType], r)
+		declared[r.EventType]++
+		if r.IsActive() {
+			byEvent[r.EventType] = append(byEvent[r.EventType], r)
+		}
 	}
 	for i, e := range d.Events {
 		rs := byEvent[e.Code]
-		if len(rs) == 0 {
+		switch {
+		case len(rs) == 0 && declared[e.Code] > 0:
+			fs = append(fs, warnf(fmt.Sprintf("events/%d", i), "MISSING_RULE", "every posting rule for event %s is deactivated: such events are refused (MISSING_RULE)", e.Code))
+		case len(rs) == 0:
 			fs = append(fs, warnf(fmt.Sprintf("events/%d", i), "MISSING_RULE", "no posting rule for event %s: such events are refused (MISSING_RULE)", e.Code))
 		}
 		for a := 0; a < len(rs); a++ {
 			for b := a + 1; b < len(rs); b++ {
-				if rs[a].Rank != rs[b].Rank {
+				if rs[a].Rank != rs[b].Rank || !rulesOverlap(rs[a].PostingRule, rs[b].PostingRule) {
 					continue
 				}
 				fa, fb := strings.TrimSpace(rs[a].Filter), strings.TrimSpace(rs[b].Filter)
@@ -285,6 +343,7 @@ type PostingPlan struct {
 	Dimensions []ResolvedDimension `json:"dimensions"`
 	Period     *PeriodDecision     `json:"period,omitempty"`
 	BookDate   string              `json:"bookDate,omitempty"` // US-013: the date accounts were assigned on
+	Derived    []Derived           `json:"derived"`            // every derived measure evaluated, with its lineage
 }
 
 // scopedEnv reads a list item's fields first, then the event's.
@@ -333,12 +392,32 @@ func PlanPosting(d *Document, ref ConfigRef, in EventInput) (*PostingPlan, error
 		return nil, err
 	}
 	plan := &PostingPlan{EventType: ev.Code, Config: ref, Considered: []RuleMatch{}, Lines: []PlannedLine{}, Skipped: []string{},
-		Totals: []BalanceTotal{}, Dimensions: eval.Dimensions, Period: eval.Period}
+		Totals: []BalanceTotal{}, Dimensions: eval.Dimensions, Period: eval.Period, Derived: eval.Derived}
+	if plan.Derived == nil {
+		plan.Derived = []Derived{}
+	}
 	opts := formula.Options{}
+	day := in.TransactionDate
+	if eval.Period != nil {
+		day = eval.Period.BookDate
+	}
+	bookDay, hasDay := ParseDay(day)
 
 	var matched []compiledRule
 	for _, r := range rules {
 		if r.EventType != ev.Code {
+			continue
+		}
+		if !r.IsActive() {
+			plan.Considered = append(plan.Considered, RuleMatch{Rule: r.Code, Rank: r.Rank, Filter: r.Filter, Reason: "deactivated: kept for the record, never applied"})
+			continue
+		}
+		if r.dated() && (!hasDay || !r.InForceOn(bookDay)) {
+			reason := "the rule is in force " + windowText(r.EffectiveFrom, r.EffectiveTo) + ", and the event has no book date (give a transactionDate)"
+			if hasDay {
+				reason = fmt.Sprintf("not in force on %s: the rule applies %s", day, windowText(r.EffectiveFrom, r.EffectiveTo))
+			}
+			plan.Considered = append(plan.Considered, RuleMatch{Rule: r.Code, Rank: r.Rank, Filter: r.Filter, Reason: reason})
 			continue
 		}
 		m := RuleMatch{Rule: r.Code, Rank: r.Rank, Filter: r.Filter, Matched: true, Reason: "no filter: applies to every " + ev.Code}

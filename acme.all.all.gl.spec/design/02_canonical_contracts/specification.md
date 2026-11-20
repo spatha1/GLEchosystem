@@ -17,7 +17,9 @@ All contracts are JSON. Modules agree on **JSON shape**, not on shared code. Eac
 
 The executable form of a client's requirements. Envelope: `tenantId`, `configId`, `version`, `status` (`draft | validated | approved | retired`), `effectiveFrom`, `effectiveTo`, `schemaVersion`, `contentDigest`, `approval`, `content`.
 
-`content` sections (each detailed by its story): `sourceSystems`, `sourceAuthority` (US-005), `events` (US-005), `baseMeasures` (US-006), `derivedMeasures` (US-007), `dimensions` and `lookups` (US-008), `datePolicies` and `calendars` (US-009), `keyProfiles` (US-010), `accountingClasses` and `accounts` (US-011), `postingRules` (US-012), `accountAssignmentRules` (US-013), `reconciliationEquations` (US-028), `outputProfiles` (US-039).
+`content` sections (each detailed by its story): `sourceSystems`, `sourceAuthority` (US-005), `events` (US-005), `baseMeasures` (US-006), `derivedMeasures` (US-007), `dimensions` and `lookups` (US-008), `datePolicies` and `calendars` (US-009), `keyProfiles` (US-010), `accountingClasses` and `accounts` (US-011), `postingRules` (US-012), `accountAssignmentRules` (US-013), `reconciliationEquations` (US-028), `outputProfiles` (US-039), `scenarios` (simulation evidence).
+
+A posting rule may be deactivated (`active: false`: kept for the record, never applied, reads nothing) and may carry its own `effectiveFrom`/`effectiveTo` within the version's window, applied to the book date; same-rank rules for one event may not overlap. A **scenario** is a synthetic event and, optionally, the journal it must produce (`expect.rule`, `expect.legs` with class, side, amount and optionally entity and account) or the refusal it must get (`expect.refused`). Scenarios are versioned with the rules they test, so a rule change and its evidence are reviewed and approved together; running them is a posting preview that stores and posts nothing.
 
 Invariants:
 - `approval.approvedBy ≠ approval.submittedBy` (maker-checker).

@@ -192,6 +192,13 @@
             "type": "object"
           },
           "description": "Detailed by US-039"
+        },
+        "scenarios": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scenario"
+          },
+          "description": "Simulation scenarios: synthetic events and the journals they must produce, versioned with the rules they test"
         }
       }
     }
@@ -906,6 +913,20 @@
             "$ref": "#/$defs/lineTemplate"
           },
           "description": "At least one debit and one credit"
+        },
+        "active": {
+          "type": "boolean",
+          "description": "false keeps the rule in the version for the record but never applies it (default true)"
+        },
+        "effectiveFrom": {
+          "type": "string",
+          "format": "date",
+          "description": "Within the version, the rule applies to book dates from this date"
+        },
+        "effectiveTo": {
+          "type": "string",
+          "format": "date",
+          "description": "Exclusive end of the rule's window; same-rank rules may not overlap"
         }
       }
     },
@@ -959,6 +980,79 @@
         }
       },
       "description": "Precedence: priority, then exact matches, then wildcards, then the later effectiveFrom; an equal-precedence overlap is AMBIGUOUS_ASSIGNMENT"
+    },
+    "expectedLeg": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "side",
+        "amount"
+      ],
+      "properties": {
+        "class": {
+          "$ref": "#/$defs/code"
+        },
+        "side": {
+          "enum": [
+            "D",
+            "C"
+          ]
+        },
+        "amount": {
+          "type": "string",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+        },
+        "entity": {
+          "type": "string"
+        },
+        "account": {
+          "type": "string"
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "eventType",
+        "input"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "description": {
+          "type": "string"
+        },
+        "eventType": {
+          "$ref": "#/$defs/code"
+        },
+        "input": {
+          "type": "object",
+          "description": "The event as the posting preview takes it (sourceSystem, sourceEventId, sourceEventVersion, currency, transactionDate, effectiveDate, keys, measures, dimensions, lists)"
+        },
+        "expect": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "rule": {
+              "$ref": "#/$defs/code"
+            },
+            "legs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/expectedLeg"
+              }
+            },
+            "refused": {
+              "type": "string",
+              "description": "The error code expected instead of a journal"
+            }
+          }
+        }
+      }
     }
   }
 }

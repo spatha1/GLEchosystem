@@ -627,8 +627,8 @@ func sideWord(s string) string {
 
 func (b *graphBuilder) rules() {
 	for i, r := range b.d.PostingRules {
-		if r.EventType != b.ev.Code {
-			continue
+		if r.EventType != b.ev.Code || !r.IsActive() {
+			continue // a deactivated rule reads nothing
 		}
 		rp := fmt.Sprintf("postingRules/%d", i)
 		filter := strings.TrimSpace(r.Filter)

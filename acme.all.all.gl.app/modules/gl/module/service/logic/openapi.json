@@ -1002,6 +1002,237 @@
         }
       }
     },
+    "/m/gl/configs/{configId}/versions/{version}/events": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_versionEvents",
+        "summary": "Configuration studio: every event type of the version with its sources, measures, lists, rule and line counts, required fields, scenarios and findings",
+        "responses": {
+          "200": {
+            "description": "events"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/events/{eventType}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        },
+        {
+          "name": "eventType",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_versionEvent",
+        "summary": "Configuration studio: one event type explained — sources and authority, measures and formulas, dimensions and lookups, keys, date policy, posting rules with each line's class and candidate accounts, scenarios, the dependency graph, its manifest and its findings",
+        "responses": {
+          "200": {
+            "description": "view"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/scenarios/run": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_runScenarios",
+        "summary": "Run the version's scenarios (all, or the given codes) as posting previews and check them against their expected journals; nothing is stored or posted",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "codes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "summary by status (PASSED, FAILED, RAN, REFUSED) and each result with its plan"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/impact": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        },
+        {
+          "name": "against",
+          "in": "query",
+          "required": false,
+          "description": "Version to compare with (default: the version this one is based on, else the previous one)",
+          "schema": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_versionImpact",
+        "summary": "Change impact: the items changed, the events they affect and why, the manifest diff (fields and mappings), every scenario's journal before and after, and the downstream stages",
+        "responses": {
+          "200": {
+            "description": "impact"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/pipeline": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_versionPipeline",
+        "summary": "Where the version stands in the GL flow: configured, validated, approved, required fields, mapped, collected, simulated, posted, subledger, reconciled, reported — stages not built yet say NOT_IMPLEMENTED with their story",
+        "responses": {
+          "200": {
+            "description": "stages"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/check": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_checkDraft",
+        "summary": "Validate edited content without saving it, and list the items it changes against the stored version (editors)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "content": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok, findings, contentDigest, changes"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
     "/m/gl/configs/{configId}/versions/{version}/plan": {
       "parameters": [
         {

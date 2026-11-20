@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"gl/model"
+
 	modulesdk "github.com/mycelpf/mycel_module_sdk"
 )
 
@@ -378,11 +380,13 @@ func createVersion(c *call) modulesdk.Response {
 	}
 	raw := b.Content
 	based := ""
+	var srcContent json.RawMessage
 	if b.BasedOnVersion != nil {
 		src, e := loadVersion(c.host, c.id, configID, *b.BasedOnVersion, true)
 		if e != nil {
 			return e.response()
 		}
+		srcContent = src.Content
 		based = strconv.Itoa(*b.BasedOnVersion)
 		if len(raw) == 0 {
 			raw = src.Content
@@ -409,7 +413,11 @@ func createVersion(c *call) modulesdk.Response {
 	if err != nil {
 		return classify(err).response()
 	}
-	if err := audit(c.host, c.id, configID, created, "create_version", b.Reason, "", "draft", digest, map[string]string{"basedOnVersion": based}); err != nil {
+	detail := map[string]any{"basedOnVersion": based}
+	if srcContent != nil {
+		detail["changes"] = model.DescribeChanges(model.DiffContent(srcContent, content))
+	}
+	if err := audit(c.host, c.id, configID, created, "create_version", b.Reason, "", "draft", digest, detail); err != nil {
 		return errInternal("audit write failed").response()
 	}
 	v, ae := loadVersion(c.host, c.id, configID, created, true)
@@ -494,7 +502,7 @@ func updateDraft(c *call) modulesdk.Response {
 		return classify(err).response()
 	}
 	if err := audit(c.host, c.id, configID, n, "update_draft", b.Reason, cur.Status, "draft", digest,
-		map[string]string{"previousDigest": cur.ContentDigest}); err != nil {
+		map[string]any{"previousDigest": cur.ContentDigest, "changes": model.DescribeChanges(model.DiffContent(cur.Content, content))}); err != nil {
 		return errInternal("audit write failed").response()
 	}
 	v, ae := loadVersion(c.host, c.id, configID, n, true)

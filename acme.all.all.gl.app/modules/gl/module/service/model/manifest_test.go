@@ -321,6 +321,7 @@ func TestManifestChangesExactlyWhenWhatIsReadChanges(t *testing.T) {
 		}
 	}
 	dropped["postingRules"] = rules
+	delete(scenarioOf(dropped, "E2"), "expect") // it expected the dropped rule
 	m, _ = manifestOf(t, dropped)
 	var amt *FieldChange
 	for _, e := range DiffManifests(base, m).Events {
