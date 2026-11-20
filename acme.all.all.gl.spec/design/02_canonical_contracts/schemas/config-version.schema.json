@@ -175,9 +175,9 @@
         "accountAssignmentRules": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/assignmentRule"
           },
-          "description": "Detailed by US-013"
+          "description": "US-013: class + dimensions → account"
         },
         "reconciliationEquations": {
           "type": "array",
@@ -908,6 +908,57 @@
           "description": "At least one debit and one credit"
         }
       }
+    },
+    "assignmentRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "class",
+        "account"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "description": {
+          "type": "string"
+        },
+        "class": {
+          "$ref": "#/$defs/code"
+        },
+        "match": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/code"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Dimension (or ENTITY, CURRENCY, BOOKING_CLASS) → exact value, or \"*\" for any present value; unnamed dimensions do not matter"
+        },
+        "account": {
+          "type": "string",
+          "description": "An account of the class in the ledger (US-011)"
+        },
+        "ledger": {
+          "$ref": "#/$defs/code",
+          "description": "Default PRIMARY"
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Lower first, before specificity; default 0"
+        },
+        "effectiveFrom": {
+          "$ref": "#/$defs/date"
+        },
+        "effectiveTo": {
+          "$ref": "#/$defs/date",
+          "description": "Exclusive"
+        }
+      },
+      "description": "Precedence: priority, then exact matches, then wildcards, then the later effectiveFrom; an equal-precedence overlap is AMBIGUOUS_ASSIGNMENT"
     }
   }
 }

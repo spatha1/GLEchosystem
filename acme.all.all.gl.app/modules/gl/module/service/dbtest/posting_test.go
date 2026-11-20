@@ -19,6 +19,14 @@ func postingConfig(taxAmount string) map[string]any {
 	c["accountingClasses"] = append(c["accountingClasses"].([]any), map[string]any{"code": "TX0", "name": "Tax payable", "nature": "LIABILITY"})
 	c["accounts"] = append(c["accounts"].([]any), map[string]any{"code": "2200100", "name": "GST payable", "class": "TX0", "activeFrom": "2025-07-01"})
 	c["derivedMeasures"] = []any{map[string]any{"code": "GROSS", "formula": "PREMIUM + TAX", "resultType": "AMOUNT", "eventTypes": []any{"PREM_ADDED"}}}
+	for _, a := range c["accounts"].([]any) {
+		delete(a.(map[string]any), "activeTo") // premium posts in 2026
+	}
+	aa := func(code, class, account string) map[string]any {
+		return map[string]any{"code": code, "class": class, "account": account}
+	}
+	c["accountAssignmentRules"] = []any{aa("AA_AR0", "AR0", "9948500"), aa("AA_AR1", "AR1", "9948600"), aa("AA_PR0", "PR0", "1000900"),
+		aa("AA_PW0", "PW0", "4100100"), aa("AA_TX0", "TX0", "2200100")}
 	l := func(code, class, side, amount, expandBy string) map[string]any {
 		x := map[string]any{"code": code, "class": class, "side": side, "amount": amount}
 		if expandBy != "" {
@@ -48,9 +56,15 @@ type planReply struct {
 			ConfigVersion int `json:"configVersion"`
 		} `json:"config"`
 		Lines []struct {
-			Class, Side, Amount, Entity string
-			Item                        int
-			Keys                        map[string]string
+			Class, Side, Amount, Entity, Account string
+			Item                                 int
+			Keys                                 map[string]string
+			Assignment                           struct {
+				Rule   string `json:"rule"`
+				Config struct {
+					ConfigVersion int `json:"configVersion"`
+				} `json:"config"`
+			} `json:"assignment"`
 		} `json:"lines"`
 		Balanced bool `json:"balanced"`
 	} `json:"plan"`
@@ -86,7 +100,11 @@ func TestPostingRulesAreVersionedData(t *testing.T) {
 	if !reflect.DeepEqual(legsOf(p1), []string{"AR0 D 1100.00", "PW0 C 1000.00", "TX0 C 100.00"}) || !p1.Plan.Balanced || p1.Plan.Rule != "PR_PREM_ADDED" || p1.Plan.Config.ConfigVersion != 1 {
 		t.Fatalf("E1 under version 1: %+v", p1)
 	}
-	e2 := map[string]any{"eventType": "INVOICED", "currency": "AUD", "keys": map[string]string{"POLICY_NO": "P1", "TERM_NO": "1", "INVOICE_RUN": "RUN1"},
+	// US-013: the preview shows each leg's account, the rule that chose it and the version.
+	if l := p1.Plan.Lines[0]; l.Account != "9948500" || l.Assignment.Rule != "AA_AR0" || l.Assignment.Config.ConfigVersion != 1 {
+		t.Errorf("AR0 leg assignment: %+v", l)
+	}
+	e2 := map[string]any{"eventType": "INVOICED", "currency": "AUD", "transactionDate": "2026-01-05", "keys": map[string]string{"POLICY_NO": "P1", "TERM_NO": "1", "INVOICE_RUN": "RUN1"},
 		"dimensions": map[string]string{"COMPANY": "C01"},
 		"lists":      map[string]any{"INVOICE_LIST": []any{map[string]string{"INVOICE_NO": "INV1", "INVOICE_AMT": "550.00"}, map[string]string{"INVOICE_NO": "INV2", "INVOICE_AMT": "550.00"}}}}
 	p2 := planOf(t, do(t, "POST", "/configs/"+id+"/versions/1/plan", tenantA, viewer, e2))
@@ -139,5 +157,24 @@ func TestUnbalancedPlansAreRefusedWithThePlan(t *testing.T) {
 	r := do(t, "POST", "/configs/"+id+"/versions/1/plan", tenantA, viewer, e1Body)
 	if r.Status != 422 || r.code() != "UNBALANCED" || !strings.Contains(r.Raw, `"debit":"1100.00"`) || !strings.Contains(r.Raw, `"credit":"1099.00"`) {
 		t.Errorf("unbalanced: %s", r.Raw)
+	}
+}
+
+// US-013 through the store: a class without an assignment rule is refused at preview, with
+// the plan annotated line by line — no fallback account.
+func TestPreviewRefusesALegWithoutAnAccount(t *testing.T) {
+	needDB(t)
+	id := uniq("NOACCT")
+	c := postingConfig("TAX")
+	rules := c["accountAssignmentRules"].([]any)
+	c["accountAssignmentRules"] = rules[:len(rules)-1] // drop AA_TX0
+	mustStatus(t, do(t, "POST", "/configs", tenantA, ba, map[string]any{"configId": id, "effectiveFrom": "2026-01-01", "content": c, "reason": "no tax mapping"}), 201)
+	v := do(t, "POST", "/configs/"+id+"/versions/1/validate", tenantA, ba, nil)
+	if !strings.Contains(v.Raw, "MISSING_ASSIGNMENT") {
+		t.Errorf("validation warns about the unmapped class: %s", v.Raw)
+	}
+	r := do(t, "POST", "/configs/"+id+"/versions/1/plan", tenantA, viewer, e1Body)
+	if r.Status != 422 || r.code() != "MISSING_ACCOUNT" || !strings.Contains(r.Raw, "line 3 (TX0 C)") || !strings.Contains(r.Raw, `"problem":"MISSING_ACCOUNT`) || !strings.Contains(r.Raw, `"account":"9948500"`) {
+		t.Errorf("the TX0 leg has no account: %s", r.Raw)
 	}
 }

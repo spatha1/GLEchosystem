@@ -50,9 +50,11 @@ func evaluateVersion(c *call) modulesdk.Response {
 		"dimensions": out.Dimensions, "period": out.Period, "derived": out.Derived})
 }
 
-// planVersion (US-012) is the posting preview: which rule applies to a sample event, the
-// journal legs it produces (class, side, amount, entity, keys, dimensions, lineage), the legs
-// skipped and why, and the balance per entity and currency. Read-only: nothing is posted.
+// planVersion (US-012, US-013) is the posting preview: which rule applies to a sample event,
+// the journal legs it produces (class, side, amount, entity, keys, dimensions, lineage), the
+// account each leg is assigned with the assignment rule, configuration version and why, the
+// legs skipped and why, and the balance per entity and currency. Read-only: nothing is posted.
+// A refused plan (unbalanced, or a leg without a usable account) is returned in the detail.
 func planVersion(c *call) modulesdk.Response {
 	configID := c.params["configId"]
 	if e := pathCode("configId", configID); e != nil {
@@ -70,7 +72,7 @@ func planVersion(c *call) modulesdk.Response {
 	if e != nil {
 		return e.response()
 	}
-	plan, err := model.PlanPosting(doc, model.ConfigRef{ConfigID: configID, Version: n, ContentDigest: v.ContentDigest}, in)
+	plan, err := model.PreviewPosting(doc, model.ConfigRef{ConfigID: configID, Version: n, ContentDigest: v.ContentDigest}, in)
 	if err != nil {
 		code := "PLAN_FAILED"
 		var fe *formula.Error

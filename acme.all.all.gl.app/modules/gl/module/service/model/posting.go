@@ -256,6 +256,10 @@ type PlannedLine struct {
 	Dimensions  map[string]string `json:"dimensions"`
 	Explanation string            `json:"explanation"`
 	Trace       formula.Trace     `json:"trace"`
+	Account     string            `json:"account,omitempty"`    // US-013
+	Ledger      string            `json:"ledger,omitempty"`     // US-013
+	Assignment  *Assignment       `json:"assignment,omitempty"` // US-013: rule, version and why
+	Problem     string            `json:"problem,omitempty"`    // why the line cannot post
 }
 
 // BalanceTotal is one entity and currency's debits and credits.
@@ -280,6 +284,7 @@ type PostingPlan struct {
 	Balanced   bool                `json:"balanced"`
 	Dimensions []ResolvedDimension `json:"dimensions"`
 	Period     *PeriodDecision     `json:"period,omitempty"`
+	BookDate   string              `json:"bookDate,omitempty"` // US-013: the date accounts were assigned on
 }
 
 // scopedEnv reads a list item's fields first, then the event's.

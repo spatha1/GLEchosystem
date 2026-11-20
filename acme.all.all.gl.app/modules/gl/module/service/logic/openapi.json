@@ -884,7 +884,7 @@
           "gl (GL)"
         ],
         "operationId": "gl_planVersion",
-        "summary": "Posting preview (US-012, read-only): the posting rule that applies to a sample event (and every rule considered, with why), the journal legs it produces by accounting class (side, amount at currency minor units, legal entity, keys, dimensions, lineage), skipped legs with reasons, and the balance per entity and currency. Refusals: MISSING_RULE, AMBIGUOUS_RULE, NULL_AMOUNT, UNROUNDED_AMOUNT, MISSING_ENTITY, UNBALANCED (with the plan in detail).",
+        "summary": "Posting preview (US-012, US-013; read-only): the posting rule that applies to a sample event (and every rule considered, with why), the journal legs it produces by accounting class (side, amount at currency minor units, legal entity, keys, dimensions, lineage), the account each leg is assigned on the book date with the assignment rule, configuration version and why, skipped legs with reasons, and the balance per entity and currency. Refusals: MISSING_RULE, AMBIGUOUS_RULE, NULL_AMOUNT, UNROUNDED_AMOUNT, MISSING_ENTITY, UNBALANCED, MISSING_BOOK_DATE, MISSING_ACCOUNT, AMBIGUOUS_ASSIGNMENT and the US-011 posting-gate codes (with the plan in detail).",
         "requestBody": {
           "required": true,
           "content": {
