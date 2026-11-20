@@ -238,15 +238,20 @@ type ConfigRef struct {
 // EventInput is the data of one event for evaluation: measure values as decimal strings in
 // the event currency, and list items (a list item may carry "@currency" when it differs).
 type EventInput struct {
-	EventType       string                         `json:"eventType"`
-	Currency        string                         `json:"currency"`
-	TransactionDate string                         `json:"transactionDate,omitempty"`
-	EffectiveDate   string                         `json:"effectiveDate,omitempty"`
-	RecordedAt      string                         `json:"recordedAt,omitempty"` // RFC 3339 instant
-	AsOf            string                         `json:"asOf,omitempty"`       // processing date for period decisions (default: the transaction date)
-	Measures        map[string]string              `json:"measures"`
-	Dimensions      map[string]string              `json:"dimensions,omitempty"` // canonical values (normalised at intake)
-	Lists           map[string][]map[string]string `json:"lists,omitempty"`
+	TenantID           string                         `json:"tenantId,omitempty"`
+	SourceSystem       string                         `json:"sourceSystem,omitempty"`
+	SourceEventID      string                         `json:"sourceEventId,omitempty"`
+	SourceEventVersion int                            `json:"sourceEventVersion,omitempty"`
+	EventType          string                         `json:"eventType"`
+	Keys               map[string]string              `json:"keys,omitempty"` // business keys at event level
+	Currency           string                         `json:"currency"`
+	TransactionDate    string                         `json:"transactionDate,omitempty"`
+	EffectiveDate      string                         `json:"effectiveDate,omitempty"`
+	RecordedAt         string                         `json:"recordedAt,omitempty"` // RFC 3339 instant
+	AsOf               string                         `json:"asOf,omitempty"`       // processing date for period decisions (default: the transaction date)
+	Measures           map[string]string              `json:"measures"`
+	Dimensions         map[string]string              `json:"dimensions,omitempty"` // canonical values (normalised at intake)
+	Lists              map[string][]map[string]string `json:"lists,omitempty"`
 }
 
 // Evaluation is everything evaluating one event produces: its resolved dimensions (with the

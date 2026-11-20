@@ -10,7 +10,7 @@
     "caseId": { "type": "string", "minLength": 1 },
     "tenantId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
     "category": {
-      "enum": ["MISSING_MAPPING", "STALE_MAPPING", "UNKNOWN_CODE", "MISSING_KEY", "KEY_CONFLICT", "DUPLICATE_EVENT", "SOURCE_AUTHORITY_CONFLICT", "AMBIGUOUS_RULE", "MISSING_ACCOUNT", "FORMULA_ERROR", "UNBALANCED", "CLOSED_PERIOD", "RECONCILIATION_BREAK"]
+      "enum": ["MISSING_MAPPING", "STALE_MAPPING", "UNKNOWN_CODE", "MISSING_KEY", "KEY_CONFLICT", "INVALID_KEY", "DUPLICATE_EVENT", "SOURCE_AUTHORITY_CONFLICT", "AMBIGUOUS_RULE", "MISSING_ACCOUNT", "FORMULA_ERROR", "UNBALANCED", "CLOSED_PERIOD", "RECONCILIATION_BREAK", "TENANT_MISMATCH"]
     },
     "status": { "enum": ["open", "assigned", "resolved", "reprocessed", "closed"] },
     "raisedAt": { "type": "string", "format": "date-time" },

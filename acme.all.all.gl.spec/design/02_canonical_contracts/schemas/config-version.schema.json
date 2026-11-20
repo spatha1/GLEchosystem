@@ -147,9 +147,9 @@
         "keyProfiles": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/keyProfile"
           },
-          "description": "Detailed by US-010"
+          "description": "US-010: business keys, scopes and ownership links"
         },
         "accountingClasses": {
           "type": "array",
@@ -329,7 +329,8 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/$defs/code"
-                }
+                },
+                "description": "Linkage keys per item, e.g. INVOICE_NO on an allocation"
               },
               "measures": {
                 "type": "array",
@@ -347,6 +348,13 @@
             "$ref": "#/$defs/code"
           },
           "description": "Dimensions the event carries (US-008)"
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "description": "US-010: business keys carried at event level (default: the economic key); an undeclared key is INVALID_KEY"
         }
       }
     },
@@ -661,6 +669,60 @@
             "NEXT_OPEN_PERIOD",
             "REJECT"
           ]
+        }
+      }
+    },
+    "keyProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "description": {
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "A value must match it entirely (RE2 syntax)"
+        },
+        "caseInsensitive": {
+          "type": "boolean",
+          "description": "Values are compared upper-cased"
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "description": "The value is unique only within these keys, e.g. TERM_NO within POLICY_NO; graph values are qualified as \"P1/1\""
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "to",
+              "cardinality"
+            ],
+            "properties": {
+              "to": {
+                "$ref": "#/$defs/code"
+              },
+              "cardinality": {
+                "enum": [
+                  "MANY_TO_ONE",
+                  "ONE_TO_ONE",
+                  "MANY_TO_MANY"
+                ],
+                "description": "MANY_TO_ONE and ONE_TO_ONE are ownership: the target is the parent, and a value has one parent of that key"
+              }
+            }
+          }
         }
       }
     }

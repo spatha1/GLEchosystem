@@ -44,6 +44,7 @@ type Document struct {
 	Lookups         []Lookup
 	Calendars       []Calendar
 	DatePolicies    []DatePolicy
+	KeyProfiles     []KeyProfile
 }
 
 var codeRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
@@ -101,6 +102,8 @@ func Parse(canonical []byte) (*Document, []Finding) {
 	doc.Calendars, f = decodeSection[Calendar]("calendars", s["calendars"])
 	fs = append(fs, f...)
 	doc.DatePolicies, f = decodeSection[DatePolicy]("datePolicies", s["datePolicies"])
+	fs = append(fs, f...)
+	doc.KeyProfiles, f = decodeSection[KeyProfile]("keyProfiles", s["keyProfiles"])
 	fs = append(fs, f...)
 	return doc, fs
 }

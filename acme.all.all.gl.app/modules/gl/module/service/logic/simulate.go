@@ -26,16 +26,9 @@ func evaluateVersion(c *call) modulesdk.Response {
 	if e := decodeBody(c.req, &in); e != nil {
 		return e.response()
 	}
-	v, e := loadVersion(c.host, c.id, configID, n, true)
+	doc, v, e := loadValidDocument(c, configID, n)
 	if e != nil {
 		return e.response()
-	}
-	doc, fs := model.Parse(v.Content)
-	fs = append(fs, model.Validate(doc)...)
-	for _, f := range fs {
-		if f.Severity == "error" {
-			return (&apiError{Status: 422, Code: "VALIDATION_FAILED", Message: "this version has blocking findings; validate it to see them", Detail: f}).response()
-		}
 	}
 	out, err := model.EvaluateEvent(doc, model.ConfigRef{ConfigID: configID, Version: n, ContentDigest: v.ContentDigest}, in)
 	if err != nil {

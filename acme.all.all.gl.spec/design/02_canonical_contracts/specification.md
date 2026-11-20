@@ -72,6 +72,6 @@ Invariant: Σ debits = Σ credits exactly, per entry. An entry that does not bal
 
 ## C7 — Exception case ([schema](schemas/exception-case.schema.json))
 
-Every condition that would otherwise lose or fabricate data becomes a case: `MISSING_MAPPING`, `STALE_MAPPING`, `UNKNOWN_CODE`, `MISSING_KEY`, `KEY_CONFLICT`, `DUPLICATE_EVENT`, `SOURCE_AUTHORITY_CONFLICT`, `AMBIGUOUS_RULE`, `MISSING_ACCOUNT`, `FORMULA_ERROR`, `UNBALANCED`, `CLOSED_PERIOD`, `RECONCILIATION_BREAK`. A case carries source references, the configuration and mapping versions, a detail payload and a status (`open | assigned | resolved | reprocessed | closed`).
+Every condition that would otherwise lose or fabricate data becomes a case: `MISSING_MAPPING`, `STALE_MAPPING`, `UNKNOWN_CODE`, `MISSING_KEY`, `KEY_CONFLICT`, `INVALID_KEY` (a key that fails its configured format, or one the event type does not declare), `DUPLICATE_EVENT`, `SOURCE_AUTHORITY_CONFLICT`, `AMBIGUOUS_RULE`, `MISSING_ACCOUNT`, `FORMULA_ERROR`, `UNBALANCED`, `CLOSED_PERIOD`, `RECONCILIATION_BREAK`, `TENANT_MISMATCH` (an event naming another tenant; it is refused without being read, and nothing of it is echoed into the case). A case carries source references, the configuration and mapping versions, a detail payload and a status (`open | assigned | resolved | reprocessed | closed`).
 
 A technical exception **never** creates a suspense posting. Suspense postings exist only through an approved posting rule.
