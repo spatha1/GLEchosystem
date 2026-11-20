@@ -3,6 +3,7 @@ import { ApiError, client, toError } from './api';
 import { amount, digest, keyList, when } from './format';
 import { actionsFor } from './permissions';
 import type { Me, Version } from './types';
+import { specs, type Catalog, type Field, type Option } from './sections';
 
 describe('format', () => {
 	it('regroups exact decimals without floating point', () => {
@@ -84,5 +85,45 @@ describe('maker-checker on screen', () => {
 		expect(actionsFor(version('draft', ['ba@example.com']), me('v@example.com', 'VIEWER'))[0]).toMatchObject({ kind: 'validate', enabled: false });
 		expect(actionsFor(version('approved', ['ba@example.com']), me('r@example.com', 'CONFIG_APPROVER')).map((x) => x.kind)).toEqual(['retire']);
 		expect(actionsFor(version('retired', ['ba@example.com']), me('r@example.com', 'CONFIG_APPROVER'))).toEqual([]);
+	});
+});
+
+describe('section editors', () => {
+	// A list offering a value twice breaks the form (keyed options), so every list of every editor is checked
+	// on a configuration whose values overlap the standard catalog (CURRENCY is both).
+	it('offers each choice once in every list of every editor', () => {
+		const c = {
+			sourceSystems: [{ code: 'POLICY', kind: 'POLICY' }],
+			events: [{ code: 'PREM_ADDED', economicKey: ['POLICY_NO'], measures: ['PREMIUM'], dimensions: ['LOB', 'CURRENCY'] }],
+			baseMeasures: [{ code: 'BROKER_FEE' }],
+			derivedMeasures: [{ code: 'GROSS', formula: 'PREMIUM' }],
+			dimensions: [{ code: 'LOB' }, { code: 'CURRENCY' }, { code: 'COMPANY' }],
+			lookups: [{ code: 'COMPANY_BY_LOB' }],
+			keyProfiles: [{ code: 'POLICY_NO' }],
+			calendars: [{ code: 'AU' }],
+			datePolicies: [{ code: 'DP' }],
+			accountingClasses: [{ code: 'AR0', name: 'Receivable' }],
+			accounts: [{ code: '9948500', name: 'Receivable', class: 'AR0' }]
+		};
+		const cat: Catalog = {
+			measures: [{ value: 'PREMIUM', label: 'PREMIUM' }],
+			dimensions: ['COMPANY', 'LOB', 'CURRENCY'].map((value) => ({ value, label: value }))
+		};
+		const repeated = (xs: Option[]) => xs.map((x) => x.value).filter((v, i, all) => all.indexOf(v) !== i);
+		const found: string[] = [];
+		const walk = (where: string, fields: Field[]) => {
+			for (const f of fields) {
+				for (const [kind, list] of [
+					['options', f.options?.(c, cat, {})],
+					['pairKeys', f.pairKeys?.(c, cat, {})]
+				] as const) {
+					const dup = list ? repeated(list) : [];
+					if (dup.length) found.push(`${where}.${f.key} ${kind}: ${dup.join(', ')}`);
+				}
+				if (f.fields) walk(`${where}.${f.key}`, f.fields);
+			}
+		};
+		for (const [name, spec] of Object.entries(specs)) walk(name, spec.fields);
+		expect(found).toEqual([]);
 	});
 });
