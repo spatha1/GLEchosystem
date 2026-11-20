@@ -2,6 +2,7 @@ package logic
 
 import (
 	"errors"
+	"strings"
 
 	"gl/formula"
 	"gl/model"
@@ -83,7 +84,7 @@ func planVersion(c *call) modulesdk.Response {
 		case errors.As(err, &ce):
 			code = ce.Code
 		}
-		ae := &apiError{Status: 422, Code: code, Message: err.Error()}
+		ae := &apiError{Status: 422, Code: code, Message: strings.TrimPrefix(err.Error(), code+": ")}
 		if plan != nil {
 			ae.Detail = plan // an unbalanced plan is shown, so the rule can be fixed
 		}

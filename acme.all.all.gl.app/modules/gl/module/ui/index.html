@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>GL — development harness</title>
+		<link rel="stylesheet" href="/dev/harness.css" />
+	</head>
+	<body>
+		<!-- Development only: stands in for the app shell, which authenticates the user. -->
+		<header class="devbar" aria-label="Development identity">
+			<strong>Dev harness</strong>
+			<label>User <select id="dev-user"></select></label>
+			<label>Tenant <input id="dev-tenant" value="DEMO" size="10" /></label>
+			<span class="note">Identity is injected by the dev proxy; in production the app core sets it.</span>
+		</header>
+		<gl-app tenant="DEMO"></gl-app>
+		<script type="module" src="/dev/harness.ts"></script>
+	</body>
+</html>

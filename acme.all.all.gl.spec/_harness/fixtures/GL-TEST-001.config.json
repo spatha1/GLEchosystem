@@ -1,0 +1,517 @@
+{
+  "accountAssignmentRules": [
+    {
+      "account": "9948523",
+      "class": "AR0",
+      "code": "AA_AR0_MOTOR",
+      "match": {
+        "LOB": "MOTOR"
+      }
+    },
+    {
+      "account": "9948500",
+      "class": "AR0",
+      "code": "AA_AR0_DEFAULT"
+    },
+    {
+      "account": "9948600",
+      "class": "AR1",
+      "code": "AA_AR1"
+    },
+    {
+      "account": "4100100",
+      "class": "PW0",
+      "code": "AA_PW0"
+    },
+    {
+      "account": "2200100",
+      "class": "TX0",
+      "code": "AA_TX0"
+    },
+    {
+      "account": "1000900",
+      "class": "PR0",
+      "code": "AA_PR0"
+    },
+    {
+      "account": "1500109",
+      "class": "IC0",
+      "code": "AA_IC0"
+    },
+    {
+      "account": "2500101",
+      "class": "IC1",
+      "code": "AA_IC1"
+    },
+    {
+      "account": "6100100",
+      "class": "WO",
+      "code": "AA_WO"
+    }
+  ],
+  "accountingClasses": [
+    {
+      "code": "AR0",
+      "name": "Policy receivable",
+      "nature": "ASSET"
+    },
+    {
+      "code": "AR1",
+      "name": "Invoice receivable",
+      "nature": "ASSET"
+    },
+    {
+      "code": "PW0",
+      "name": "Premium written",
+      "nature": "INCOME"
+    },
+    {
+      "code": "TX0",
+      "name": "Tax payable",
+      "nature": "LIABILITY"
+    },
+    {
+      "code": "PR0",
+      "name": "Cash at bank",
+      "nature": "ASSET"
+    },
+    {
+      "code": "IC0",
+      "name": "Intercompany due from",
+      "nature": "ASSET"
+    },
+    {
+      "code": "IC1",
+      "name": "Intercompany due to",
+      "nature": "LIABILITY"
+    },
+    {
+      "code": "WO",
+      "name": "Premium write-off",
+      "nature": "EXPENSE"
+    }
+  ],
+  "accounts": [
+    {
+      "activeFrom": "2025-07-01",
+      "class": "AR0",
+      "code": "9948500",
+      "name": "Policy receivable",
+      "subledgerKey": "POLICY_NO"
+    },
+    {
+      "activeFrom": "2025-07-01",
+      "class": "AR0",
+      "code": "9948523",
+      "entities": [
+        "C01"
+      ],
+      "name": "Policy receivable — motor",
+      "subledgerKey": "POLICY_NO"
+    },
+    {
+      "activeFrom": "2025-07-01",
+      "class": "AR1",
+      "code": "9948600",
+      "name": "Invoice receivable",
+      "subledgerKey": "INVOICE_NO"
+    },
+    {
+      "activeFrom": "2025-07-01",
+      "class": "PW0",
+      "code": "4100100",
+      "name": "Gross written premium"
+    },
+    {
+      "activeFrom": "2025-07-01",
+      "class": "TX0",
+      "code": "2200100",
+      "currencies": [
+        "AUD"
+      ],
+      "name": "GST payable"
+    },
+    {
+      "activeFrom": "2025-07-01",
+      "class": "PR0",
+      "code": "1000900",
+      "dimensions": [
+        "BANK_ACCOUNT"
+      ],
+      "entities": [
+        "C09"
+      ],
+      "name": "Operating bank C09"
+    },
+    {
+      "activeFrom": "2025-07-01",
+      "class": "IC0",
+      "code": "1500109",
+      "name": "Due from C09"
+    },
+    {
+      "activeFrom": "2025-07-01",
+      "class": "IC1",
+      "code": "2500101",
+      "name": "Due to C01"
+    },
+    {
+      "activeFrom": "2025-07-01",
+      "class": "WO",
+      "code": "6100100",
+      "name": "Premium written off",
+      "subledgerKey": "INVOICE_NO"
+    },
+    {
+      "activeFrom": "2025-07-01",
+      "activeTo": "2026-01-01",
+      "class": "WO",
+      "code": "6100199",
+      "name": "Old write-off account"
+    }
+  ],
+  "derivedMeasures": [
+    {
+      "code": "GROSS",
+      "eventTypes": [
+        "PREM_ADDED"
+      ],
+      "formula": "PREMIUM + TAX",
+      "resultType": "AMOUNT"
+    }
+  ],
+  "dimensions": [
+    {
+      "code": "LOB",
+      "normalizations": [
+        {
+          "caseInsensitive": true,
+          "map": {
+            "Home": "HOME",
+            "MTR": "MOTOR",
+            "Motor": "MOTOR"
+          },
+          "sourceSystem": "POLICY"
+        },
+        {
+          "map": {
+            "01": "MOTOR",
+            "02": "HOME"
+          },
+          "sourceSystem": "BILLING"
+        }
+      ],
+      "values": [
+        "MOTOR",
+        "HOME"
+      ]
+    },
+    {
+      "code": "COMPANY",
+      "values": [
+        "C01",
+        "C09"
+      ]
+    },
+    {
+      "code": "PRODUCT",
+      "values": [
+        "MOTOR_PRIVATE",
+        "MOTOR_FLEET",
+        "HOME_BUILDING"
+      ]
+    },
+    {
+      "code": "BANK_ACCOUNT"
+    },
+    {
+      "code": "BANKING_COMPANY",
+      "derivedBy": {
+        "lookup": "BANKING_COMPANY_BY_ACCOUNT"
+      },
+      "values": [
+        "C01",
+        "C09"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "code": "PREM_ADDED",
+      "description": "Premium posted",
+      "dimensions": [
+        "LOB",
+        "COMPANY",
+        "PRODUCT"
+      ],
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO"
+      ],
+      "measures": [
+        "PREMIUM",
+        "TAX"
+      ]
+    },
+    {
+      "code": "INVOICED",
+      "description": "Invoice generated",
+      "dimensions": [
+        "COMPANY",
+        "LOB"
+      ],
+      "economicKey": [
+        "POLICY_NO",
+        "TERM_NO",
+        "INVOICE_RUN"
+      ],
+      "lists": [
+        {
+          "code": "INVOICE_LIST",
+          "itemKey": [
+            "INVOICE_NO"
+          ],
+          "measures": [
+            "INVOICE_AMT"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "PAYMENT_RECEIVED",
+      "description": "Payment received",
+      "dimensions": [
+        "BANK_ACCOUNT",
+        "COMPANY"
+      ],
+      "economicKey": [
+        "RECEIPT_NO"
+      ],
+      "lists": [
+        {
+          "code": "ALLOCATION_LIST",
+          "itemKey": [
+            "ALLOCATION_ID"
+          ],
+          "keys": [
+            "INVOICE_NO"
+          ],
+          "measures": [
+            "ALLOC_AMT"
+          ]
+        }
+      ],
+      "measures": [
+        "PAY_AMT"
+      ]
+    }
+  ],
+  "keyProfiles": [
+    {
+      "caseInsensitive": true,
+      "code": "POLICY_NO",
+      "pattern": "P[0-9]+"
+    },
+    {
+      "code": "TERM_NO",
+      "links": [
+        {
+          "cardinality": "MANY_TO_ONE",
+          "to": "POLICY_NO"
+        }
+      ],
+      "pattern": "[0-9]+",
+      "scope": [
+        "POLICY_NO"
+      ]
+    },
+    {
+      "code": "INVOICE_RUN",
+      "links": [
+        {
+          "cardinality": "MANY_TO_ONE",
+          "to": "TERM_NO"
+        }
+      ],
+      "scope": [
+        "TERM_NO"
+      ]
+    },
+    {
+      "code": "INVOICE_NO",
+      "links": [
+        {
+          "cardinality": "MANY_TO_ONE",
+          "to": "POLICY_NO"
+        },
+        {
+          "cardinality": "MANY_TO_ONE",
+          "to": "INVOICE_RUN"
+        }
+      ],
+      "pattern": "INV[0-9]+"
+    },
+    {
+      "code": "RECEIPT_NO",
+      "pattern": "R[0-9]+"
+    },
+    {
+      "code": "ALLOCATION_ID",
+      "links": [
+        {
+          "cardinality": "MANY_TO_ONE",
+          "to": "RECEIPT_NO"
+        },
+        {
+          "cardinality": "MANY_TO_ONE",
+          "to": "INVOICE_NO"
+        }
+      ],
+      "scope": [
+        "RECEIPT_NO"
+      ]
+    }
+  ],
+  "lookups": [
+    {
+      "code": "BANKING_COMPANY_BY_ACCOUNT",
+      "entries": [
+        {
+          "key": "BANK-C09",
+          "value": "C09"
+        },
+        {
+          "key": "BANK-C01",
+          "value": "C01"
+        },
+        {
+          "effectiveTo": "2026-03-01",
+          "key": "BANK-OLD",
+          "value": "C01"
+        },
+        {
+          "effectiveFrom": "2026-03-01",
+          "key": "BANK-OLD",
+          "value": "C09"
+        }
+      ],
+      "input": "BANK_ACCOUNT",
+      "output": "BANKING_COMPANY"
+    }
+  ],
+  "postingRules": [
+    {
+      "code": "PR_PREM_ADDED",
+      "eventType": "PREM_ADDED",
+      "lines": [
+        {
+          "amount": "GROSS",
+          "class": "AR0",
+          "code": "AR0_DR",
+          "explanation": "Policy receivable: premium plus tax",
+          "side": "D"
+        },
+        {
+          "amount": "PREMIUM",
+          "class": "PW0",
+          "code": "PW0_CR",
+          "side": "C"
+        },
+        {
+          "amount": "TAX",
+          "class": "TX0",
+          "code": "TX0_CR",
+          "side": "C"
+        }
+      ],
+      "rank": 10
+    },
+    {
+      "code": "PR_INVOICED",
+      "eventType": "INVOICED",
+      "lines": [
+        {
+          "amount": "INVOICE_AMT",
+          "class": "AR1",
+          "code": "AR1_DR",
+          "expandBy": "INVOICE_LIST",
+          "side": "D"
+        },
+        {
+          "amount": "INVOICE_AMT",
+          "class": "AR0",
+          "code": "AR0_CR",
+          "expandBy": "INVOICE_LIST",
+          "side": "C"
+        }
+      ],
+      "rank": 10
+    },
+    {
+      "code": "PR_PAYMENT_RECEIVED",
+      "eventType": "PAYMENT_RECEIVED",
+      "lines": [
+        {
+          "amount": "PAY_AMT",
+          "class": "PR0",
+          "code": "CASH",
+          "entity": "BANKING_COMPANY",
+          "side": "D"
+        },
+        {
+          "amount": "PAY_AMT",
+          "class": "IC1",
+          "code": "DUE_TO",
+          "entity": "BANKING_COMPANY",
+          "side": "C",
+          "when": "BANKING_COMPANY != COMPANY"
+        },
+        {
+          "amount": "PAY_AMT",
+          "class": "IC0",
+          "code": "DUE_FROM",
+          "side": "D",
+          "when": "BANKING_COMPANY != COMPANY"
+        },
+        {
+          "amount": "ALLOC_AMT",
+          "class": "AR1",
+          "code": "ALLOC",
+          "expandBy": "ALLOCATION_LIST",
+          "side": "C"
+        }
+      ],
+      "rank": 10
+    }
+  ],
+  "sourceAuthority": [
+    {
+      "eventType": "PREM_ADDED",
+      "intakeMode": "RAW_EVENT",
+      "measure": "*",
+      "sourceSystem": "POLICY"
+    },
+    {
+      "eventType": "INVOICED",
+      "intakeMode": "RAW_EVENT",
+      "measure": "*",
+      "sourceSystem": "BILLING"
+    },
+    {
+      "eventType": "PAYMENT_RECEIVED",
+      "intakeMode": "RAW_EVENT",
+      "measure": "*",
+      "sourceSystem": "BILLING"
+    }
+  ],
+  "sourceSystems": [
+    {
+      "code": "POLICY",
+      "kind": "POLICY"
+    },
+    {
+      "code": "BILLING",
+      "kind": "BILLING"
+    }
+  ]
+}

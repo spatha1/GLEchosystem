@@ -16,7 +16,7 @@ service/
 database/
   migrations/NNNN_*.sql        runtime schema for "gl" (+ NNNN_*.down.sql rollbacks)
   schema.sql                   human reference of the final shape
-ui/                            <gl-app> custom element
+ui/                            <gl-app> custom element (Svelte 5): configurations, posting preview
 ```
 
 ## Configuration store (US-003)
@@ -78,3 +78,23 @@ For local development, `cmd/devhttp` accepts `GL_DEV_SEED_ROLES="TENANT:user:ROL
 ## Identity
 
 Every `/m/gl/…` request other than `/info` and `/openapi.json` needs `x-mycel-user` and `x-gl-tenant`. A tenant in a request body is rejected.
+
+## UI (`ui/`, Svelte 5)
+
+`<gl-app tenant="DEMO">` is the module's screen, built by `vite build` into `ui/dist/entry.js` (the file the app build mounts). It calls only `/m/gl/*`, sends the tenant (`x-gl-tenant`) and never an identity: the app core authenticates the user and sets `x-mycel-user`.
+
+| Screen | What it does |
+|---|---|
+| **Configurations** | Lists configurations and versions (status, effective window, who changed and approved, digest). Each version shows what it configures, its validation findings and the audit trail with reasons. Validate, approve and retire follow the user's roles. Approve is disabled, with the reason, for anyone who changed the version (maker-checker). Approve and retire ask for a reason. The server enforces all of it. |
+| **Posting preview** | Runs `POST …/plan` for a GL-TEST-001 sample event (or an edited one) against any version. It shows the rule chosen and the rules considered, and each journal leg with class, account, entity, debit or credit, and keys. **Why** opens a leg's amount lineage and the assignment rule (with configuration version) and rules considered. It also shows the balance per entity and currency, skipped legs with reasons, and refusals with the refused leg highlighted. Read-only. |
+
+Local run (development only):
+
+```
+# 1. the dev adapter, with roles for tenant DEMO (loopback only; an ordinary database role)
+GL_DEV_SEED_ROLES="DEMO:ba@example.com:CONFIG_EDITOR;DEMO:reviewer@example.com:CONFIG_APPROVER;DEMO:lead@example.com:CONFIG_EDITOR|CONFIG_APPROVER;DEMO:viewer@example.com:VIEWER" DATABASE_URL=postgres://<role>:<password>@127.0.0.1:55432/gl_dev go run ./service/cmd/devhttp
+# 2. the UI: seed the GL-TEST-001 demo configuration through the API, then open http://127.0.0.1:5174
+cd ui && npm install && npm run seed:dev && npm run dev
+```
+
+The dev harness (`index.html`, `dev/`) chooses the user; its proxy turns that choice into `x-mycel-user`, which only the dev adapter trusts. `npm test` runs the UI tests (vitest, jsdom), and `npm run check` runs the type check.
