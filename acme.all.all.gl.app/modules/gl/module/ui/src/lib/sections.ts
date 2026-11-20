@@ -529,7 +529,8 @@ export const specs: Record<string, SectionSpec> = {
 				label: 'When (dimension = value; * = any value)',
 				type: 'pairs',
 				wide: true,
-				pairKeys: (c, cat) => [...dimensionOptions(c, cat), ...opt(['ENTITY', 'CURRENCY'])]
+				// CURRENCY is also a standard dimension: list each key once.
+				pairKeys: (c, cat) => uniq([...dimensionOptions(c, cat), ...opt(['ENTITY', 'CURRENCY'])])
 			},
 			{
 				key: 'account',
