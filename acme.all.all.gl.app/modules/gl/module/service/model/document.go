@@ -47,6 +47,7 @@ type Document struct {
 	KeyProfiles       []KeyProfile
 	AccountingClasses []AccountingClass
 	Accounts          []Account
+	PostingRules      []PostingRule
 }
 
 var codeRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
@@ -110,6 +111,8 @@ func Parse(canonical []byte) (*Document, []Finding) {
 	doc.AccountingClasses, f = decodeSection[AccountingClass]("accountingClasses", s["accountingClasses"])
 	fs = append(fs, f...)
 	doc.Accounts, f = decodeSection[Account]("accounts", s["accounts"])
+	fs = append(fs, f...)
+	doc.PostingRules, f = decodeSection[PostingRule]("postingRules", s["postingRules"])
 	fs = append(fs, f...)
 	return doc, fs
 }

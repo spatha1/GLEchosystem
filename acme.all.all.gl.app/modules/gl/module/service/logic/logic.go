@@ -116,6 +116,7 @@ var routes = []route{
 	r("GET", "/configs/{configId}/versions/{version}/measures", roleGated, versionMeasures, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/evaluate", roleGated, evaluateVersion, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/keygraph", roleGated, keyGraphVersion, roleReaders...),
+	r("POST", "/configs/{configId}/versions/{version}/plan", roleGated, planVersion, roleReaders...),
 	r("GET", "/configs/{configId}/versions/{version}/accounts", roleGated, listAccounts, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/accounts/check", roleGated, checkAccount, roleReaders...),
 }

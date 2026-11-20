@@ -330,6 +330,13 @@ func EvaluateDerived(d *Document, ref ConfigRef, in EventInput) ([]Derived, erro
 // EvaluateEvent resolves an event's dimensions (lookups included) and evaluates its derived
 // measures, in dependency order, with lineage.
 func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error) {
+	e, _, _, err := evaluate(d, ref, in)
+	return e, err
+}
+
+// evaluate is EvaluateEvent, also returning the event type and the values its formulas
+// read — the environment posting rules (US-012) evaluate in.
+func evaluate(d *Document, ref ConfigRef, in EventInput) (Evaluation, *inputEnv, EventType, error) {
 	var ev EventType
 	found := false
 	for _, e := range d.Events {
@@ -338,23 +345,23 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 		}
 	}
 	if !found {
-		return Evaluation{}, &formula.Error{Code: "UNKNOWN_EVENT", Message: in.EventType + " is not in the event catalog"}
+		return Evaluation{}, nil, ev, &formula.Error{Code: "UNKNOWN_EVENT", Message: in.EventType + " is not in the event catalog"}
 	}
 	if !currencyRe(in.Currency) {
-		return Evaluation{}, &formula.Error{Code: "INVALID_CURRENCY", Message: fmt.Sprintf("currency %q must be an ISO 4217 code", in.Currency)}
+		return Evaluation{}, nil, ev, &formula.Error{Code: "INVALID_CURRENCY", Message: fmt.Sprintf("currency %q must be an ISO 4217 code", in.Currency)}
 	}
 	measures := ResolveMeasures(d)
 	env := &inputEnv{vals: map[string]formula.Value{}, lists: map[string][]formula.Item{}}
 	for _, code := range ev.Measures {
 		v, err := toValue(measures[code], in.Measures[code], in.Currency)
 		if err != nil {
-			return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: fmt.Sprintf("%s: %v", code, err)}
+			return Evaluation{}, nil, ev, &formula.Error{Code: "INVALID_INPUT", Message: fmt.Sprintf("%s: %v", code, err)}
 		}
 		env.vals[code] = v
 	}
 	for k := range in.Measures {
 		if !oneOf(k, ev.Measures) {
-			return Evaluation{}, &formula.Error{Code: "UNKNOWN_IDENTIFIER", Message: fmt.Sprintf("event %s does not carry measure %s", ev.Code, k)}
+			return Evaluation{}, nil, ev, &formula.Error{Code: "UNKNOWN_IDENTIFIER", Message: fmt.Sprintf("event %s does not carry measure %s", ev.Code, k)}
 		}
 	}
 	for _, l := range ev.Lists {
@@ -368,7 +375,7 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 			for _, m := range l.Measures {
 				v, err := toValue(measures[m], raw[m], ccy)
 				if err != nil {
-					return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: fmt.Sprintf("%s item %d %s: %v", l.Code, i, m, err)}
+					return Evaluation{}, nil, ev, &formula.Error{Code: "INVALID_INPUT", Message: fmt.Sprintf("%s item %d %s: %v", l.Code, i, m, err)}
 				}
 				it[m] = v
 			}
@@ -380,7 +387,7 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 	dates := EventDates{TransactionDate: in.TransactionDate, EffectiveDate: in.EffectiveDate, RecordedAt: in.RecordedAt}
 	for name, s := range map[string]string{"transactionDate": in.TransactionDate, "effectiveDate": in.EffectiveDate} {
 		if _, ok := ParseDay(s); s != "" && !ok {
-			return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: name + " must be a real date (YYYY-MM-DD)"}
+			return Evaluation{}, nil, ev, &formula.Error{Code: "INVALID_INPUT", Message: name + " must be a real date (YYYY-MM-DD)"}
 		}
 	}
 	// The date that selects effective-dated lookups is the policy's lookupDate (default the
@@ -388,7 +395,7 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 	day, _ := lookupDay(d, ev.Code, dates)
 	resolved, err := ResolveDimensions(d, ref, ev, in.Dimensions, day)
 	if err != nil {
-		return Evaluation{}, err
+		return Evaluation{}, nil, ev, err
 	}
 	for _, code := range eventDimensions(d, ev) {
 		env.vals[code] = formula.Null
@@ -412,11 +419,11 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 			}
 			at, ok := ParseDay(asOf)
 			if !ok {
-				return Evaluation{}, &formula.Error{Code: "INVALID_INPUT", Message: "asOf must be a real date (YYYY-MM-DD)"}
+				return Evaluation{}, nil, ev, &formula.Error{Code: "INVALID_INPUT", Message: "asOf must be a real date (YYYY-MM-DD)"}
 			}
 			dec, err := DecidePeriod(d, ev.Code, dates, at)
 			if err != nil {
-				return Evaluation{}, err
+				return Evaluation{}, nil, ev, err
 			}
 			period = &dec
 			env.vals["BOOK_DATE"] = formula.Date(dec.BookDate)
@@ -434,7 +441,7 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 	syms := eventSymbols(d, ev, measures)
 	order, err := topoOrder(d)
 	if err != nil {
-		return Evaluation{}, err
+		return Evaluation{}, nil, ev, err
 	}
 	var out []Derived
 	for _, dm := range order {
@@ -443,23 +450,23 @@ func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error
 		}
 		node, perr := formula.Parse(dm.Formula)
 		if perr != nil {
-			return Evaluation{}, perr
+			return Evaluation{}, nil, ev, perr
 		}
 		if _, errs := formula.Check(node, syms); len(errs) > 0 {
 			continue // does not apply to this event (validation guarantees it applies somewhere)
 		}
 		v, tr, err := formula.Eval(node, env, formula.Options{})
 		if err != nil {
-			return Evaluation{}, fmt.Errorf("%s: %w", dm.Code, err)
+			return Evaluation{}, nil, ev, fmt.Errorf("%s: %w", dm.Code, err)
 		}
 		v, err = formula.Coerce(v, resultKinds[dm.ResultType], in.Currency)
 		if err != nil {
-			return Evaluation{}, fmt.Errorf("%s: %w", dm.Code, err)
+			return Evaluation{}, nil, ev, fmt.Errorf("%s: %w", dm.Code, err)
 		}
 		env.vals[dm.Code] = v
 		out = append(out, Derived{Code: dm.Code, Value: v.String(), Formula: dm.Formula, FormulaDigest: FormulaDigest(dm.Formula), Config: ref, Trace: tr, value: v})
 	}
-	return Evaluation{Dimensions: resolved, Period: period, Derived: out}, nil
+	return Evaluation{Dimensions: resolved, Period: period, Derived: out}, env, ev, nil
 }
 
 // topoOrder orders derived measures so each comes after those it reads.

@@ -49,3 +49,43 @@ func evaluateVersion(c *call) modulesdk.Response {
 	return jsonResponse(200, map[string]any{"configId": configID, "version": n, "status": v.Status, "eventType": in.EventType,
 		"dimensions": out.Dimensions, "period": out.Period, "derived": out.Derived})
 }
+
+// planVersion (US-012) is the posting preview: which rule applies to a sample event, the
+// journal legs it produces (class, side, amount, entity, keys, dimensions, lineage), the legs
+// skipped and why, and the balance per entity and currency. Read-only: nothing is posted.
+func planVersion(c *call) modulesdk.Response {
+	configID := c.params["configId"]
+	if e := pathCode("configId", configID); e != nil {
+		return e.response()
+	}
+	n, e := pathVersion(c.params["version"])
+	if e != nil {
+		return e.response()
+	}
+	var in model.EventInput
+	if e := decodeBody(c.req, &in); e != nil {
+		return e.response()
+	}
+	doc, v, e := loadValidDocument(c, configID, n)
+	if e != nil {
+		return e.response()
+	}
+	plan, err := model.PlanPosting(doc, model.ConfigRef{ConfigID: configID, Version: n, ContentDigest: v.ContentDigest}, in)
+	if err != nil {
+		code := "PLAN_FAILED"
+		var fe *formula.Error
+		var ce *model.CodeError
+		switch {
+		case errors.As(err, &fe):
+			code = fe.Code
+		case errors.As(err, &ce):
+			code = ce.Code
+		}
+		ae := &apiError{Status: 422, Code: code, Message: err.Error()}
+		if plan != nil {
+			ae.Detail = plan // an unbalanced plan is shown, so the rule can be fixed
+		}
+		return ae.response()
+	}
+	return jsonResponse(200, map[string]any{"configId": configID, "version": n, "status": v.Status, "plan": plan})
+}

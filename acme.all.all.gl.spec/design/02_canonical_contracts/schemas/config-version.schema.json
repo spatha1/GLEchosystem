@@ -168,9 +168,9 @@
         "postingRules": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/postingRule"
           },
-          "description": "Detailed by US-012"
+          "description": "US-012: event → journal legs, as data"
         },
         "accountAssignmentRules": {
           "type": "array",
@@ -824,6 +824,88 @@
         },
         "description": {
           "type": "string"
+        }
+      }
+    },
+    "lineTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "class",
+        "side",
+        "amount"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "class": {
+          "$ref": "#/$defs/code",
+          "description": "Accounting class (US-011); the account is assigned by US-013"
+        },
+        "side": {
+          "enum": [
+            "D",
+            "C"
+          ]
+        },
+        "amount": {
+          "type": "string",
+          "minLength": 1,
+          "description": "AMOUNT formula (US-007); a negative result flips the side; must be exact at the currency minor units (ROUND explicitly)"
+        },
+        "expandBy": {
+          "$ref": "#/$defs/code",
+          "description": "A list of the event: one line per item, reading the item's measures"
+        },
+        "entity": {
+          "type": "string",
+          "description": "STRING formula overriding the legal entity (default: the COMPANY dimension), e.g. BANKING_COMPANY"
+        },
+        "when": {
+          "type": "string",
+          "description": "BOOL formula; the line is produced only when true"
+        },
+        "explanation": {
+          "type": "string"
+        }
+      }
+    },
+    "postingRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "eventType",
+        "rank",
+        "lines"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "description": {
+          "type": "string"
+        },
+        "eventType": {
+          "$ref": "#/$defs/code"
+        },
+        "filter": {
+          "type": "string",
+          "description": "BOOL formula; empty: every event of the type"
+        },
+        "rank": {
+          "type": "integer",
+          "description": "Among matching rules the lowest rank applies; a tie is AMBIGUOUS_RULE"
+        },
+        "lines": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/lineTemplate"
+          },
+          "description": "At least one debit and one credit"
         }
       }
     }

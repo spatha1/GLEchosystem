@@ -866,6 +866,50 @@
           }
         }
       }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/plan": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_planVersion",
+        "summary": "Posting preview (US-012, read-only): the posting rule that applies to a sample event (and every rule considered, with why), the journal legs it produces by accounting class (side, amount at currency minor units, legal entity, keys, dimensions, lineage), skipped legs with reasons, and the balance per entity and currency. Refusals: MISSING_RULE, AMBIGUOUS_RULE, NULL_AMOUNT, UNROUNDED_AMOUNT, MISSING_ENTITY, UNBALANCED (with the plan in detail).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/gl_EventInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "the posting plan"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
     }
   },
   "components": {
