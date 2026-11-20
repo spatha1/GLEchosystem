@@ -35,16 +35,18 @@ func warnf(path, code, format string, a ...any) Finding {
 // Document is a configuration's content, typed. Sections no story has given meaning to yet
 // are not decoded here; the store keeps them as they are.
 type Document struct {
-	SourceSystems   []SourceSystem
-	Events          []EventType
-	SourceAuthority []SourceAuthority
-	BaseMeasures    []BaseMeasure
-	DerivedMeasures []DerivedMeasure
-	Dimensions      []Dimension
-	Lookups         []Lookup
-	Calendars       []Calendar
-	DatePolicies    []DatePolicy
-	KeyProfiles     []KeyProfile
+	SourceSystems     []SourceSystem
+	Events            []EventType
+	SourceAuthority   []SourceAuthority
+	BaseMeasures      []BaseMeasure
+	DerivedMeasures   []DerivedMeasure
+	Dimensions        []Dimension
+	Lookups           []Lookup
+	Calendars         []Calendar
+	DatePolicies      []DatePolicy
+	KeyProfiles       []KeyProfile
+	AccountingClasses []AccountingClass
+	Accounts          []Account
 }
 
 var codeRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
@@ -104,6 +106,10 @@ func Parse(canonical []byte) (*Document, []Finding) {
 	doc.DatePolicies, f = decodeSection[DatePolicy]("datePolicies", s["datePolicies"])
 	fs = append(fs, f...)
 	doc.KeyProfiles, f = decodeSection[KeyProfile]("keyProfiles", s["keyProfiles"])
+	fs = append(fs, f...)
+	doc.AccountingClasses, f = decodeSection[AccountingClass]("accountingClasses", s["accountingClasses"])
+	fs = append(fs, f...)
+	doc.Accounts, f = decodeSection[Account]("accounts", s["accounts"])
 	fs = append(fs, f...)
 	return doc, fs
 }

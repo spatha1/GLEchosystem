@@ -683,6 +683,189 @@
           }
         }
       }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/accounts": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        },
+        {
+          "name": "class",
+          "in": "query",
+          "required": false,
+          "description": "Accounting class, e.g. AR0; also returns the class requirements",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "ledger",
+          "in": "query",
+          "required": false,
+          "description": "Ledger, e.g. PRIMARY",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "entity",
+          "in": "query",
+          "required": false,
+          "description": "Legal entity (COMPANY value)",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "currency",
+          "in": "query",
+          "required": false,
+          "description": "Transaction currency",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "date",
+          "in": "query",
+          "required": false,
+          "description": "Book date: only accounts active on it",
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        {
+          "name": "eventType",
+          "in": "query",
+          "required": false,
+          "description": "With class: can this event feed lines of the class (subledger keys and dimensions)?",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "list",
+          "in": "query",
+          "required": false,
+          "description": "With eventType: lines expanded per item of this list",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_listAccounts",
+        "summary": "COA lookup (US-011): accounts of the version with nature, normal side and statement; class requirements; and, for an event, whether it carries what the class needs before any data arrives",
+        "responses": {
+          "200": {
+            "description": "accounts, requirements and carrier findings"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/accounts/check": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_checkAccount",
+        "summary": "Posting gate preview (US-011, read-only): may this line post to this account? allowed with the account, or the reason: MISSING_ACCOUNT, INACTIVE_ACCOUNT, CLASS_MISMATCH, ENTITY_NOT_ALLOWED, CURRENCY_NOT_ALLOWED, MISSING_SUBLEDGER_KEY, MISSING_DIMENSION",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "account",
+                  "class",
+                  "bookDate",
+                  "currency"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "account": {
+                    "type": "string"
+                  },
+                  "ledger": {
+                    "type": "string"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "bookDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "entity": {
+                    "type": "string"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "keys": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "dimensions": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "allowed, with the account; or the refusal code and message"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
     }
   },
   "components": {

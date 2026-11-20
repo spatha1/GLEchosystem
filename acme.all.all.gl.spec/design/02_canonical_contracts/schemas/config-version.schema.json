@@ -154,16 +154,16 @@
         "accountingClasses": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/accountingClass"
           },
-          "description": "Detailed by US-011"
+          "description": "US-011: semantic accounting roles (AR0, PW0, TX0, …)"
         },
         "accounts": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/account"
           },
-          "description": "Detailed by US-011"
+          "description": "US-011: the client's chart of accounts, each account serving one class"
         },
         "postingRules": {
           "type": "array",
@@ -723,6 +723,107 @@
               }
             }
           }
+        }
+      }
+    },
+    "accountingClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "name",
+        "nature"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nature": {
+          "enum": [
+            "ASSET",
+            "LIABILITY",
+            "EQUITY",
+            "INCOME",
+            "EXPENSE"
+          ]
+        },
+        "normalSide": {
+          "enum": [
+            "D",
+            "C"
+          ],
+          "description": "Default: D for ASSET and EXPENSE, C otherwise"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "name",
+        "class",
+        "activeFrom"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$",
+          "description": "The client's ledger code; unique per ledger"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "class": {
+          "$ref": "#/$defs/code"
+        },
+        "ledger": {
+          "$ref": "#/$defs/code",
+          "description": "Default PRIMARY"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "description": "Legal entities (COMPANY values) that may post; empty: all"
+        },
+        "currencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "description": "Transaction currencies accepted; empty: all"
+        },
+        "activeFrom": {
+          "$ref": "#/$defs/date"
+        },
+        "activeTo": {
+          "$ref": "#/$defs/date",
+          "description": "Exclusive"
+        },
+        "subledgerKey": {
+          "$ref": "#/$defs/code",
+          "description": "A key profile (US-010) every line must carry"
+        },
+        "dimensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "description": "Dimensions every line must carry"
+        },
+        "description": {
+          "type": "string"
         }
       }
     }
