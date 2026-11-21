@@ -248,13 +248,14 @@ func postToBook(c *call) modulesdk.Response {
 		return e.response()
 	}
 	var body struct {
-		Steps []postStep `json:"steps"`
+		Profile string     `json:"profile,omitempty"` // ALTB-07: a lifecycle profile of the pinned version, instead of steps
+		Steps   []postStep `json:"steps"`
 	}
 	if e := decodeBody(c.req, &body); e != nil {
 		return e.response()
 	}
-	if len(body.Steps) == 0 {
-		return errInvalid("steps", "give at least one step: a scenario code or a synthetic event").response()
+	if (body.Profile == "") == (len(body.Steps) == 0) {
+		return errInvalid("steps", "give steps (scenario codes or synthetic events) or a profile, not both").response()
 	}
 	if len(body.Steps) > maxLifecycleSteps {
 		return errInvalid("steps", fmt.Sprintf("one posting request takes at most %d events", maxLifecycleSteps)).response()
@@ -268,6 +269,15 @@ func postToBook(c *call) modulesdk.Response {
 		return e.response()
 	}
 	events := make([]model.LifecycleEvent, 0, len(body.Steps))
+	if body.Profile != "" {
+		p, ok := model.FindProfile(doc, body.Profile)
+		if !ok {
+			return (&apiError{Status: 404, Code: "NOT_FOUND", Message: "profile " + body.Profile + " is not in the configuration this book posts with", Field: "profile"}).response()
+		}
+		for _, code := range p.Steps {
+			body.Steps = append(body.Steps, postStep{Scenario: code})
+		}
+	}
 	for i, s := range body.Steps {
 		ev, e := stepEvent(doc, s, i)
 		if e != nil {

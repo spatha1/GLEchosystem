@@ -272,3 +272,30 @@ func clone(t *testing.T, v any) any {
 	}
 	return out
 }
+
+// ALTB-07: a stored version's lifecycle profile runs by name, in the preview and in a sandbox
+// book, exactly as its steps would.
+func TestLifecycleProfilesRunByName(t *testing.T) {
+	needDB(t)
+	c := fixtureConfig(t)
+	c["lifecycleProfiles"] = []any{map[string]any{"code": "P1_JANUARY", "description": "Policy P1: premium, invoice, payment", "steps": []any{"E1", "E2", "E3"}}}
+	cfg := approvedFixture(t, c)
+	path := "/configs/" + cfg + "/versions/1/lifecycle"
+	byName := do(t, "POST", path, tenantA, viewer, map[string]any{"profile": "P1_JANUARY"})
+	bySteps := do(t, "POST", path, tenantA, viewer, scenarios("E1", "E2", "E3"))
+	mustStatus(t, byName, 200)
+	if byName.Raw != bySteps.Raw {
+		t.Errorf("a profile previews exactly as its steps")
+	}
+	if r := do(t, "POST", path, tenantA, viewer, map[string]any{"profile": "NOPE"}); r.Status != 404 {
+		t.Errorf("an unknown profile: %d", r.Status)
+	}
+	if r := do(t, "POST", path, tenantA, viewer, map[string]any{"profile": "P1_JANUARY", "steps": []any{map[string]any{"scenario": "E1"}}}); r.Status != 400 {
+		t.Errorf("a profile and steps: %d", r.Status)
+	}
+	book := openBook(t, cfg)
+	got := decode[sbPosted](t, do(t, "POST", "/ledger/sandbox/books/"+book+"/post", tenantA, operator, map[string]any{"profile": "P1_JANUARY"}), 200)
+	if got.Posted != 3 || got.Steps[2].Code != "E3" {
+		t.Errorf("posting a profile: %+v", got)
+	}
+}

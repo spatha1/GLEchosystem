@@ -1,7 +1,7 @@
 // Editing a version's content in the browser. Every change is applied to a copy of the
 // stored content and saved as a whole through the API (PUT with the digest it started
 // from), which validates, versions and audits it — the browser never decides anything.
-import type { Content, DerivedMeasure, LineTemplate, PostingRule, Scenario } from './studio';
+import type { Content, DerivedMeasure, LifecycleProfile, LineTemplate, PostingRule, Scenario } from './studio';
 
 export function clone<T>(x: T): T {
 	return JSON.parse(JSON.stringify(x));
@@ -72,6 +72,15 @@ export function withScenario(content: Content, s: Scenario): Content {
 	return c;
 }
 
+/** ALTB-07: adds or replaces a lifecycle profile (a synthetic policy's scenarios in order). */
+export function withProfile(content: Content, p: LifecycleProfile): Content {
+	const c = clone(content);
+	const list = ((c.lifecycleProfiles ?? []) as LifecycleProfile[]).filter((x) => x.code !== p.code);
+	list.push(p);
+	c.lifecycleProfiles = list;
+	return c;
+}
+
 export function newRule(eventType: string, taken: string[], rank: number): PostingRule {
 	return {
 		code: uniqueCode(`PR_${eventType}_NEW`, taken),
@@ -128,6 +137,10 @@ export function pickEvents(content: Content, events: string[], reference: boolea
 		postingRules: (content.postingRules ?? []).filter((r: any) => keep.has(r.eventType)),
 		sourceAuthority: (content.sourceAuthority ?? []).filter((a: any) => keep.has(a.eventType)),
 		scenarios: (content.scenarios ?? []).filter((s: any) => keep.has(s.eventType)),
+		// A profile is kept only when every scenario it names is kept.
+		lifecycleProfiles: (content.lifecycleProfiles ?? []).filter((p: any) =>
+			(p.steps ?? []).every((code: string) => (content.scenarios ?? []).some((s: any) => s.code === code && keep.has(s.eventType)))
+		),
 		derivedMeasures: narrow(content.derivedMeasures),
 		datePolicies: narrow(content.datePolicies)
 	};

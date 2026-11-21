@@ -6,7 +6,7 @@
 	import type { ApiError, Client } from '../lib/api';
 	import type { Me } from '../lib/types';
 	import type { Route } from '../lib/route';
-	import type { Account, JournalEntry, SandboxBook, SandboxBookView, SandboxPostResult, Scenario } from '../lib/studio';
+	import type { Account, JournalEntry, LifecycleProfile, SandboxBook, SandboxBookView, SandboxPostResult, Scenario } from '../lib/studio';
 	import { amount, when } from '../lib/format';
 
 	let { api, me, book: bookId, go }: { api: Client; me: Me; book?: string; go: (r: Route) => void } = $props();
@@ -26,6 +26,7 @@
 	let view = $state<SandboxBookView | null>(null);
 	let scenarios = $state<Scenario[]>([]);
 	let accounts = $state<Account[]>([]);
+	let profiles = $state<LifecycleProfile[]>([]);
 	let steps = $state<string[]>([]);
 	let adding = $state('');
 	let result = $state<SandboxPostResult | null>(null);
@@ -60,8 +61,9 @@
 				view = v;
 				try {
 					const ver = await api.version(v.book.configId, v.book.configVersion);
-					const content = ver.content as { scenarios?: Scenario[]; accounts?: Account[] };
+					const content = ver.content as { scenarios?: Scenario[]; accounts?: Account[]; lifecycleProfiles?: LifecycleProfile[] };
 					scenarios = content.scenarios ?? [];
+					profiles = content.lifecycleProfiles ?? [];
 					accounts = content.accounts ?? [];
 				} catch {
 					scenarios = [];
@@ -226,6 +228,25 @@
 					Events post in the order below, all or nothing: if one cannot post, nothing is stored and the reason is shown. Posting an event again with the same
 					content changes nothing. Preview first in the studio (Simulate → Lifecycle preview).
 				</p>
+				{#if profiles.length}
+					<div class="row pick">
+						<label class="lbl"
+							>Start from a profile
+							<select
+								class="field"
+								value=""
+								onchange={(e) => {
+									const p = profiles.find((x) => x.code === (e.currentTarget as HTMLSelectElement).value);
+									if (p) steps = [...p.steps];
+									(e.currentTarget as HTMLSelectElement).value = '';
+								}}
+							>
+								<option value="">Choose…</option>
+								{#each profiles as p (p.code)}<option value={p.code}>{p.code}{p.description ? ` — ${p.description}` : ''} ({p.steps.length} steps)</option>{/each}
+							</select>
+						</label>
+					</div>
+				{/if}
 				<div class="row pick">
 					<label class="lbl"
 						>Add a scenario of {view.book.configId} v{view.book.configVersion}

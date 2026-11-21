@@ -125,4 +125,16 @@ describe('one sandbox book', () => {
 		await fireEvent.click(within(card).getByRole('button', { name: 'Post to sandbox' }));
 		expect((await within(card).findByRole('alert')).textContent).toMatch(/POSTING_REFUSED: nothing was posted.*ENTITY_NOT_ALLOWED/);
 	});
+
+	it('posts a profile of the pinned version when the operator picks it', async () => {
+		const content = structuredClone(fixtureConfig) as any;
+		content.lifecycleProfiles = [{ code: 'P1_JANUARY', steps: ['E1', 'E2', 'E3'] }];
+		const api = apiWith({ version: vi.fn(async () => ({ content })) });
+		render(LedgerSandbox, { api, me: operator, book: 'SANDBOX_JAN', go: vi.fn() });
+		const card = await screen.findByRole('region', { name: 'Post synthetic events' });
+		const pick = await within(card).findByLabelText(/Start from a profile/);
+		await fireEvent.change(pick, { target: { value: 'P1_JANUARY' } });
+		await fireEvent.click(within(card).getByRole('button', { name: 'Post to sandbox' }));
+		await vi.waitFor(() => expect(api.postToSandbox).toHaveBeenCalledWith('SANDBOX_JAN', [{ scenario: 'E1' }, { scenario: 'E2' }, { scenario: 'E3' }]));
+	});
 });

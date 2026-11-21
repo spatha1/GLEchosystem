@@ -5,13 +5,16 @@
 	// posted, and nothing is chosen until the user adds a step.
 	import type { ApiError } from '../lib/api';
 	import type { Ctx } from '../lib/ctx';
-	import type { Account, LifecycleResult, LifecycleStep, Scenario } from '../lib/studio';
+	import type { Account, LifecycleProfile, LifecycleResult, LifecycleStep, Scenario } from '../lib/studio';
+	import { withProfile } from '../lib/content';
+	import ReasonDialog from '../components/ReasonDialog.svelte';
 	import { amount } from '../lib/format';
 	import { movementWord } from '../lib/explain';
 
 	let { ctx }: { ctx: Ctx } = $props();
 
 	const scenarios = $derived((ctx.content.scenarios ?? []) as Scenario[]);
+	const profiles = $derived((ctx.content.lifecycleProfiles ?? []) as LifecycleProfile[]);
 	const accounts = $derived((ctx.content.accounts ?? []) as Account[]);
 	const acctName = (code?: string) => accounts.find((a) => a.code === code)?.name ?? '';
 
@@ -21,6 +24,38 @@
 	let failure = $state('');
 	let running = $state(false);
 	let shown = $state<number | null>(null);
+	// ALTB-07: start from a profile, or save the steps as one in the draft.
+	let fromProfile = $state('');
+	let saving = $state(false);
+	let asking = $state(false);
+	let profileForm = $state({ code: '', description: '' });
+	let saveError = $state('');
+
+	function loadProfile(code: string) {
+		fromProfile = code;
+		const p = profiles.find((x) => x.code === code);
+		if (!p) return;
+		steps = [...p.steps];
+		profileForm = { code: p.code, description: p.description ?? '' };
+		result = null;
+	}
+
+	async function saveProfile(reason: string) {
+		saving = true;
+		saveError = '';
+		const p: LifecycleProfile = { code: profileForm.code.trim().toUpperCase(), steps: [...steps] };
+		if (profileForm.description.trim()) p.description = profileForm.description.trim();
+		try {
+			await ctx.save(withProfile(ctx.content, p), reason);
+			asking = false;
+		} catch (e) {
+			const err = e as ApiError;
+			saveError = `${err.code}: ${err.message}`;
+			asking = false;
+		} finally {
+			saving = false;
+		}
+	}
 
 	const shownStep = $derived<LifecycleStep | undefined>(result?.steps.find((s) => s.step === shown));
 	const eventOf = (code: string) => scenarios.find((s) => s.code === code)?.eventType ?? '';
@@ -71,6 +106,17 @@
 		posted.
 	</p>
 
+	{#if profiles.length}
+		<div class="row pick">
+			<label class="lbl"
+				>Start from a profile
+				<select class="field" value={fromProfile} onchange={(e) => loadProfile((e.currentTarget as HTMLSelectElement).value)}>
+					<option value="">Choose…</option>
+					{#each profiles as p (p.code)}<option value={p.code}>{p.code}{p.description ? ` — ${p.description}` : ''} ({p.steps.length} steps)</option>{/each}
+				</select>
+			</label>
+		</div>
+	{/if}
 	<div class="row pick">
 		<label class="lbl"
 			>Add a scenario
@@ -96,8 +142,16 @@
 				</li>
 			{/each}
 		</ol>
+		{#if ctx.canEdit}
+			<div class="row saveprof" role="group" aria-label="Save as profile">
+				<label class="lbl">Profile code <input class="field mono" bind:value={profileForm.code} placeholder="e.g. P1_JANUARY" /></label>
+				<label class="lbl grow">Description <input class="field" bind:value={profileForm.description} placeholder="What this synthetic policy goes through" /></label>
+				<button class="btn" onclick={() => (asking = true)} disabled={!/^[A-Za-z][A-Za-z0-9_]*$/.test(profileForm.code.trim())}>Save as profile in draft</button>
+			</div>
+			{#if saveError}<div class="notice bad" role="alert">{saveError}</div>{/if}
+		{/if}
 	{:else}
-		<p class="small muted">No steps yet: add the scenarios of one policy in the order they happen.</p>
+		<p class="small muted">No steps yet: add the scenarios of one policy in the order they happen{profiles.length ? ', or start from a profile' : ''}.</p>
 	{/if}
 
 	{#if failure}<div class="notice bad" role="alert">{failure}</div>{/if}
@@ -178,7 +232,24 @@
 	{/if}
 </section>
 
+{#if asking}
+	<ReasonDialog
+		title="Save profile {profileForm.code.trim().toUpperCase()} to draft v{ctx.version.version}"
+		verb="Save"
+		detail="The profile is versioned with the rules: it is reviewed and approved with them, and a sandbox book can post it by name. It holds scenario codes only."
+		busy={saving}
+		onsubmit={saveProfile}
+		oncancel={() => (asking = false)}
+	/>
+{/if}
+
 <style>
+	.saveprof {
+		margin: 4px 0 10px;
+		align-items: end;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
 	.grow {
 		flex: 1;
 	}

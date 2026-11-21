@@ -421,6 +421,13 @@ export interface ScenarioResult {
 	mismatches: string[];
 }
 
+/** ALTB-07: a synthetic policy's scenarios in order, versioned with the rules. */
+export interface LifecycleProfile {
+	code: string;
+	description?: string;
+	steps: string[];
+}
+
 /** ALTB-04: one step of a lifecycle preview — a version scenario, or a synthetic event. */
 export type LifecycleStepInput = { scenario: string; code?: string } | { code?: string; input: EventInput };
 

@@ -1167,11 +1167,13 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "steps"
-                ],
                 "additionalProperties": false,
                 "properties": {
+                  "profile": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$",
+                    "description": "ALTB-07: run a lifecycle profile of the version instead of giving steps"
+                  },
                   "steps": {
                     "type": "array",
                     "minItems": 1,
@@ -1195,7 +1197,8 @@
                       }
                     }
                   }
-                }
+                },
+                "description": "give steps or a profile, not both"
               }
             }
           }
@@ -1669,10 +1672,12 @@
               "schema": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "steps"
-                ],
                 "properties": {
+                  "profile": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$",
+                    "description": "ALTB-07: run a lifecycle profile of the version instead of giving steps"
+                  },
                   "steps": {
                     "type": "array",
                     "minItems": 1,
@@ -1695,7 +1700,8 @@
                       }
                     }
                   }
-                }
+                },
+                "description": "give steps or a profile, not both"
               }
             }
           }

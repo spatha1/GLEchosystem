@@ -22,7 +22,8 @@ func previewLifecycle(c *call) modulesdk.Response {
 		return e.response()
 	}
 	var body struct {
-		Steps []struct {
+		Profile string `json:"profile,omitempty"` // ALTB-07: a lifecycle profile of the version, instead of steps
+		Steps   []struct {
 			Scenario string            `json:"scenario,omitempty"`
 			Code     string            `json:"code,omitempty"`
 			Input    *model.EventInput `json:"input,omitempty"`
@@ -31,8 +32,8 @@ func previewLifecycle(c *call) modulesdk.Response {
 	if e := decodeBody(c.req, &body); e != nil {
 		return e.response()
 	}
-	if len(body.Steps) == 0 {
-		return errInvalid("steps", "give at least one step: a scenario code or a synthetic event").response()
+	if (body.Profile == "") == (len(body.Steps) == 0) {
+		return errInvalid("steps", "give steps (scenario codes or synthetic events) or a profile, not both").response()
 	}
 	if len(body.Steps) > maxLifecycleSteps {
 		return errInvalid("steps", fmt.Sprintf("a lifecycle preview takes at most %d steps", maxLifecycleSteps)).response()
@@ -47,6 +48,17 @@ func previewLifecycle(c *call) modulesdk.Response {
 		return e.response()
 	}
 	events := make([]model.LifecycleEvent, 0, len(body.Steps))
+	if body.Profile != "" {
+		p, ok := model.FindProfile(doc, body.Profile)
+		if !ok {
+			return (&apiError{Status: 404, Code: "NOT_FOUND", Message: "profile " + body.Profile + " is not in this version", Field: "profile"}).response()
+		}
+		evs, err := model.ProfileEvents(doc, p)
+		if err != nil {
+			return (&apiError{Status: 422, Code: model.ErrorCode(err), Message: err.Error(), Field: "profile"}).response()
+		}
+		events = evs
+	}
 	for i, s := range body.Steps {
 		if s.Scenario == "" {
 			events = append(events, model.LifecycleEvent{Code: s.Code, Input: *s.Input})

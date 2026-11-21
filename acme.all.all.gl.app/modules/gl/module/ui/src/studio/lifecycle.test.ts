@@ -9,6 +9,7 @@ import lifeRaw from '../test/e1-e3.lifecycle.json';
 import stopRaw from '../test/stopped.lifecycle.json';
 import LifecyclePanel from './LifecyclePanel.svelte';
 import FieldsTable from './FieldsTable.svelte';
+import { pickEvents, withProfile } from '../lib/content';
 import type { EventExplanation, ManifestEvent } from '../lib/studio';
 
 const life = (lifeRaw as unknown as { lifecycle: LifecycleResult }).lifecycle;
@@ -126,5 +127,61 @@ describe('ledger reads in the field manifest', () => {
 		const collect = screen.getByRole('heading', { name: /Fields to collect/ }).closest('section')!;
 		expect(within(collect).queryByText('OPEN_BALANCE_AR1_INVOICE_NO')).toBeNull();
 		expect(within(collect).getByText('INVOICE_NO')).toBeTruthy();
+	});
+});
+
+describe('lifecycle profiles (ALTB-07)', () => {
+	const withProfiles = (canEdit: boolean) => {
+		const ctx = ctxWith(life);
+		(ctx.content as any).lifecycleProfiles = [{ code: 'P1_JANUARY', description: 'Policy P1: premium, invoice, payment', steps: ['E1', 'E2', 'E3'] }];
+		ctx.canEdit = canEdit;
+		ctx.save = vi.fn(async () => {});
+		return ctx;
+	};
+
+	it('starts from a profile only when the user picks one, then runs its steps', async () => {
+		const ctx = withProfiles(false);
+		render(LifecyclePanel, { ctx });
+		const pick = screen.getByRole('combobox', { name: /Start from a profile/ }) as HTMLSelectElement;
+		expect(pick.value).toBe('');
+		expect(screen.getByText(/No steps yet/)).toBeTruthy();
+		await fireEvent.change(pick, { target: { value: 'P1_JANUARY' } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Run lifecycle' }));
+		await vi.waitFor(() => expect((ctx.api.lifecycle as any).mock.calls[0][2]).toEqual([{ scenario: 'E1' }, { scenario: 'E2' }, { scenario: 'E3' }]));
+		expect(screen.queryByRole('group', { name: 'Save as profile' })).toBeNull(); // not editable: no saving
+	});
+
+	it('saves the steps as a profile in the draft, with a reason', async () => {
+		const ctx = withProfiles(true);
+		render(LifecyclePanel, { ctx });
+		await addStep('E1');
+		await addStep('E2');
+		const group = screen.getByRole('group', { name: 'Save as profile' });
+		const save = within(group).getByRole('button', { name: 'Save as profile in draft' }) as HTMLButtonElement;
+		expect(save.disabled).toBe(true); // a code is needed
+		await fireEvent.input(within(group).getByLabelText(/Profile code/), { target: { value: 'p1_invoiced' } });
+		await fireEvent.click(save);
+		const dialog = await screen.findByRole('dialog');
+		await fireEvent.input(within(dialog).getByRole('textbox'), { target: { value: 'Premium then invoice' } });
+		await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+		await vi.waitFor(() => expect(ctx.save).toHaveBeenCalled());
+		const [content, reason] = (ctx.save as any).mock.calls[0];
+		expect(reason).toBe('Premium then invoice');
+		expect(content.lifecycleProfiles).toEqual([
+			{ code: 'P1_JANUARY', description: 'Policy P1: premium, invoice, payment', steps: ['E1', 'E2', 'E3'] },
+			{ code: 'P1_INVOICED', steps: ['E1', 'E2'] }
+		]);
+	});
+});
+
+describe('profiles in a copied configuration (ALTB-07)', () => {
+	it('keeps a profile only when every scenario it names is copied', () => {
+		let c = structuredClone(fixtureConfig) as unknown as Content;
+		c = withProfile(c, { code: 'P1_JANUARY', steps: ['E1', 'E2', 'E3'] });
+		c = withProfile(c, { code: 'P1_PREMIUM', steps: ['E1'] });
+		const premiumOnly = pickEvents(c, ['PREM_ADDED'], false);
+		expect((premiumOnly.lifecycleProfiles as any[]).map((p) => p.code)).toEqual(['P1_PREMIUM']);
+		const all = pickEvents(c, ['PREM_ADDED', 'INVOICED', 'PAYMENT_RECEIVED'], false);
+		expect((all.lifecycleProfiles as any[]).map((p) => p.code)).toEqual(['P1_JANUARY', 'P1_PREMIUM']);
 	});
 });

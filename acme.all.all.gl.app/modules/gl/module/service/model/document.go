@@ -50,6 +50,7 @@ type Document struct {
 	PostingRules      []PostingRule
 	AssignmentRules   []AssignmentRule
 	Scenarios         []Scenario
+	LifecycleProfiles []LifecycleProfile // ALTB-07
 }
 
 var codeRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
@@ -119,6 +120,8 @@ func Parse(canonical []byte) (*Document, []Finding) {
 	doc.AssignmentRules, f = decodeSection[AssignmentRule]("accountAssignmentRules", s["accountAssignmentRules"])
 	fs = append(fs, f...)
 	doc.Scenarios, f = decodeSection[Scenario]("scenarios", s["scenarios"])
+	fs = append(fs, f...)
+	doc.LifecycleProfiles, f = decodeSection[LifecycleProfile]("lifecycleProfiles", s["lifecycleProfiles"])
 	fs = append(fs, f...)
 	return doc, fs
 }
