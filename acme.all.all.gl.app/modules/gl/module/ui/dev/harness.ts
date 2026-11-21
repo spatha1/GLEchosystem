@@ -7,6 +7,7 @@ const users = [
 	['reviewer@example.com', 'Reviewer (approver)'],
 	['lead@example.com', 'Lead (editor and approver)'],
 	['viewer@example.com', 'Viewer'],
+	['ops@example.com', 'Operator (runs approved configuration)'],
 	['outsider@example.com', 'No role']
 ];
 

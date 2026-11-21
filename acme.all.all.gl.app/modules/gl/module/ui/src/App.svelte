@@ -13,6 +13,7 @@
 	import { icon } from './components/icons';
 	import Home from './studio/Home.svelte';
 	import VersionScope from './studio/VersionScope.svelte';
+	import LedgerSandbox from './ledger/LedgerSandbox.svelte';
 
 	let { tenant = '', hashRouting = false }: { tenant?: string; hashRouting?: boolean } = $props();
 
@@ -107,6 +108,11 @@
 	const inVersion = $derived(!!(route.configId && route.version));
 	const view = $derived(viewOf(route.tab));
 	const crumbs = $derived.by(() => {
+		if (route.ledger) {
+			const l: { label: string; to?: Route; mono?: boolean }[] = [{ label: 'Ledger · sandbox', to: { ledger: true } }];
+			if (route.book) l.push({ label: route.book, to: { ledger: true, book: route.book }, mono: true });
+			return l;
+		}
 		const out: { label: string; to?: Route; mono?: boolean }[] = [{ label: 'Configurations', to: {} }];
 		if (route.configId) out.push({ label: route.configId, to: { configId: route.configId }, mono: true });
 		if (inVersion) {
@@ -165,7 +171,7 @@
 				<div class="navscroll">
 					{#if expanded}<div class="area">Client {me.tenantId}</div>{/if}
 					{#if expanded}<div class="sect" class:current={!inVersion}>1. Configurations</div>{/if}
-					<button class="item" data-selected={!inVersion} aria-current={!inVersion ? 'page' : undefined} title="All configurations" onclick={() => go({})}>
+					<button class="item" data-selected={!inVersion && !route.ledger} aria-current={!inVersion && !route.ledger ? 'page' : undefined} title="All configurations" onclick={() => go({})}>
 						{@html icon('configs')}<span class="lbl">{expanded ? 'All configurations' : 'Configs'}</span>
 					</button>
 
@@ -197,6 +203,11 @@
 							{/if}
 						{/each}
 					{/if}
+
+					{#if expanded}<div class="area ledgerarea">Ledger</div>{/if}
+					<button class="item" data-selected={!!route.ledger} aria-current={route.ledger ? 'page' : undefined} title="Sandbox ledger books" onclick={() => go({ ledger: true })}>
+						{@html icon('ledger')}<span class="lbl">{expanded ? 'Sandbox books' : 'Ledger'}</span>
+					</button>
 				</div>
 
 				<div class="who" title="{me.actor} · {me.roles.map((r) => roleNames[r] ?? r).join(', ')}">
@@ -232,7 +243,11 @@
 					>
 				</header>
 				<main>
-					{#if inVersion}
+					{#if route.ledger}
+						{#key tenant}
+							<LedgerSandbox {api} {me} book={route.book} {go} />
+						{/key}
+					{:else if inVersion}
 						{#key `${tenant}/${route.configId}/${route.version}`}
 							<VersionScope {api} {me} {route} {go} />
 						{/key}

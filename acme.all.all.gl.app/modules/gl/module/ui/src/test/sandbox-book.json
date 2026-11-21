@@ -1,0 +1,444 @@
+{
+ "balances": [
+  {
+   "entity": "C01",
+   "currency": "AUD",
+   "account": "1500109",
+   "class": "IC0",
+   "debit": "1099.50",
+   "credit": "0.00",
+   "balance": "1099.50"
+  },
+  {
+   "entity": "C01",
+   "currency": "AUD",
+   "account": "2200100",
+   "class": "TX0",
+   "debit": "0.00",
+   "credit": "100.00",
+   "balance": "-100.00"
+  },
+  {
+   "entity": "C01",
+   "currency": "AUD",
+   "account": "4100100",
+   "class": "PW0",
+   "debit": "0.00",
+   "credit": "1000.00",
+   "balance": "-1000.00"
+  },
+  {
+   "entity": "C01",
+   "currency": "AUD",
+   "account": "9948523",
+   "class": "AR0",
+   "key": "POLICY_NO",
+   "value": "P1",
+   "debit": "1100.00",
+   "credit": "1100.00",
+   "balance": "0.00"
+  },
+  {
+   "entity": "C01",
+   "currency": "AUD",
+   "account": "9948600",
+   "class": "AR1",
+   "key": "INVOICE_NO",
+   "value": "INV1",
+   "debit": "550.00",
+   "credit": "550.00",
+   "balance": "0.00"
+  },
+  {
+   "entity": "C01",
+   "currency": "AUD",
+   "account": "9948600",
+   "class": "AR1",
+   "key": "INVOICE_NO",
+   "value": "INV2",
+   "debit": "550.00",
+   "credit": "549.50",
+   "balance": "0.50"
+  },
+  {
+   "entity": "C09",
+   "currency": "AUD",
+   "account": "1000900",
+   "class": "PR0",
+   "debit": "1099.50",
+   "credit": "0.00",
+   "balance": "1099.50"
+  },
+  {
+   "entity": "C09",
+   "currency": "AUD",
+   "account": "2500101",
+   "class": "IC1",
+   "debit": "0.00",
+   "credit": "1099.50",
+   "balance": "-1099.50"
+  }
+ ],
+ "book": {
+  "bookId": "SANDBOX_JAN",
+  "sandbox": true,
+  "configId": "GL_TEST_001",
+  "configVersion": 1,
+  "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b",
+  "reason": "January lifecycle of policy P1 (synthetic)",
+  "createdBy": "ops@example.com",
+  "createdAt": "2026-11-21T17:56:19.980735Z",
+  "postings": 3
+ },
+ "postings": [
+  {
+   "seq": 1,
+   "code": "E1",
+   "sourceSystem": "POLICY",
+   "sourceEventId": "E1",
+   "sourceEventVersion": 1,
+   "eventType": "PREM_ADDED",
+   "economicEventKey": "PREM_ADDED:P1:1",
+   "bookDate": "2026-01-01",
+   "journals": [
+    {
+     "schemaVersion": "gl.journal/v1",
+     "journalId": "J:PREM_ADDED:P1:1:C01:AUD",
+     "groupId": "G:PREM_ADDED:P1:1",
+     "tenantId": "CLIENT_B",
+     "economicEventKey": "PREM_ADDED:P1:1",
+     "eventType": "PREM_ADDED",
+     "legalEntity": "C01",
+     "currency": "AUD",
+     "intakeMode": "RAW_EVENT",
+     "bookingDate": "2026-01-01",
+     "effectiveDate": "2026-01-01",
+     "accountingPeriod": "2026-01",
+     "status": "posted",
+     "configId": "GL_TEST_001",
+     "configVersion": 1,
+     "lines": [
+      {
+       "lineId": "J:PREM_ADDED:P1:1:C01:AUD/AR0_DR",
+       "account": "9948523",
+       "accountingClass": "AR0",
+       "side": "D",
+       "amount": "1100.00",
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR",
+        "PRODUCT": "MOTOR_PRIVATE"
+       },
+       "subledgerKey": "POLICY_NO:P1",
+       "sourceRowIds": [
+        "POLICY:E1"
+       ],
+       "ruleId": "PR_PREM_ADDED",
+       "ruleVersion": 1,
+       "explanation": "Policy receivable: premium plus tax"
+      },
+      {
+       "lineId": "J:PREM_ADDED:P1:1:C01:AUD/PW0_CR",
+       "account": "4100100",
+       "accountingClass": "PW0",
+       "side": "C",
+       "amount": "1000.00",
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR",
+        "PRODUCT": "MOTOR_PRIVATE"
+       },
+       "sourceRowIds": [
+        "POLICY:E1"
+       ],
+       "ruleId": "PR_PREM_ADDED",
+       "ruleVersion": 1,
+       "explanation": "PW0 C = PREMIUM"
+      },
+      {
+       "lineId": "J:PREM_ADDED:P1:1:C01:AUD/TX0_CR",
+       "account": "2200100",
+       "accountingClass": "TX0",
+       "side": "C",
+       "amount": "100.00",
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR",
+        "PRODUCT": "MOTOR_PRIVATE"
+       },
+       "sourceRowIds": [
+        "POLICY:E1"
+       ],
+       "ruleId": "PR_PREM_ADDED",
+       "ruleVersion": 1,
+       "explanation": "TX0 C = TAX"
+      }
+     ]
+    }
+   ],
+   "postedBy": "ops@example.com",
+   "postedAt": "2026-11-21T17:56:21.263959Z"
+  },
+  {
+   "seq": 2,
+   "code": "E2",
+   "sourceSystem": "BILLING",
+   "sourceEventId": "E2",
+   "sourceEventVersion": 1,
+   "eventType": "INVOICED",
+   "economicEventKey": "INVOICED:P1:1:RUN1",
+   "bookDate": "2026-01-05",
+   "journals": [
+    {
+     "schemaVersion": "gl.journal/v1",
+     "journalId": "J:INVOICED:P1:1:RUN1:C01:AUD",
+     "groupId": "G:INVOICED:P1:1:RUN1",
+     "tenantId": "CLIENT_B",
+     "economicEventKey": "INVOICED:P1:1:RUN1",
+     "eventType": "INVOICED",
+     "legalEntity": "C01",
+     "currency": "AUD",
+     "intakeMode": "RAW_EVENT",
+     "bookingDate": "2026-01-05",
+     "effectiveDate": "2026-01-05",
+     "accountingPeriod": "2026-01",
+     "status": "posted",
+     "configId": "GL_TEST_001",
+     "configVersion": 1,
+     "lines": [
+      {
+       "lineId": "J:INVOICED:P1:1:RUN1:C01:AUD/AR1_DR/1",
+       "account": "9948600",
+       "accountingClass": "AR1",
+       "side": "D",
+       "amount": "550.00",
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR"
+       },
+       "subledgerKey": "INVOICE_NO:INV1",
+       "sourceRowIds": [
+        "BILLING:E2#1"
+       ],
+       "ruleId": "PR_INVOICED",
+       "ruleVersion": 1,
+       "explanation": "AR1 D = INVOICE_AMT for INVOICE_LIST item 1"
+      },
+      {
+       "lineId": "J:INVOICED:P1:1:RUN1:C01:AUD/AR1_DR/2",
+       "account": "9948600",
+       "accountingClass": "AR1",
+       "side": "D",
+       "amount": "550.00",
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR"
+       },
+       "subledgerKey": "INVOICE_NO:INV2",
+       "sourceRowIds": [
+        "BILLING:E2#2"
+       ],
+       "ruleId": "PR_INVOICED",
+       "ruleVersion": 1,
+       "explanation": "AR1 D = INVOICE_AMT for INVOICE_LIST item 2"
+      },
+      {
+       "lineId": "J:INVOICED:P1:1:RUN1:C01:AUD/AR0_CR/1",
+       "account": "9948523",
+       "accountingClass": "AR0",
+       "side": "C",
+       "amount": "550.00",
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR"
+       },
+       "subledgerKey": "POLICY_NO:P1",
+       "sourceRowIds": [
+        "BILLING:E2#1"
+       ],
+       "ruleId": "PR_INVOICED",
+       "ruleVersion": 1,
+       "explanation": "AR0 C = INVOICE_AMT for INVOICE_LIST item 1"
+      },
+      {
+       "lineId": "J:INVOICED:P1:1:RUN1:C01:AUD/AR0_CR/2",
+       "account": "9948523",
+       "accountingClass": "AR0",
+       "side": "C",
+       "amount": "550.00",
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR"
+       },
+       "subledgerKey": "POLICY_NO:P1",
+       "sourceRowIds": [
+        "BILLING:E2#2"
+       ],
+       "ruleId": "PR_INVOICED",
+       "ruleVersion": 1,
+       "explanation": "AR0 C = INVOICE_AMT for INVOICE_LIST item 2"
+      }
+     ]
+    }
+   ],
+   "postedBy": "ops@example.com",
+   "postedAt": "2026-11-21T17:56:21.263959Z"
+  },
+  {
+   "seq": 3,
+   "code": "E3",
+   "sourceSystem": "BILLING",
+   "sourceEventId": "E3",
+   "sourceEventVersion": 1,
+   "eventType": "PAYMENT_RECEIVED",
+   "economicEventKey": "PAYMENT_RECEIVED:R1",
+   "bookDate": "2026-01-10",
+   "journals": [
+    {
+     "schemaVersion": "gl.journal/v1",
+     "journalId": "J:PAYMENT_RECEIVED:R1:C01:AUD",
+     "groupId": "G:PAYMENT_RECEIVED:R1",
+     "tenantId": "CLIENT_B",
+     "economicEventKey": "PAYMENT_RECEIVED:R1",
+     "eventType": "PAYMENT_RECEIVED",
+     "legalEntity": "C01",
+     "currency": "AUD",
+     "intakeMode": "RAW_EVENT",
+     "bookingDate": "2026-01-10",
+     "effectiveDate": "2026-01-10",
+     "accountingPeriod": "2026-01",
+     "status": "posted",
+     "configId": "GL_TEST_001",
+     "configVersion": 1,
+     "lines": [
+      {
+       "lineId": "J:PAYMENT_RECEIVED:R1:C01:AUD/DUE_FROM",
+       "account": "1500109",
+       "accountingClass": "IC0",
+       "side": "D",
+       "amount": "1099.50",
+       "dimensions": {
+        "BANKING_COMPANY": "C09",
+        "BANK_ACCOUNT": "BANK-C09",
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01"
+       },
+       "sourceRowIds": [
+        "BILLING:E3"
+       ],
+       "ruleId": "PR_PAYMENT_RECEIVED",
+       "ruleVersion": 1,
+       "explanation": "IC0 D = PAY_AMT"
+      },
+      {
+       "lineId": "J:PAYMENT_RECEIVED:R1:C01:AUD/ALLOC/1",
+       "account": "9948600",
+       "accountingClass": "AR1",
+       "side": "C",
+       "amount": "550.00",
+       "dimensions": {
+        "BANKING_COMPANY": "C09",
+        "BANK_ACCOUNT": "BANK-C09",
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01"
+       },
+       "subledgerKey": "INVOICE_NO:INV1",
+       "sourceRowIds": [
+        "BILLING:E3#1"
+       ],
+       "ruleId": "PR_PAYMENT_RECEIVED",
+       "ruleVersion": 1,
+       "explanation": "AR1 C = ALLOC_AMT for ALLOCATION_LIST item 1"
+      },
+      {
+       "lineId": "J:PAYMENT_RECEIVED:R1:C01:AUD/ALLOC/2",
+       "account": "9948600",
+       "accountingClass": "AR1",
+       "side": "C",
+       "amount": "549.50",
+       "dimensions": {
+        "BANKING_COMPANY": "C09",
+        "BANK_ACCOUNT": "BANK-C09",
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01"
+       },
+       "subledgerKey": "INVOICE_NO:INV2",
+       "sourceRowIds": [
+        "BILLING:E3#2"
+       ],
+       "ruleId": "PR_PAYMENT_RECEIVED",
+       "ruleVersion": 1,
+       "explanation": "AR1 C = ALLOC_AMT for ALLOCATION_LIST item 2"
+      }
+     ]
+    },
+    {
+     "schemaVersion": "gl.journal/v1",
+     "journalId": "J:PAYMENT_RECEIVED:R1:C09:AUD",
+     "groupId": "G:PAYMENT_RECEIVED:R1",
+     "tenantId": "CLIENT_B",
+     "economicEventKey": "PAYMENT_RECEIVED:R1",
+     "eventType": "PAYMENT_RECEIVED",
+     "legalEntity": "C09",
+     "currency": "AUD",
+     "intakeMode": "RAW_EVENT",
+     "bookingDate": "2026-01-10",
+     "effectiveDate": "2026-01-10",
+     "accountingPeriod": "2026-01",
+     "status": "posted",
+     "configId": "GL_TEST_001",
+     "configVersion": 1,
+     "lines": [
+      {
+       "lineId": "J:PAYMENT_RECEIVED:R1:C09:AUD/CASH",
+       "account": "1000900",
+       "accountingClass": "PR0",
+       "side": "D",
+       "amount": "1099.50",
+       "dimensions": {
+        "BANKING_COMPANY": "C09",
+        "BANK_ACCOUNT": "BANK-C09",
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01"
+       },
+       "sourceRowIds": [
+        "BILLING:E3"
+       ],
+       "ruleId": "PR_PAYMENT_RECEIVED",
+       "ruleVersion": 1,
+       "explanation": "PR0 D = PAY_AMT"
+      },
+      {
+       "lineId": "J:PAYMENT_RECEIVED:R1:C09:AUD/DUE_TO",
+       "account": "2500101",
+       "accountingClass": "IC1",
+       "side": "C",
+       "amount": "1099.50",
+       "dimensions": {
+        "BANKING_COMPANY": "C09",
+        "BANK_ACCOUNT": "BANK-C09",
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01"
+       },
+       "sourceRowIds": [
+        "BILLING:E3"
+       ],
+       "ruleId": "PR_PAYMENT_RECEIVED",
+       "ruleVersion": 1,
+       "explanation": "IC1 C = PAY_AMT"
+      }
+     ]
+    }
+   ],
+   "postedBy": "ops@example.com",
+   "postedAt": "2026-11-21T17:56:21.263959Z"
+  }
+ ]
+}

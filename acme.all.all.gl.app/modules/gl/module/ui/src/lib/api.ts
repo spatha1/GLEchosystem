@@ -8,6 +8,9 @@ import type {
 	Impact,
 	ItemChange,
 	LifecycleResult,
+	SandboxBook,
+	SandboxBookView,
+	SandboxPostResult,
 	LifecycleStepInput,
 	ManifestView,
 	Plan,
@@ -110,6 +113,13 @@ export function client(tenant: string, fetcher: Fetcher = (i, o) => fetch(i, o))
 		/** ALTB-04: the steps in order against a temporary ledger; nothing is stored or posted. */
 		lifecycle: (id: string, n: number, steps: LifecycleStepInput[]) =>
 			call<{ lifecycle: LifecycleResult }>('POST', v(id, n) + '/lifecycle', { steps }).then((r) => r.lifecycle),
+		/** ALTB-06: the Ledger, sandbox first. Every book is a sandbox: synthetic data only. */
+		sandboxBooks: () => call<{ books: SandboxBook[] }>('GET', '/ledger/sandbox/books').then((r) => r.books),
+		openSandboxBook: (bookId: string, configId: string, version: number, reason: string) =>
+			call<SandboxBook>('POST', '/ledger/sandbox/books', { bookId, configId, version, reason }),
+		sandboxBook: (bookId: string) => call<SandboxBookView>('GET', '/ledger/sandbox/books/' + encodeURIComponent(bookId)),
+		postToSandbox: (bookId: string, steps: LifecycleStepInput[]) =>
+			call<SandboxPostResult>('POST', '/ledger/sandbox/books/' + encodeURIComponent(bookId) + '/post', { steps }),
 		impact: (id: string, n: number, against?: number) => call<Impact>('GET', v(id, n) + '/impact' + (against ? `?against=${against}` : '')),
 		catalogMeasures: () => call<{ catalogVersion: string; measures: MeasureDef[] }>('GET', '/catalog/measures'),
 		catalogEvents: () => call<EventCatalog>('GET', '/catalog/events'),

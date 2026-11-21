@@ -1,0 +1,15 @@
+{
+ "books": [
+  {
+   "bookId": "SANDBOX_JAN",
+   "sandbox": true,
+   "configId": "GL_TEST_001",
+   "configVersion": 1,
+   "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b",
+   "reason": "January lifecycle of policy P1 (synthetic)",
+   "createdBy": "ops@example.com",
+   "createdAt": "2026-11-21T17:56:19.980735Z",
+   "postings": 3
+  }
+ ]
+}

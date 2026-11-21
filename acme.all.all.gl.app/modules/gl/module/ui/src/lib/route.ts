@@ -31,6 +31,9 @@ export interface Route {
 	edit?: boolean;
 	scenario?: string;
 	select?: string; // a lineage node to select
+	/** ALTB-06: the Ledger area (sandbox books), separate from the configuration studio. */
+	ledger?: boolean;
+	book?: string;
 }
 
 const versionTabs: VersionTab[] = ['events', 'ai', 'fields', 'mapping', 'simulate', 'impact', 'accounts', 'history'];
@@ -53,6 +56,7 @@ const eventTabs: EventTab[] = [
 ];
 
 export function toHash(r: Route): string {
+	if (r.ledger) return r.book ? `#/ledger/b/${encodeURIComponent(r.book)}` : '#/ledger';
 	let p = '#/';
 	const q = new URLSearchParams();
 	if (r.configId) {
@@ -80,6 +84,11 @@ export function fromHash(hash: string): Route {
 	const seg = path.split('/').filter(Boolean).map(decodeURIComponent);
 	const q = new URLSearchParams(query);
 	const r: Route = {};
+	if (seg[0] === 'ledger') {
+		r.ledger = true;
+		if (seg[1] === 'b' && seg[2]) r.book = seg[2];
+		return r;
+	}
 	for (let i = 0; i + 1 < seg.length; i += 2) {
 		const [k, v] = [seg[i], seg[i + 1]];
 		if (k === 'c') r.configId = v;

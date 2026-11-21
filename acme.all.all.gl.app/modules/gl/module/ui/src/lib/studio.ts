@@ -511,3 +511,74 @@ export interface AuditEntryFull extends AuditEntry {
 
 /** A configuration version's content: sections of items. */
 export type Content = Record<string, any[]>;
+
+// ── ALTB-06: the Ledger, sandbox first ─────────────────────────────────────
+
+/** A sandbox book: posts synthetic events with one approved configuration version. */
+export interface SandboxBook {
+	bookId: string;
+	sandbox: boolean;
+	configId: string;
+	configVersion: number;
+	contentDigest: string;
+	reason: string;
+	createdBy: string;
+	createdAt: string;
+	postings: number;
+}
+
+/** A journal entry (contract C6): one per event, legal entity and currency. */
+export interface JournalEntry {
+	schemaVersion: string;
+	journalId: string;
+	groupId: string;
+	economicEventKey: string;
+	eventType: string;
+	legalEntity: string;
+	currency: string;
+	intakeMode: string;
+	bookingDate: string;
+	accountingPeriod: string;
+	status: string;
+	configId: string;
+	configVersion: number;
+	lines: {
+		lineId: string;
+		account: string;
+		accountingClass: string;
+		side: 'D' | 'C';
+		amount: string;
+		subledgerKey?: string;
+		sourceRowIds: string[];
+		ruleId: string;
+		ruleVersion: number;
+		explanation?: string;
+	}[];
+}
+
+export interface SandboxPosting {
+	seq: number;
+	code?: string;
+	sourceSystem: string;
+	sourceEventId: string;
+	sourceEventVersion: number;
+	eventType: string;
+	economicEventKey: string;
+	bookDate: string;
+	journals: JournalEntry[];
+	postedBy: string;
+	postedAt: string;
+}
+
+export interface SandboxBookView {
+	book: SandboxBook;
+	postings: SandboxPosting[];
+	balances: LedgerBalance[];
+}
+
+export interface SandboxPostResult {
+	book: SandboxBook;
+	steps: { step: number; code?: string; status: 'POSTED' | 'UNCHANGED'; seq?: number; detail?: string; journals?: JournalEntry[] }[];
+	posted: number;
+	balances: LedgerBalance[];
+}
