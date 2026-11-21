@@ -177,3 +177,19 @@ export function toBase64(buf: ArrayBuffer): string {
 	for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
 	return btoa(s);
 }
+
+/** The most text the AI steps accept: the BRD and the typed requirements together. */
+export const MAX_SOURCE_CHARS = 200_000;
+export const TYPED_NAME = 'Typed requirements';
+
+/**
+ * What the AI works from: the uploaded BRD, the requirements typed in the analyst's own words,
+ * or both, the typed text under its own heading so the AI (and its quotes) can tell them apart.
+ */
+export function sourceOf(brd: BRDText | null, typed: string): BRDText | null {
+	const t = typed.trim();
+	if (!brd && !t) return null;
+	if (!t) return { name: brd!.name, text: brd!.text };
+	if (!brd) return { name: TYPED_NAME, text: t };
+	return { name: `${brd.name} + typed requirements`.slice(0, 200), text: `${brd.text}\n\n## Requirements typed by the analyst\n\n${t}` };
+}

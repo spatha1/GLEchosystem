@@ -8,7 +8,7 @@
 	import type { ApiError } from '../lib/api';
 	import type { Finding } from '../lib/types';
 	import type { ItemChange } from '../lib/studio';
-	import { aiSteps, applyItems, chosenItems, gapItems, toBase64, accountCodeRe, type AIItem, type AIProposal, type AIStatus, type AIStepName, type BRDText, type GapAccount } from '../lib/ai';
+	import { aiSteps, applyItems, chosenItems, gapItems, sourceOf, toBase64, accountCodeRe, MAX_SOURCE_CHARS, type AIItem, type AIProposal, type AIStatus, type AIStepName, type BRDText, type GapAccount } from '../lib/ai';
 	import { amount } from '../lib/format';
 	import { icon } from '../components/icons';
 	import Findings from '../components/Findings.svelte';
@@ -29,7 +29,7 @@
 	const blankStep = (): StepState => ({ proposal: null, running: false, error: '', notes: '', chosen: new Set(), accounts: {}, check: null, saved: '' });
 
 	const storeKey = untrack(() => `gl_ai:${ctx.me.tenantId}:${ctx.version.configId}:${ctx.version.version}`);
-	function restore(): { brd: (BRDText & { chars: number }) | null; done: AIStepName[]; skipped: AIStepName[] } {
+	function restore(): { brd: (BRDText & { chars: number }) | null; typed?: string; done: AIStepName[]; skipped: AIStepName[] } {
 		try {
 			const raw = sessionStorage.getItem(storeKey);
 			if (raw) return JSON.parse(raw);
@@ -40,10 +40,14 @@
 	}
 	const initial = restore();
 	let brd = $state<(BRDText & { chars: number }) | null>(initial.brd);
+	let typed = $state(initial.typed ?? '');
+	/** What the AI works from: the BRD, the typed requirements, or both. */
+	const source = $derived(sourceOf(brd, typed));
+	const tooLong = $derived((source?.text.length ?? 0) > MAX_SOURCE_CHARS);
 	let done = $state<AIStepName[]>(initial.done ?? []);
 	let skipped = $state<AIStepName[]>(initial.skipped ?? []);
 	$effect(() => {
-		const snapshot = JSON.stringify({ brd, done, skipped });
+		const snapshot = JSON.stringify({ brd, typed, done, skipped });
 		try {
 			sessionStorage.setItem(storeKey, snapshot);
 		} catch {
@@ -72,7 +76,7 @@
 	const settled = (k: AIStepName) => done.includes(k) || skipped.includes(k);
 	const open = (k: AIStepName) => {
 		const i = aiSteps.findIndex((s) => s.key === k);
-		return !!brd && aiSteps.slice(0, i).every((s) => settled(s.key));
+		return !!source && aiSteps.slice(0, i).every((s) => settled(s.key));
 	};
 	const current = $derived(aiSteps.find((s) => !settled(s.key))?.key ?? null);
 	let viewing = $state<AIStepName | null>(null);
@@ -110,7 +114,7 @@
 	}
 
 	async function runStep(k: AIStepName) {
-		if (!brd) return;
+		if (!source || tooLong) return;
 		const s = steps[k];
 		s.running = true;
 		s.error = '';
@@ -119,7 +123,7 @@
 		s.chosen = new Set();
 		s.saved = '';
 		try {
-			const r = await ctx.api.aiStep(ctx.version.configId, ctx.version.version, k, { name: brd.name, text: brd.text }, s.notes.trim() || undefined);
+			const r = await ctx.api.aiStep(ctx.version.configId, ctx.version.version, k, source, s.notes.trim() || undefined);
 			const accounts: Record<string, GapAccount> = {};
 			for (const g of r.proposal.gaps) if (g.kind === 'ACCOUNT_NUMBER') accounts[g.code] = { number: '', name: g.name ?? '' };
 			s.accounts = accounts;
@@ -196,7 +200,7 @@
 		saving = true;
 		saveError = '';
 		try {
-			await ctx.save(cand, reason, { kind: 'AI_STEP', step: k, provider: s.proposal.provider, model: s.proposal.model, brd: brd?.name });
+			await ctx.save(cand, reason, { kind: 'AI_STEP', step: k, provider: s.proposal.provider, model: s.proposal.model, brd: source?.name });
 			const n = chosenItems(s.proposal, s.chosen).length;
 			s.saved = `${n} item${n === 1 ? '' : 's'} saved to draft v${ctx.version.version}.`;
 			done = [...done.filter((x) => x !== k), k];
@@ -227,7 +231,7 @@
 			{#each list as q, i (i)}
 				<li class:missing={!q.found}>
 					<span class="q">“{q.quote}”</span>
-					{#if q.found}<span class="badge ok">in the BRD</span>{:else}<span class="badge warn">not found in the BRD: check it</span>{/if}
+					{#if q.found}<span class="badge ok">in the requirements</span>{:else}<span class="badge warn">not found in the requirements: check it</span>{/if}
 				</li>
 			{/each}
 		</ul>
@@ -302,13 +306,14 @@
 	<!-- Step 0: the BRD -->
 	<section class="card">
 		<div class="row">
-			<span class="sn" class:ok={!!brd}>{brd ? '✓' : '0'}</span>
-			<h3 class="grow">Upload the BRD</h3>
-			{#if brd}<span class="badge ok">{brd.name} · {brd.chars.toLocaleString()} characters</span>{/if}
+			<span class="sn" class:ok={!!source}>{source ? '✓' : '0'}</span>
+			<h3 class="grow">The requirements: a BRD, your own words, or both</h3>
+			{#if source}<span class="badge ok">{source.name} · {source.text.length.toLocaleString()} characters</span>{/if}
 		</div>
 		<p class="small muted">
-			Word (.docx), text (.txt) or Markdown (.md), at most 1.5 MB. Reading the file sends nothing to the AI. When you run a step, the BRD text and this
-			configuration (codes, names, rules) go to the AI provider — never policy or customer data. Do not upload a document that contains personal data.
+			Upload a BRD (Word .docx, text .txt or Markdown .md, at most 1.5 MB), type the requirements in your own words, or both: the AI reads them together. Reading
+			the file sends nothing to the AI. When you run a step, this text and the configuration (codes, names, rules) go to the AI provider — never policy or customer
+			data. Do not upload or type personal data.
 		</p>
 		<div class="row">
 			<label class="btn upload" class:primary={!brd}>
@@ -320,6 +325,20 @@
 		</div>
 		{#if uploadError}<div class="notice bad" role="alert">{uploadError}</div>{/if}
 		{#if brd && showText}<pre class="brdtext">{brd.text}</pre>{/if}
+		<label class="lbl">Requirements in your own words (optional with a BRD, or instead of one)
+			<textarea
+				class="field typed"
+				rows="5"
+				bind:value={typed}
+				disabled={!isDraft || !isEditor}
+				placeholder="e.g. Endorsements: when a policy changes mid-term, the policy system sends an endorsement event identified by the policy, term and endorsement numbers, with the additional premium and its GST. The additional premium is written premium; the GST is owed to the tax office; the policyholder owes both."
+			></textarea>
+		</label>
+		<p class="small muted">
+			{typed.trim() ? `${typed.trim().length.toLocaleString()} characters typed. ` : ''}The AI quotes the BRD or your text for every proposal, and every quote is checked
+			against them.
+		</p>
+		{#if tooLong}<div class="notice bad" role="alert">Together the BRD and your text exceed {MAX_SOURCE_CHARS.toLocaleString()} characters: shorten your text or split the BRD.</div>{/if}
 		{#if brd && done.length === 0 && skipped.length === 0}
 			<p class="small">Uploading another BRD starts the steps again; what you already approved stays in the draft.</p>
 		{/if}
@@ -357,7 +376,7 @@
 				<textarea class="field" rows="2" bind:value={steps[shown].notes} placeholder="e.g. Only motor and home; treat stamp duty as owed to the state revenue office"></textarea>
 			</label>
 			<div class="row">
-				<button class="btn primary" disabled={!status?.available || st.running || !isDraft || !isEditor} onclick={() => runStep(shown!)}>
+				<button class="btn primary" disabled={!status?.available || st.running || !isDraft || !isEditor || tooLong} onclick={() => runStep(shown!)}>
 					{st.running ? 'The AI is drafting; the engine is checking…' : st.proposal ? 'Ask the AI again' : `Ask the AI for step ${def.n}`}
 				</button>
 				{#if shown === 'formulas' && !done.includes('formulas')}<button class="btn" onclick={() => skip('formulas')}>Skip: no calculated amounts</button>{/if}
@@ -490,7 +509,7 @@
 				{#if saveError}<div class="notice bad" role="alert">{saveError}</div>{/if}
 			{/if}
 		</section>
-	{:else if brd && !current}
+	{:else if source && !current}
 		<section class="card donecard">
 			<h3>All four steps are settled</h3>
 			<p>
@@ -506,7 +525,7 @@
 	<ReasonDialog
 		title="Approve step {stepLabel(asking).n}: {stepLabel(asking).label}"
 		verb="Save"
-		detail="Saves your chosen items to draft v{ctx.version.version}. The audit trail records that the AI proposed them from {brd?.name ?? 'the BRD'} and that you approved them."
+		detail="Saves your chosen items to draft v{ctx.version.version}. The audit trail records that the AI proposed them from {source?.name ?? 'the requirements'} and that you approved them."
 		busy={saving}
 		onsubmit={(r) => approve(asking!, r)}
 		oncancel={() => (asking = null)}

@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Ctx } from '../lib/ctx';
 import type { Content } from '../lib/studio';
-import { applyItems, chosenItems, gapItems, type AIProposal } from '../lib/ai';
+import { applyItems, chosenItems, gapItems, sourceOf, type AIProposal } from '../lib/ai';
 import AIWizard from './AIWizard.svelte';
 import fixtureConfig from '../../../../../../../acme.all.all.gl.spec/_harness/fixtures/GL-TEST-001.config.json';
 
@@ -154,13 +154,13 @@ describe('configure from a BRD', () => {
 		await fireEvent.change(screen.getByLabelText('BRD file'), { target: { files: [file] } });
 		await vi.waitFor(() => expect(api.aiReadBRD).toHaveBeenCalled());
 		expect(api.aiReadBRD.mock.calls[0][2]).toBe('motor-renewals-brd.md');
-		expect(await screen.findByText(/motor-renewals-brd\.md · 3,456 characters/)).toBeTruthy();
+		expect(await screen.findByText(/motor-renewals-brd\.md · [\d,]+ characters/)).toBeTruthy();
 
 		await fireEvent.click(await screen.findByRole('button', { name: 'Ask the AI for step 1' }));
 		await vi.waitFor(() => expect(api.aiStep).toHaveBeenCalled());
 		expect((api.aiStep.mock.calls[0] as unknown[])[2]).toBe('events');
 		expect(await screen.findByText('RENEWAL · Policy renewed')).toBeTruthy();
-		expect(screen.getByText('not found in the BRD: check it')).toBeTruthy();
+		expect(screen.getByText('not found in the requirements: check it')).toBeTruthy();
 		expect(screen.getByText('Is stamp duty charged on home policies?')).toBeTruthy();
 
 		// Nothing is chosen for the person.
@@ -188,5 +188,46 @@ describe('configure from a BRD', () => {
 		const step2 = (await screen.findByRole('button', { name: /2\. Measures/ })) as HTMLButtonElement;
 		expect(step2.disabled).toBe(false);
 		expect(await screen.findByRole('button', { name: 'Ask the AI for step 2' })).toBeTruthy();
+	});
+});
+
+describe("requirements in the analyst's own words", () => {
+	it('uses the BRD, the typed text or both, the typed text under its own heading', () => {
+		const brd = { name: 'brd.md', text: '3.1 Renewal.' };
+		expect(sourceOf(null, '   ')).toBeNull();
+		expect(sourceOf(brd, '')).toEqual(brd);
+		expect(sourceOf(null, ' Endorsements post premium. ')).toEqual({ name: 'Typed requirements', text: 'Endorsements post premium.' });
+		expect(sourceOf(brd, 'Endorsements post premium.')).toEqual({
+			name: 'brd.md + typed requirements',
+			text: '3.1 Renewal.\n\n## Requirements typed by the analyst\n\nEndorsements post premium.'
+		});
+	});
+
+	it('configures from typed text alone, and from the BRD and the typed text together', async () => {
+		const api = {
+			aiStatus: vi.fn(async () => ({ available: true, provider: 'openai', model: 'test-double' })),
+			aiReadBRD: vi.fn(async (_id: string, _n: number, name: string) => ({ name, chars: 12, text: '3.1 Renewal.' })),
+			aiStep: vi.fn(async () => ({ contentDigest: 'sha256:abc', proposal: proposal() })),
+			check: vi.fn(async () => ({ ok: true, findings: [], contentDigest: 'sha256:x', changes: [] }))
+		};
+		render(AIWizard, { ctx: ctxFor(api) });
+		await screen.findByText(/Ready:/);
+		expect((screen.queryByRole('button', { name: 'Ask the AI for step 1' }) as HTMLButtonElement | null)).toBeNull(); // nothing to work from yet
+
+		await fireEvent.input(screen.getByLabelText(/Requirements in your own words/), { target: { value: 'Endorsements: the policy system sends an endorsement event.' } });
+		await fireEvent.click(await screen.findByRole('button', { name: 'Ask the AI for step 1' }));
+		await vi.waitFor(() => expect(api.aiStep).toHaveBeenCalledTimes(1));
+		expect((api.aiStep.mock.calls[0] as unknown[])[3]).toEqual({ name: 'Typed requirements', text: 'Endorsements: the policy system sends an endorsement event.' });
+
+		const file = new File(['3.1 Renewal.'], 'brd.md', { type: 'text/markdown' });
+		await fireEvent.change(screen.getByLabelText('BRD file'), { target: { files: [file] } });
+		await vi.waitFor(() => expect(api.aiReadBRD).toHaveBeenCalled());
+		expect(await screen.findByText(/brd\.md \+ typed requirements/)).toBeTruthy();
+		await fireEvent.click(await screen.findByRole('button', { name: 'Ask the AI for step 1' }));
+		await vi.waitFor(() => expect(api.aiStep).toHaveBeenCalledTimes(2));
+		const both = (api.aiStep.mock.calls[1] as unknown[])[3] as { name: string; text: string };
+		expect(both.name).toBe('brd.md + typed requirements');
+		expect(both.text).toContain('3.1 Renewal.');
+		expect(both.text).toContain('## Requirements typed by the analyst\n\nEndorsements: the policy system sends an endorsement event.');
 	});
 });
