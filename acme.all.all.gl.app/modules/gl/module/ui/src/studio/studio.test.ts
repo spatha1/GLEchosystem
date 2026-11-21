@@ -192,6 +192,29 @@ describe('simulation', () => {
 	});
 });
 
+describe('saving a test case', () => {
+	it('saves a case started from a blank event under a new code, never over an existing scenario', async () => {
+		const existing = { code: 'PAYMENT_RECEIVED_SIM', eventType: 'PAYMENT_RECEIVED', input: { currency: 'AUD' }, expect: { refused: 'NO_RULE' } };
+		const ctx = ctxFor({
+			route: { configId: 'GL_TEST_001', version: 1, event: 'PAYMENT_RECEIVED', etab: 'simulate' },
+			canEdit: true,
+			content: { ...content, scenarios: [...((content.scenarios ?? []) as any[]), existing] }
+		});
+		render(Simulator, { ctx, fixedEvent: pay });
+		const start = await screen.findByRole('combobox', { name: /Start from/ });
+		await fireEvent.change(start, { target: { value: '' } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Run simulation' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Save as scenario in draft' }));
+		const dialog = await screen.findByRole('dialog');
+		await fireEvent.input(within(dialog).getByRole('textbox'), { target: { value: 'A second case' } });
+		await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+		await vi.waitFor(() => expect(ctx.save).toHaveBeenCalled());
+		const scenarios = (ctx.save as any).mock.calls[0][0].scenarios as { code: string; expect: unknown }[];
+		expect(scenarios.find((s) => s.code === 'PAYMENT_RECEIVED_SIM')?.expect).toEqual({ refused: 'NO_RULE' });
+		expect(scenarios.some((s) => s.code === 'PAYMENT_RECEIVED_SIM_2')).toBe(true);
+	});
+});
+
 describe('pipeline', () => {
 	it('shows stages that are not built as such', async () => {
 		const stages: Stage[] = [

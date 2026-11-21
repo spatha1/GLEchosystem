@@ -7,7 +7,7 @@
 	import type { Ctx } from '../lib/ctx';
 	import type { Account, EventInput, EventSummary, EventView, Plan, Scenario, ScenarioResult } from '../lib/studio';
 	import type { PlannedLine } from '../lib/types';
-	import { clone, withScenario } from '../lib/content';
+	import { clone, uniqueCode, withScenario } from '../lib/content';
 	import { amount } from '../lib/format';
 	import { glossary, sideWord } from '../lib/explain';
 	import Formula from './Formula.svelte';
@@ -168,7 +168,9 @@
 		if (!plan || !view) return;
 		saving = true;
 		saveError = '';
-		const code = (scenarioCode || `${view.event.code}_SIM`).toUpperCase();
+		// Started from a scenario: update it. Started blank: a new code, never over an existing scenario.
+		const taken = ((ctx.content.scenarios ?? []) as Scenario[]).map((s) => s.code);
+		const code = scenarioCode ? scenarioCode.toUpperCase() : uniqueCode(`${view.event.code}_SIM`, taken);
 		const s: Scenario = {
 			code,
 			eventType: view.event.code,
