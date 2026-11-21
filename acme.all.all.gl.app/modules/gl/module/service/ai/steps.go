@@ -323,12 +323,36 @@ func toMap(v any) map[string]any {
 
 // ── evidence ──
 
-var spaces = regexp.MustCompile(`\s+`)
+var (
+	nonWord = regexp.MustCompile(`[^\p{L}\p{N}]+`)
+	elision = regexp.MustCompile(`\.\.\.|…|\|`) // text the AI skipped, or table cells it joined
+)
 
+// normText keeps only words: lower case, punctuation and table separators as spaces. Quotes are
+// compared word for word, so a heading joined to its paragraph or a table row still matches.
 func normText(s string) string {
-	s = strings.ToLower(s)
-	s = strings.NewReplacer("’", "'", "‘", "'", "“", `"`, "”", `"`, "–", "-", "—", "-").Replace(s)
-	return strings.TrimSpace(spaces.ReplaceAllString(s, " "))
+	return strings.TrimSpace(nonWord.ReplaceAllString(strings.ToLower(s), " "))
+}
+
+// quoted says whether a quote is in the BRD: its parts, split where the AI marked text it
+// skipped ("..." or "…") or where it joined table cells ("|"), must all appear in the BRD in
+// order, and together carry at least a few words.
+func (s *step) quoted(q string) bool {
+	parts := elision.Split(q, -1)
+	at, words := 0, 0
+	for _, part := range parts {
+		n := normText(part)
+		if n == "" {
+			continue
+		}
+		i := strings.Index(s.brd[at:], n)
+		if i < 0 {
+			return false
+		}
+		at += i + len(n)
+		words += len(strings.Fields(n))
+	}
+	return words >= 3
 }
 
 func (s *step) evidence(quotes []string) []Evidence {
@@ -338,8 +362,7 @@ func (s *step) evidence(quotes []string) []Evidence {
 		if q == "" {
 			continue
 		}
-		n := strings.Trim(normText(q), ` "'.,;:…`)
-		out = append(out, Evidence{Quote: q, Found: len(n) >= 6 && strings.Contains(s.brd, n)})
+		out = append(out, Evidence{Quote: q, Found: s.quoted(q)})
 	}
 	return out
 }

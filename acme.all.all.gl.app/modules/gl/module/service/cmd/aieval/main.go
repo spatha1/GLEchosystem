@@ -73,6 +73,9 @@ func main() {
 		for _, p := range s.Problems {
 			fmt.Println("   problem:", p)
 		}
+		for _, q := range s.Unfound {
+			fmt.Printf("   quote not found in the BRD: %q\n", q)
+		}
 	}
 	fmt.Printf("events configured: %v · blocking findings left (other than account numbers and dimension values): %d · %s\n",
 		rep.Events, rep.Findings, map[bool]string{true: "PASS", false: "NEEDS WORK"}[rep.OK])

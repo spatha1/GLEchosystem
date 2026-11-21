@@ -17,6 +17,7 @@ type StepScore struct {
 	Problems      []string `json:"problems"`
 	Quotes        int      `json:"quotes"`
 	QuotesFound   int      `json:"quotesFound"`
+	Unfound       []string `json:"unfound"` // quotes not found in the BRD, to judge whether they are inventions or paraphrases
 	Cases         int      `json:"cases"`
 	CasesBalanced int      `json:"casesBalanced"`
 	Tokens        int      `json:"tokens"`
@@ -39,7 +40,7 @@ type Report struct {
 func Evaluate(ctx context.Context, d Drafter, brd BRD, content []byte, effectiveFrom string, check Checker) Report {
 	rep := Report{BRD: brd.Name, Model: d.Status().Model, Steps: []StepScore{}, Events: []string{}, OK: true}
 	for _, step := range Steps {
-		sc := StepScore{Step: step, Problems: []string{}}
+		sc := StepScore{Step: step, Problems: []string{}, Unfound: []string{}}
 		p, err := RunStep(ctx, d, Request{Step: step, BRD: brd, Content: content, EffectiveFrom: effectiveFrom, Ref: model.ConfigRef{ConfigID: "AI_EVAL", Version: 1}}, check)
 		if err != nil {
 			sc.Error = err.Error()
@@ -49,20 +50,20 @@ func Evaluate(ctx context.Context, d Drafter, brd BRD, content []byte, effective
 		}
 		sc.Attempts, sc.Items, sc.Questions, sc.Gaps, sc.Problems = p.Attempts, len(p.Items), len(p.Questions), len(p.Gaps), p.Problems
 		sc.Tokens = p.Usage.PromptTokens + p.Usage.CompletionTokens
-		for _, it := range p.Items {
-			for _, e := range it.Evidence {
+		count := func(es []Evidence) {
+			for _, e := range es {
 				sc.Quotes++
 				if e.Found {
 					sc.QuotesFound++
+				} else {
+					sc.Unfound = append(sc.Unfound, e.Quote)
 				}
 			}
+		}
+		for _, it := range p.Items {
+			count(it.Evidence)
 			for _, pt := range it.Parts {
-				for _, e := range pt.Evidence {
-					sc.Quotes++
-					if e.Found {
-						sc.QuotesFound++
-					}
-				}
+				count(pt.Evidence)
 			}
 		}
 		for _, c := range p.Cases {

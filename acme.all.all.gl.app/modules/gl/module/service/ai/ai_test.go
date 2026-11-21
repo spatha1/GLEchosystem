@@ -451,3 +451,25 @@ func TestEvaluateScoresARunOnReferenceDataOnly(t *testing.T) {
 		t.Fatalf("an unbalanced rule must fail the run: %+v", rep.Steps[3])
 	}
 }
+
+// A quote is matched word for word, with skipped text marked "..." and table cells joined by "|";
+// an invented sentence is never matched.
+func TestQuotesAreMatchedWordForWord(t *testing.T) {
+	s := newStep(Request{BRD: BRD{Text: "7. Reporting dimensions\nEvery journal line carries the company, the line of business and the product.\n" +
+		"4.1 For a renewal the policy system sends the premium for the new term, the GST on that premium, the stamp duty.\n" +
+		"Event | Amount | Meaning | \nRenewal | Premium | Premium for the new term | \nCancellation | Return premium | Unused premium returned to the policyholder | "}}, &model.Document{})
+	for q, want := range map[string]bool{
+		"7. Reporting dimensions: Every journal line carries the company":                                        true,
+		"4.1 For a renewal the policy system sends ... the stamp duty":                                           true,
+		"4.1 For a renewal the policy system sends … the GST on that premium":                                    true,
+		"Event | Amount | Meaning | Cancellation | Return premium | Unused premium returned to the policyholder": true,
+		"the stamp duty ... 4.1 For a renewal":                                                                   false, // out of order
+		"4.1 For a renewal the policy system sends ... the levy":                                                 false, // invented part
+		"Renewals are booked every Friday":                                                                       false,
+		"the GST":                                                                                                false, // too short to count
+	} {
+		if got := s.quoted(q); got != want {
+			t.Errorf("%q: found %v, want %v", q, got, want)
+		}
+	}
+}
