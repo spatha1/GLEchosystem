@@ -88,8 +88,8 @@
 
 			{#if start === 'empty'}
 				<p class="hint">
-					Nothing is copied. You then add posting rules and formulas in the studio; events, measures, keys and the chart of accounts are added through the
-					API until their editors are built.
+					Nothing is copied. You then add the source systems, business events, measures and formulas, keys, dates, chart of accounts and posting
+					rules in the studio.
 				</p>
 			{:else if start && !source}
 				<p class="hint">Loading the version…</p>
