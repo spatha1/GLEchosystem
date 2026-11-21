@@ -1143,6 +1143,79 @@
         }
       }
     },
+    "/m/gl/configs/{configId}/versions/{version}/lifecycle": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_previewLifecycle",
+        "summary": "Preview a synthetic policy's lifecycle: run its events in order through the posting engine against a temporary ledger, so later events read what earlier ones posted (OPEN_BALANCE); nothing is stored or posted",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "steps"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "steps": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "description": "in order; each names a scenario of the version or gives a synthetic event, not both",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "scenario": {
+                          "type": "string",
+                          "description": "a scenario code of this version"
+                        },
+                        "code": {
+                          "type": "string",
+                          "description": "a label for the step (default: the scenario code)"
+                        },
+                        "input": {
+                          "$ref": "#/components/schemas/gl_EventInput"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "lifecycle: each step's plan or error and the temporary ledger's balances after it; complete, stopped (why it stopped at the first event that cannot be posted), lines, entries, posted (always false)"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
     "/m/gl/configs/{configId}/versions/{version}/impact": {
       "parameters": [
         {

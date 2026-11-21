@@ -330,13 +330,15 @@ func EvaluateDerived(d *Document, ref ConfigRef, in EventInput) ([]Derived, erro
 // EvaluateEvent resolves an event's dimensions (lookups included) and evaluates its derived
 // measures, in dependency order, with lineage.
 func EvaluateEvent(d *Document, ref ConfigRef, in EventInput) (Evaluation, error) {
-	e, _, _, err := evaluate(d, ref, in)
+	e, _, _, err := evaluate(d, ref, in, nil)
 	return e, err
 }
 
 // evaluate is EvaluateEvent, also returning the event type and the values its formulas
 // read — the environment posting rules (US-012) evaluate in.
-func evaluate(d *Document, ref ConfigRef, in EventInput) (Evaluation, *inputEnv, EventType, error) {
+// led is the ledger state OPEN_BALANCE reads (ALTB-04); nil for a one-event preview, where
+// reading the ledger is refused rather than guessed.
+func evaluate(d *Document, ref ConfigRef, in EventInput, led LedgerReader) (Evaluation, *inputEnv, EventType, error) {
 	var ev EventType
 	found := false
 	for _, e := range d.Events {
@@ -437,6 +439,15 @@ func evaluate(d *Document, ref ConfigRef, in EventInput) (Evaluation, *inputEnv,
 	if resolved == nil {
 		resolved = []ResolvedDimension{}
 	}
+	asOf := in.TransactionDate
+	if period != nil {
+		asOf = period.BookDate
+	}
+	entity := ""
+	if v, ok := env.vals["COMPANY"]; ok && v.Kind == formula.KString {
+		entity = v.Str
+	}
+	env.calls = ledgerCalls(led, in, entity, asOf)
 
 	syms := eventSymbols(d, ev, measures)
 	order, err := topoOrder(d)

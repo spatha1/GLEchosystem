@@ -367,7 +367,13 @@ func AssignAccounts(d *Document, ref ConfigRef, p *PostingPlan, bookDate time.Ti
 // PreviewPosting plans an event's legs (US-012) and assigns their accounts (US-013) on the
 // book date: the date policy's, else the transaction date.
 func PreviewPosting(d *Document, ref ConfigRef, in EventInput) (*PostingPlan, error) {
-	p, err := PlanPosting(d, ref, in)
+	return PreviewPostingWith(d, ref, in, nil)
+}
+
+// PreviewPostingWith is PreviewPosting reading ledger state from led (ALTB-04): a lifecycle
+// preview passes its temporary ledger, a posting run will pass the client ledger.
+func PreviewPostingWith(d *Document, ref ConfigRef, in EventInput, led LedgerReader) (*PostingPlan, error) {
+	p, err := planPosting(d, ref, in, led)
 	if err != nil {
 		return p, err
 	}

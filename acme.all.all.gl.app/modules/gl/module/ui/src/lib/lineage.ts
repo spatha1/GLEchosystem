@@ -11,7 +11,7 @@ export interface Column {
 
 export const columns: Column[] = [
 	{ key: 'source', title: 'Source fields', hint: 'collected from the source systems', kinds: ['FIELD', 'LIST'] },
-	{ key: 'calc', title: 'Calculated by GL', hint: 'never collected', kinds: ['DERIVED_MEASURE', 'DERIVED_DIMENSION', 'POLICY_VALUE'] },
+	{ key: 'calc', title: 'Calculated by GL', hint: 'never collected', kinds: ['DERIVED_MEASURE', 'DERIVED_DIMENSION', 'POLICY_VALUE', 'LEDGER_STATE'] },
 	{ key: 'rules', title: 'Rules and controls', hint: 'what reads the values', kinds: ['CONTROL', 'RULE', 'LINE'] },
 	{ key: 'class', title: 'Accounting classes', hint: 'what each line posts to', kinds: ['CLASS'] },
 	{ key: 'account', title: 'Accounts', hint: 'chosen by assignment rules', kinds: ['ACCOUNT'] }
@@ -23,6 +23,7 @@ export const kindLabel: Record<NodeKind, string> = {
 	DERIVED_MEASURE: 'Formula',
 	DERIVED_DIMENSION: 'Lookup',
 	POLICY_VALUE: 'Date policy',
+	LEDGER_STATE: 'Ledger balance',
 	CONTROL: 'Control',
 	RULE: 'Posting rule',
 	LINE: 'Rule line',

@@ -26,7 +26,7 @@
 		RECONCILIATION: 'reconciliation'
 	};
 	const sources = $derived(explanation.fields.filter((f) => f.kind === 'SOURCE'));
-	const calculated = $derived(explanation.fields.filter((f) => f.kind === 'DERIVED'));
+	const calculated = $derived(explanation.fields.filter((f) => f.kind === 'DERIVED' || f.kind === 'LEDGER_STATE'));
 </script>
 
 <div class="stack">
@@ -96,7 +96,7 @@
 		{#each calculated as f (f.fieldCode)}
 			<div class="calc">
 				<span class="mono"><b>{f.fieldCode}</b></span>
-				<span class="badge info">{f.category === 'FORMULA' ? 'formula' : f.category === 'LOOKUP' ? 'lookup' : 'date policy'}</span>
+				<span class="badge info">{f.category === 'FORMULA' ? 'formula' : f.category === 'LOOKUP' ? 'lookup' : f.category === 'LEDGER_STATE' ? 'read from the ledger' : 'date policy'}</span>
 				<span class="mono small">{f.detail}</span>
 				<div class="small muted">
 					from {f.derivedFrom?.join(', ')} (requested instead) · used by {f.reasons.map((r) => r.ref).filter((x, i, a) => a.indexOf(x) === i).join(', ')}

@@ -49,7 +49,7 @@
 			<span class="chip">manifest digest <b class="mono">{digest(mv.manifest.manifestDigest)}</b></span>
 			<span class="chip">{mv.manifest.events.length} events</span>
 			<span class="chip">{mv.manifest.events.reduce((n, e) => n + e.fields.filter((f) => f.kind === 'SOURCE').length, 0)} source fields</span>
-			<span class="chip">{mv.manifest.events.reduce((n, e) => n + e.fields.filter((f) => f.kind === 'DERIVED').length, 0)} calculated values</span>
+			<span class="chip">{mv.manifest.events.reduce((n, e) => n + e.fields.filter((f) => f.kind !== 'SOURCE').length, 0)} calculated values</span>
 			{#if mv.complete}<span class="badge ok">complete</span>{:else}<span class="badge bad">incomplete: {mv.blockingFindings} blocking finding(s)</span>{/if}
 		</div>
 	</section>

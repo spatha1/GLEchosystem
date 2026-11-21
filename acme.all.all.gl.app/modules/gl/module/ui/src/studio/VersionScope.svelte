@@ -17,6 +17,7 @@
 	import FieldsPage from './FieldsPage.svelte';
 	import MappingPage from './MappingPage.svelte';
 	import Simulator from './Simulator.svelte';
+	import LifecyclePanel from './LifecyclePanel.svelte';
 	import ImpactPage from './ImpactPage.svelte';
 	import AccountsPage from './AccountsPage.svelte';
 	import HistoryPage from './HistoryPage.svelte';
@@ -257,6 +258,7 @@
 				<MappingPage {ctx} />
 			{:else if tab === 'simulate'}
 				<Simulator {ctx} />
+				<div class="life-gap"><LifecyclePanel {ctx} /></div>
 			{:else if tab === 'impact'}
 				<ImpactPage {ctx} />
 			{:else if tab === 'accounts'}
@@ -283,6 +285,9 @@
 {/if}
 
 <style>
+	.life-gap {
+		margin-top: 14px;
+	}
 	.vcard {
 		padding: 0;
 	}

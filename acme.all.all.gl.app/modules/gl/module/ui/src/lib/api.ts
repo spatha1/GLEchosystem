@@ -7,6 +7,8 @@ import type {
 	EventView,
 	Impact,
 	ItemChange,
+	LifecycleResult,
+	LifecycleStepInput,
 	ManifestView,
 	Plan,
 	ScenarioResult,
@@ -105,6 +107,9 @@ export function client(tenant: string, fetcher: Fetcher = (i, o) => fetch(i, o))
 		manifest: (id: string, n: number) => call<ManifestView>('GET', v(id, n) + '/manifest'),
 		runScenarios: (id: string, n: number, codes?: string[]) =>
 			call<{ summary: Record<string, number>; results: ScenarioResult[] }>('POST', v(id, n) + '/scenarios/run', codes ? { codes } : {}),
+		/** ALTB-04: the steps in order against a temporary ledger; nothing is stored or posted. */
+		lifecycle: (id: string, n: number, steps: LifecycleStepInput[]) =>
+			call<{ lifecycle: LifecycleResult }>('POST', v(id, n) + '/lifecycle', { steps }).then((r) => r.lifecycle),
 		impact: (id: string, n: number, against?: number) => call<Impact>('GET', v(id, n) + '/impact' + (against ? `?against=${against}` : '')),
 		catalogMeasures: () => call<{ catalogVersion: string; measures: MeasureDef[] }>('GET', '/catalog/measures'),
 		catalogEvents: () => call<EventCatalog>('GET', '/catalog/events'),

@@ -126,6 +126,7 @@ var routes = []route{
 	r("GET", "/configs/{configId}/versions/{version}/events", roleGated, versionEvents, roleReaders...),
 	r("GET", "/configs/{configId}/versions/{version}/events/{eventType}", roleGated, versionEvent, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/scenarios/run", roleGated, runScenarios, roleReaders...),
+	r("POST", "/configs/{configId}/versions/{version}/lifecycle", roleGated, previewLifecycle, roleReaders...),
 	r("GET", "/configs/{configId}/versions/{version}/impact", roleGated, versionImpact, roleReaders...),
 	r("GET", "/configs/{configId}/versions/{version}/pipeline", roleGated, versionPipeline, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/check", roleGated, checkDraft, roleEditors...),

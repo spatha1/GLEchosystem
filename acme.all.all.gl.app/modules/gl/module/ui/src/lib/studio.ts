@@ -281,7 +281,7 @@ export interface Scenario {
 	expect?: { rule?: string; legs?: ExpectedLeg[]; refused?: string };
 }
 
-export type NodeKind = 'FIELD' | 'LIST' | 'DERIVED_MEASURE' | 'DERIVED_DIMENSION' | 'POLICY_VALUE' | 'CONTROL' | 'RULE' | 'LINE' | 'CLASS' | 'ACCOUNT';
+export type NodeKind = 'FIELD' | 'LIST' | 'DERIVED_MEASURE' | 'DERIVED_DIMENSION' | 'POLICY_VALUE' | 'LEDGER_STATE' | 'CONTROL' | 'RULE' | 'LINE' | 'CLASS' | 'ACCOUNT';
 
 export interface GraphNode {
 	id: string;
@@ -343,7 +343,7 @@ export interface FieldReason {
 export interface FieldExplanation {
 	fieldCode: string;
 	listCode?: string;
-	kind: 'SOURCE' | 'DERIVED' | 'LIST';
+	kind: 'SOURCE' | 'DERIVED' | 'LEDGER_STATE' | 'LIST';
 	category: string;
 	label: string;
 	path?: string;
@@ -419,6 +419,43 @@ export interface ScenarioResult {
 	plan?: Plan;
 	error?: { code: string; message: string };
 	mismatches: string[];
+}
+
+/** ALTB-04: one step of a lifecycle preview — a version scenario, or a synthetic event. */
+export type LifecycleStepInput = { scenario: string; code?: string } | { code?: string; input: EventInput };
+
+/** One account's balance in the temporary ledger, for one subledger key value. */
+export interface LedgerBalance {
+	entity: string;
+	currency: string;
+	account: string;
+	class: string;
+	key?: string;
+	value?: string;
+	debit: string;
+	credit: string;
+	/** Debit minus credit. */
+	balance: string;
+}
+
+export interface LifecycleStep {
+	step: number;
+	code?: string;
+	plan?: Plan;
+	error?: { code: string; message: string };
+	/** The temporary ledger after this step. */
+	balances: LedgerBalance[];
+}
+
+/** A lifecycle preview: events in order against a temporary ledger. Never posted. */
+export interface LifecycleResult {
+	config: ConfigRef;
+	steps: LifecycleStep[];
+	complete: boolean;
+	stopped?: string;
+	lines: number;
+	entries: number;
+	posted: false;
 }
 
 export interface Stage {

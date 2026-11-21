@@ -307,7 +307,8 @@
 	}
 	.DERIVED_MEASURE,
 	.DERIVED_DIMENSION,
-	.POLICY_VALUE {
+	.POLICY_VALUE,
+	.LEDGER_STATE {
 		border-left-color: #8a5cc2;
 		background: var(--gl-surface-2);
 	}

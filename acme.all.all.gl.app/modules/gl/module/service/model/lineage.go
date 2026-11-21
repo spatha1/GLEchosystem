@@ -27,6 +27,7 @@ const (
 	NodeDerivedMeasure   = "DERIVED_MEASURE"   // computed by a formula
 	NodeDerivedDimension = "DERIVED_DIMENSION" // computed by a lookup
 	NodePolicyValue      = "POLICY_VALUE"      // computed by the date policy
+	NodeLedgerState      = "LEDGER_STATE"      // read from posted lines (OPEN_BALANCE), never from a source
 	NodeControl          = "CONTROL"           // identity, currency, keys, period
 	NodeRule             = "RULE"
 	NodeLine             = "LINE"
@@ -506,11 +507,53 @@ func (b *graphBuilder) derivedMeasure(code string) string {
 	}
 	ids := formula.Identifiers(node)
 	b.add(GraphNode{ID: id, Kind: NodeDerivedMeasure, Code: code, Label: label, Detail: code + " = " + dm.Formula, Path: fmt.Sprintf("derivedMeasures/%d", idx),
-		DataType: c2Type(dm.ResultType), definition: label, reqKind: "FORMULA", reqRef: code, formulaInputs: inputCodes(ids)})
+		DataType: c2Type(dm.ResultType), definition: label, reqKind: "FORMULA", reqRef: code, formulaInputs: append(inputCodes(ids), ledgerCodes(dm.Formula)...)})
 	for _, name := range ids {
 		b.link(b.resolve(name, nil), id, RoleInput, fmt.Sprintf("input of %s = %s", code, dm.Formula), true, "FORMULA", code)
 	}
+	b.ledgerReads(dm.Formula, id, RoleInput, fmt.Sprintf("input of %s = %s", code, dm.Formula), "FORMULA", code)
 	return id
+}
+
+// ALTB-04: a ledger read, OPEN_BALANCE('CLASS', 'KEY'), is ledger state: the engine reads it
+// from posted lines for the event's own KEY, so the source is asked for the key, never for the
+// balance.
+type ledgerRead struct{ code, class, key string }
+
+func ledgerReadsOf(src string) []ledgerRead {
+	var out []ledgerRead
+	for _, m := range openBalanceRe.FindAllStringSubmatch(src, -1) {
+		if codeRe.MatchString(m[1]) && codeRe.MatchString(m[2]) {
+			out = append(out, ledgerRead{code: "OPEN_BALANCE_" + m[1] + "_" + m[2], class: m[1], key: m[2]})
+		}
+	}
+	return out
+}
+
+func ledgerCodes(src string) []string {
+	var out []string
+	for _, r := range ledgerReadsOf(src) {
+		if !oneOf(r.code, out) {
+			out = append(out, r.code)
+		}
+	}
+	return out
+}
+
+// ledgerReads adds a node for each ledger read in src, fed by the business key it is read for,
+// and links it to target.
+func (b *graphBuilder) ledgerReads(src, target, role, why, reqKind, reqRef string) {
+	for _, r := range ledgerReadsOf(src) {
+		id := "ledger:" + r.code
+		if !b.has(id) {
+			label := fmt.Sprintf("Open balance of %s for the event's %s", r.class, r.key)
+			b.add(GraphNode{ID: id, Kind: NodeLedgerState, Code: r.code, Label: label,
+				Detail:   fmt.Sprintf("OPEN_BALANCE('%s', '%s'): read from posted lines, never requested from a source", r.class, r.key),
+				DataType: "DECIMAL", definition: label, reqKind: reqKind, reqRef: reqRef, formulaInputs: []string{r.key}})
+			b.link(b.resolveKey(r.key, nil), id, RoleInput, fmt.Sprintf("the %s whose open balance of %s is read", r.key, r.class), true, reqKind, reqRef)
+		}
+		b.link(id, target, role, why, true, reqKind, reqRef)
+	}
 }
 
 // inputCodes turns formula identifiers into the codes they read (LIST.FIELD → FIELD, LIST[] → LIST).
@@ -665,6 +708,7 @@ func (b *graphBuilder) rules() {
 			for _, name := range identifiers(l.Amount) {
 				b.link(b.resolve(name, list), lid, RoleAmount, fmt.Sprintf("amount of %s (%s)", where, text), true, "POSTING_RULE", ref)
 			}
+			b.ledgerReads(l.Amount, lid, RoleAmount, fmt.Sprintf("amount of %s (%s)", where, text), "POSTING_RULE", ref)
 			for _, name := range identifiers(l.When) {
 				b.link(b.resolve(name, list), lid, RoleCondition, fmt.Sprintf("condition of %s: %s", where, strings.TrimSpace(l.When)), false, "POSTING_RULE", ref)
 			}

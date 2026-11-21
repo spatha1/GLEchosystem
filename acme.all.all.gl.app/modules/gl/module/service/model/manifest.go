@@ -253,6 +253,13 @@ func CompileManifest(d *Document, tenant string, ref ConfigRef) (Manifest, Manif
 				derived = append(derived, ManifestField{FieldCode: n.Code, Definition: n.definition, Kind: "DERIVED", DataType: n.DataType, Cardinality: "ONE",
 					Mandatory: mandatory, DerivedFrom: n.formulaInputs, RequiredBy: reqs})
 				derivedWhy = append(derivedWhy, fx)
+			case n.Kind == NodeLedgerState:
+				// Read from posted lines: listed so the dependency is visible, never requested.
+				reqs, reasons, mandatory := g.explain(n.ID)
+				derived = append(derived, ManifestField{FieldCode: n.Code, Definition: n.definition, Kind: "LEDGER_STATE", DataType: n.DataType, Cardinality: "ONE",
+					Mandatory: mandatory, DerivedFrom: n.formulaInputs, RequiredBy: reqs})
+				derivedWhy = append(derivedWhy, FieldExplanation{FieldCode: n.Code, Kind: "LEDGER_STATE", Category: "LEDGER_STATE", Label: n.Label, Detail: n.Detail,
+					Node: n.ID, Mandatory: mandatory, DerivedFrom: n.formulaInputs, Reasons: reasons})
 			}
 		}
 		me.Fields = append(me.Fields, derived...)

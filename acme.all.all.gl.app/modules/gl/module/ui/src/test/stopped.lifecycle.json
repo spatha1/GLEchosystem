@@ -1,0 +1,644 @@
+{
+ "configId": "GL_TEST_001",
+ "lifecycle": {
+  "config": {
+   "configId": "GL_TEST_001",
+   "configVersion": 1,
+   "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+  },
+  "steps": [
+   {
+    "step": 1,
+    "code": "E1",
+    "plan": {
+     "eventType": "PREM_ADDED",
+     "rule": "PR_PREM_ADDED",
+     "rank": 10,
+     "config": {
+      "configId": "GL_TEST_001",
+      "configVersion": 1,
+      "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+     },
+     "considered": [
+      {
+       "rule": "PR_PREM_ADDED",
+       "rank": 10,
+       "matched": true,
+       "reason": "no filter: applies to every PREM_ADDED"
+      }
+     ],
+     "lines": [
+      {
+       "lineNo": 1,
+       "template": "AR0_DR",
+       "class": "AR0",
+       "side": "D",
+       "amount": "1100.00",
+       "currency": "AUD",
+       "entity": "C01",
+       "keys": {
+        "POLICY_NO": "P1",
+        "TERM_NO": "1"
+       },
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR",
+        "PRODUCT": "MOTOR_PRIVATE"
+       },
+       "explanation": "Policy receivable: premium plus tax",
+       "trace": {
+        "reads": [
+         {
+          "name": "GROSS",
+          "value": "1100 AUD"
+         }
+        ]
+       },
+       "account": "9948523",
+       "ledger": "PRIMARY",
+       "assignment": {
+        "rule": "AA_AR0_MOTOR",
+        "account": "9948523",
+        "ledger": "PRIMARY",
+        "config": {
+         "configId": "GL_TEST_001",
+         "configVersion": 1,
+         "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+        },
+        "why": [
+         "LOB = MOTOR (exact)",
+         "chosen over 1 other matching rule(s) by priority, specificity, then latest effective date"
+        ],
+        "considered": [
+         {
+          "rule": "AA_AR0_MOTOR",
+          "account": "9948523",
+          "priority": 0,
+          "matched": true,
+          "reason": "LOB = MOTOR (exact)"
+         },
+         {
+          "rule": "AA_AR0_DEFAULT",
+          "account": "9948500",
+          "priority": 0,
+          "matched": true,
+          "reason": "default for class AR0 (matches any line)"
+         }
+        ]
+       },
+       "nature": "ASSET",
+       "normalSide": "D",
+       "movement": "INCREASE"
+      },
+      {
+       "lineNo": 2,
+       "template": "PW0_CR",
+       "class": "PW0",
+       "side": "C",
+       "amount": "1000.00",
+       "currency": "AUD",
+       "entity": "C01",
+       "keys": {
+        "POLICY_NO": "P1",
+        "TERM_NO": "1"
+       },
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR",
+        "PRODUCT": "MOTOR_PRIVATE"
+       },
+       "explanation": "PW0 C = PREMIUM",
+       "trace": {
+        "reads": [
+         {
+          "name": "PREMIUM",
+          "value": "1000 AUD"
+         }
+        ]
+       },
+       "account": "4100100",
+       "ledger": "PRIMARY",
+       "assignment": {
+        "rule": "AA_PW0",
+        "account": "4100100",
+        "ledger": "PRIMARY",
+        "config": {
+         "configId": "GL_TEST_001",
+         "configVersion": 1,
+         "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+        },
+        "why": [
+         "default for class PW0 (matches any line)"
+        ],
+        "considered": [
+         {
+          "rule": "AA_PW0",
+          "account": "4100100",
+          "priority": 0,
+          "matched": true,
+          "reason": "default for class PW0 (matches any line)"
+         }
+        ]
+       },
+       "nature": "INCOME",
+       "normalSide": "C",
+       "movement": "INCREASE"
+      },
+      {
+       "lineNo": 3,
+       "template": "TX0_CR",
+       "class": "TX0",
+       "side": "C",
+       "amount": "100.00",
+       "currency": "AUD",
+       "entity": "C01",
+       "keys": {
+        "POLICY_NO": "P1",
+        "TERM_NO": "1"
+       },
+       "dimensions": {
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01",
+        "LOB": "MOTOR",
+        "PRODUCT": "MOTOR_PRIVATE"
+       },
+       "explanation": "TX0 C = TAX",
+       "trace": {
+        "reads": [
+         {
+          "name": "TAX",
+          "value": "100 AUD"
+         }
+        ]
+       },
+       "account": "2200100",
+       "ledger": "PRIMARY",
+       "assignment": {
+        "rule": "AA_TX0",
+        "account": "2200100",
+        "ledger": "PRIMARY",
+        "config": {
+         "configId": "GL_TEST_001",
+         "configVersion": 1,
+         "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+        },
+        "why": [
+         "default for class TX0 (matches any line)"
+        ],
+        "considered": [
+         {
+          "rule": "AA_TX0",
+          "account": "2200100",
+          "priority": 0,
+          "matched": true,
+          "reason": "default for class TX0 (matches any line)"
+         }
+        ]
+       },
+       "nature": "LIABILITY",
+       "normalSide": "C",
+       "movement": "INCREASE"
+      }
+     ],
+     "skipped": [],
+     "totals": [
+      {
+       "entity": "C01",
+       "currency": "AUD",
+       "debit": "1100.00",
+       "credit": "1100.00",
+       "balanced": true
+      }
+     ],
+     "balanced": true,
+     "dimensions": [
+      {
+       "dimension": "LOB",
+       "value": "MOTOR",
+       "via": "EVENT",
+       "config": {
+        "configId": "GL_TEST_001",
+        "configVersion": 1,
+        "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+       }
+      },
+      {
+       "dimension": "COMPANY",
+       "value": "C01",
+       "via": "EVENT",
+       "config": {
+        "configId": "GL_TEST_001",
+        "configVersion": 1,
+        "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+       }
+      },
+      {
+       "dimension": "PRODUCT",
+       "value": "MOTOR_PRIVATE",
+       "via": "EVENT",
+       "config": {
+        "configId": "GL_TEST_001",
+        "configVersion": 1,
+        "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+       }
+      },
+      {
+       "dimension": "BOOKING_CLASS",
+       "value": "C",
+       "via": "DATE_POLICY",
+       "lookup": "DP_STANDARD",
+       "config": {
+        "configId": "GL_TEST_001",
+        "configVersion": 1,
+        "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+       }
+      }
+     ],
+     "period": {
+      "policy": "DP_STANDARD",
+      "transactionDate": "2026-01-01",
+      "effectiveDate": "2026-01-01",
+      "bookDate": "2026-01-01",
+      "accountingPeriod": "2026-01",
+      "fiscalYear": 2026,
+      "fiscalPeriod": 7,
+      "bookingClass": "C",
+      "steps": [
+       "book date = transaction date 2026-01-01 (policy DP_STANDARD)",
+       "effective 2026-01-01 falls on or before the end of period 2026-01: current (C)"
+      ]
+     },
+     "bookDate": "2026-01-01",
+     "derived": [
+      {
+       "code": "GROSS",
+       "value": "1100 AUD",
+       "formula": "PREMIUM + TAX",
+       "formulaDigest": "sha256:52a325a916c2e0621ebc4fadc0de7114da6f6ecb9b10456834c0348f04906885",
+       "config": {
+        "configId": "GL_TEST_001",
+        "configVersion": 1,
+        "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+       },
+       "trace": {
+        "reads": [
+         {
+          "name": "PREMIUM",
+          "value": "1000 AUD"
+         },
+         {
+          "name": "TAX",
+          "value": "100 AUD"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "balances": [
+     {
+      "entity": "C01",
+      "currency": "AUD",
+      "account": "2200100",
+      "class": "TX0",
+      "debit": "0.00",
+      "credit": "100.00",
+      "balance": "-100.00"
+     },
+     {
+      "entity": "C01",
+      "currency": "AUD",
+      "account": "4100100",
+      "class": "PW0",
+      "debit": "0.00",
+      "credit": "1000.00",
+      "balance": "-1000.00"
+     },
+     {
+      "entity": "C01",
+      "currency": "AUD",
+      "account": "9948523",
+      "class": "AR0",
+      "key": "POLICY_NO",
+      "value": "P1",
+      "debit": "1100.00",
+      "credit": "0.00",
+      "balance": "1100.00"
+     }
+    ]
+   },
+   {
+    "step": 2,
+    "code": "E3_SAME_COMPANY",
+    "plan": {
+     "eventType": "PAYMENT_RECEIVED",
+     "rule": "PR_PAYMENT_RECEIVED",
+     "rank": 10,
+     "config": {
+      "configId": "GL_TEST_001",
+      "configVersion": 1,
+      "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+     },
+     "considered": [
+      {
+       "rule": "PR_PAYMENT_RECEIVED",
+       "rank": 10,
+       "matched": true,
+       "reason": "no filter: applies to every PAYMENT_RECEIVED"
+      }
+     ],
+     "lines": [
+      {
+       "lineNo": 1,
+       "template": "CASH",
+       "class": "PR0",
+       "side": "D",
+       "amount": "1099.50",
+       "currency": "AUD",
+       "entity": "C01",
+       "keys": {
+        "RECEIPT_NO": "R2"
+       },
+       "dimensions": {
+        "BANKING_COMPANY": "C01",
+        "BANK_ACCOUNT": "BANK-C01",
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01"
+       },
+       "explanation": "PR0 D = PAY_AMT",
+       "trace": {
+        "reads": [
+         {
+          "name": "PAY_AMT",
+          "value": "1099.5 AUD"
+         }
+        ]
+       },
+       "account": "1000900",
+       "ledger": "PRIMARY",
+       "assignment": {
+        "rule": "AA_PR0",
+        "account": "1000900",
+        "ledger": "PRIMARY",
+        "config": {
+         "configId": "GL_TEST_001",
+         "configVersion": 1,
+         "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+        },
+        "why": [
+         "default for class PR0 (matches any line)"
+        ],
+        "considered": [
+         {
+          "rule": "AA_PR0",
+          "account": "1000900",
+          "priority": 0,
+          "matched": true,
+          "reason": "default for class PR0 (matches any line)"
+         }
+        ]
+       },
+       "problem": "ENTITY_NOT_ALLOWED: account 1000900 accepts entities [C09], not \"C01\"",
+       "nature": "ASSET",
+       "normalSide": "D",
+       "movement": "INCREASE"
+      },
+      {
+       "lineNo": 2,
+       "template": "ALLOC",
+       "item": 1,
+       "class": "AR1",
+       "side": "C",
+       "amount": "550.00",
+       "currency": "AUD",
+       "entity": "C01",
+       "keys": {
+        "ALLOCATION_ID": "A1",
+        "INVOICE_NO": "INV1",
+        "RECEIPT_NO": "R2"
+       },
+       "dimensions": {
+        "BANKING_COMPANY": "C01",
+        "BANK_ACCOUNT": "BANK-C01",
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01"
+       },
+       "explanation": "AR1 C = ALLOC_AMT for ALLOCATION_LIST item 1",
+       "trace": {
+        "reads": [
+         {
+          "name": "ALLOC_AMT",
+          "value": "550 AUD"
+         }
+        ]
+       },
+       "account": "9948600",
+       "ledger": "PRIMARY",
+       "assignment": {
+        "rule": "AA_AR1",
+        "account": "9948600",
+        "ledger": "PRIMARY",
+        "config": {
+         "configId": "GL_TEST_001",
+         "configVersion": 1,
+         "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+        },
+        "why": [
+         "default for class AR1 (matches any line)"
+        ],
+        "considered": [
+         {
+          "rule": "AA_AR1",
+          "account": "9948600",
+          "priority": 0,
+          "matched": true,
+          "reason": "default for class AR1 (matches any line)"
+         }
+        ]
+       },
+       "nature": "ASSET",
+       "normalSide": "D",
+       "movement": "DECREASE"
+      },
+      {
+       "lineNo": 3,
+       "template": "ALLOC",
+       "item": 2,
+       "class": "AR1",
+       "side": "C",
+       "amount": "549.50",
+       "currency": "AUD",
+       "entity": "C01",
+       "keys": {
+        "ALLOCATION_ID": "A2",
+        "INVOICE_NO": "INV2",
+        "RECEIPT_NO": "R2"
+       },
+       "dimensions": {
+        "BANKING_COMPANY": "C01",
+        "BANK_ACCOUNT": "BANK-C01",
+        "BOOKING_CLASS": "C",
+        "COMPANY": "C01"
+       },
+       "explanation": "AR1 C = ALLOC_AMT for ALLOCATION_LIST item 2",
+       "trace": {
+        "reads": [
+         {
+          "name": "ALLOC_AMT",
+          "value": "549.5 AUD"
+         }
+        ]
+       },
+       "account": "9948600",
+       "ledger": "PRIMARY",
+       "assignment": {
+        "rule": "AA_AR1",
+        "account": "9948600",
+        "ledger": "PRIMARY",
+        "config": {
+         "configId": "GL_TEST_001",
+         "configVersion": 1,
+         "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+        },
+        "why": [
+         "default for class AR1 (matches any line)"
+        ],
+        "considered": [
+         {
+          "rule": "AA_AR1",
+          "account": "9948600",
+          "priority": 0,
+          "matched": true,
+          "reason": "default for class AR1 (matches any line)"
+         }
+        ]
+       },
+       "nature": "ASSET",
+       "normalSide": "D",
+       "movement": "DECREASE"
+      }
+     ],
+     "skipped": [
+      "rule PR_PAYMENT_RECEIVED line DUE_TO: condition \"BANKING_COMPANY != COMPANY\" is not true",
+      "rule PR_PAYMENT_RECEIVED line DUE_FROM: condition \"BANKING_COMPANY != COMPANY\" is not true"
+     ],
+     "totals": [
+      {
+       "entity": "C01",
+       "currency": "AUD",
+       "debit": "1099.50",
+       "credit": "1099.50",
+       "balanced": true
+      }
+     ],
+     "balanced": true,
+     "dimensions": [
+      {
+       "dimension": "BANK_ACCOUNT",
+       "value": "BANK-C01",
+       "via": "EVENT",
+       "config": {
+        "configId": "GL_TEST_001",
+        "configVersion": 1,
+        "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+       }
+      },
+      {
+       "dimension": "COMPANY",
+       "value": "C01",
+       "via": "EVENT",
+       "config": {
+        "configId": "GL_TEST_001",
+        "configVersion": 1,
+        "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+       }
+      },
+      {
+       "dimension": "BANKING_COMPANY",
+       "value": "C01",
+       "via": "LOOKUP",
+       "lookup": "BANKING_COMPANY_BY_ACCOUNT",
+       "key": "BANK-C01",
+       "config": {
+        "configId": "GL_TEST_001",
+        "configVersion": 1,
+        "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+       }
+      },
+      {
+       "dimension": "BOOKING_CLASS",
+       "value": "C",
+       "via": "DATE_POLICY",
+       "lookup": "DP_STANDARD",
+       "config": {
+        "configId": "GL_TEST_001",
+        "configVersion": 1,
+        "contentDigest": "sha256:c583eee99bcc10784f0034f86506c4a969f62762d13446dbd8bd365d1b186f8b"
+       }
+      }
+     ],
+     "period": {
+      "policy": "DP_STANDARD",
+      "transactionDate": "2026-01-10",
+      "effectiveDate": "2026-01-10",
+      "bookDate": "2026-01-10",
+      "accountingPeriod": "2026-01",
+      "fiscalYear": 2026,
+      "fiscalPeriod": 7,
+      "bookingClass": "C",
+      "steps": [
+       "book date = transaction date 2026-01-10 (policy DP_STANDARD)",
+       "effective 2026-01-10 falls on or before the end of period 2026-01: current (C)"
+      ]
+     },
+     "bookDate": "2026-01-10",
+     "derived": []
+    },
+    "error": {
+     "code": "ENTITY_NOT_ALLOWED",
+     "message": "line 1 (PR0 D): account 1000900 accepts entities [C09], not \"C01\""
+    },
+    "balances": [
+     {
+      "entity": "C01",
+      "currency": "AUD",
+      "account": "2200100",
+      "class": "TX0",
+      "debit": "0.00",
+      "credit": "100.00",
+      "balance": "-100.00"
+     },
+     {
+      "entity": "C01",
+      "currency": "AUD",
+      "account": "4100100",
+      "class": "PW0",
+      "debit": "0.00",
+      "credit": "1000.00",
+      "balance": "-1000.00"
+     },
+     {
+      "entity": "C01",
+      "currency": "AUD",
+      "account": "9948523",
+      "class": "AR0",
+      "key": "POLICY_NO",
+      "value": "P1",
+      "debit": "1100.00",
+      "credit": "0.00",
+      "balance": "1100.00"
+     }
+    ]
+   }
+  ],
+  "complete": false,
+  "stopped": "step 2 (E3_SAME_COMPANY) cannot be posted: ENTITY_NOT_ALLOWED line 1 (PR0 D): account 1000900 accepts entities [C09], not \"C01\"",
+  "lines": 3,
+  "entries": 1,
+  "posted": false
+ },
+ "status": "approved",
+ "version": 1
+}

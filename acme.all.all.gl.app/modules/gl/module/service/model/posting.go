@@ -396,13 +396,19 @@ func other(side string) string {
 // reason for every choice: which rules matched, which lines were skipped, how each amount was
 // computed. An unbalanced plan is returned with an UNBALANCED error.
 func PlanPosting(d *Document, ref ConfigRef, in EventInput) (*PostingPlan, error) {
+	return planPosting(d, ref, in, nil)
+}
+
+// planPosting is PlanPosting reading ledger state from led (ALTB-04). Preview and posting run
+// this same code; only the ledger they read differs.
+func planPosting(d *Document, ref ConfigRef, in EventInput, led LedgerReader) (*PostingPlan, error) {
 	rules, fs := compileRules(d)
 	for _, f := range fs {
 		if f.Severity == "error" {
 			return nil, &CodeError{"INVALID_RULES", fmt.Sprintf("the posting rules have blocking findings (first: %s %s)", f.Path, f.Message)}
 		}
 	}
-	eval, env, ev, err := evaluate(d, ref, in)
+	eval, env, ev, err := evaluate(d, ref, in, led)
 	if err != nil {
 		return nil, err
 	}
