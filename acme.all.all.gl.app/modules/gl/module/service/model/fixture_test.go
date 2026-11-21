@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -107,6 +108,90 @@ func TestGLTest001LinesSayTheirMovement(t *testing.T) {
 		}
 		if got := movements(p); !reflect.DeepEqual(got, c.want) {
 			t.Errorf("%s movements:\n got %v\nwant %v", c.name, got, c.want)
+		}
+	}
+}
+
+// ALTB-02: golden regression for GL-TEST-001. The fixture's own E1, E2 and E3 scenarios, run by
+// the engine, produce exactly these lines: entity, side, account, amount, subledger-key value,
+// rule line and the assignment rule that chose the account. E1_HOME falls back to the default
+// receivable account, and E3_SAME_COMPANY is refused because the C09 bank account cannot take a
+// C01 line. Any change to these is a change to posted accounting and must be deliberate.
+func TestGLTest001GoldenJournalLines(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join(spec, "_harness", "fixtures", "GL-TEST-001.config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, fs := Parse(b)
+	fs = append(fs, Validate(doc)...)
+	if e := errorsOf(fs); len(e) > 0 {
+		t.Fatalf("the fixture must validate: %+v", e)
+	}
+	subKey := map[string]string{}
+	for _, a := range doc.Accounts {
+		subKey[a.Code] = a.SubledgerKey
+	}
+	golden := map[string][]string{
+		"E1": {
+			"C01 D 9948523 1100.00 P1 AR0_DR AA_AR0_MOTOR",
+			"C01 C 4100100 1000.00 - PW0_CR AA_PW0",
+			"C01 C 2200100 100.00 - TX0_CR AA_TX0",
+		},
+		"E1_HOME": {
+			"C01 D 9948500 1100.00 P2 AR0_DR AA_AR0_DEFAULT",
+			"C01 C 4100100 1000.00 - PW0_CR AA_PW0",
+			"C01 C 2200100 100.00 - TX0_CR AA_TX0",
+		},
+		"E2": {
+			"C01 D 9948600 550.00 INV1 AR1_DR AA_AR1",
+			"C01 D 9948600 550.00 INV2 AR1_DR AA_AR1",
+			"C01 C 9948523 550.00 P1 AR0_CR AA_AR0_MOTOR",
+			"C01 C 9948523 550.00 P1 AR0_CR AA_AR0_MOTOR",
+		},
+		"E3": {
+			"C09 D 1000900 1099.50 - CASH AA_PR0",
+			"C09 C 2500101 1099.50 - DUE_TO AA_IC1",
+			"C01 D 1500109 1099.50 - DUE_FROM AA_IC0",
+			"C01 C 9948600 550.00 INV1 ALLOC AA_AR1",
+			"C01 C 9948600 549.50 INV2 ALLOC AA_AR1",
+		},
+	}
+	ref := ConfigRef{ConfigID: "GL_TEST_001", Version: 1, ContentDigest: "sha256:fixture"}
+	seen := map[string]bool{}
+	for _, r := range RunScenarios(doc, ref, []string{"E1", "E1_HOME", "E2", "E3", "E3_SAME_COMPANY"}) {
+		seen[r.Code] = true
+		if r.Status != "PASSED" {
+			t.Errorf("%s: status %s, mismatches %v, error %+v", r.Code, r.Status, r.Mismatches, r.Error)
+		}
+		if r.Code == "E3_SAME_COMPANY" {
+			if r.Error == nil || r.Error.Code != "ENTITY_NOT_ALLOWED" || !strings.Contains(r.Error.Message, "1000900") {
+				t.Errorf("E3_SAME_COMPANY must be refused: the C09 bank account 1000900 cannot take a C01 line; got %+v", r.Error)
+			}
+			continue
+		}
+		if r.Plan == nil || !r.Plan.Balanced {
+			t.Errorf("%s: no balanced plan: %+v", r.Code, r.Plan)
+			continue
+		}
+		var got []string
+		for _, l := range r.Plan.Lines {
+			key := "-"
+			if k := subKey[l.Account]; k != "" {
+				key = l.Keys[k]
+			}
+			rule := "-"
+			if l.Assignment != nil {
+				rule = l.Assignment.Rule
+			}
+			got = append(got, strings.Join([]string{l.Entity, l.Side, l.Account, l.Amount, key, l.Template, rule}, " "))
+		}
+		if want := golden[r.Code]; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s lines:\n got %v\nwant %v", r.Code, got, want)
+		}
+	}
+	for _, c := range []string{"E1", "E1_HOME", "E2", "E3", "E3_SAME_COMPANY"} {
+		if !seen[c] {
+			t.Errorf("scenario %s missing from the fixture", c)
 		}
 	}
 }
