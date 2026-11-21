@@ -434,6 +434,7 @@ type updateDraftBody struct {
 	ClearEffectiveTo bool            `json:"clearEffectiveTo"`
 	Content          json.RawMessage `json:"content"`
 	Reason           string          `json:"reason"`
+	Origin           *Origin         `json:"origin"` // set when the change was proposed by an AI step and approved by the caller
 }
 
 // updateDraft edits a draft (or a validated version, which returns it to draft). It needs
@@ -452,6 +453,9 @@ func updateDraft(c *call) modulesdk.Response {
 		return e.response()
 	}
 	if e := requireReason(b.Reason); e != nil {
+		return e.response()
+	}
+	if e := b.Origin.check(); e != nil {
 		return e.response()
 	}
 	cur, e := loadVersion(c.host, c.id, configID, n, true)
@@ -502,7 +506,7 @@ func updateDraft(c *call) modulesdk.Response {
 		return classify(err).response()
 	}
 	if err := audit(c.host, c.id, configID, n, "update_draft", b.Reason, cur.Status, "draft", digest,
-		map[string]any{"previousDigest": cur.ContentDigest, "changes": model.DescribeChanges(model.DiffContent(cur.Content, content))}); err != nil {
+		updateDetail(cur.ContentDigest, model.DescribeChanges(model.DiffContent(cur.Content, content)), b.Origin)); err != nil {
 		return errInternal("audit write failed").response()
 	}
 	v, ae := loadVersion(c.host, c.id, configID, n, true)

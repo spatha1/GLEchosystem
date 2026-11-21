@@ -70,6 +70,18 @@ Read models over one stored version, computed from its content on every read, so
 
 Saving a draft (`PUT`) or creating a version from another (`basedOnVersion`) records in the audit trail which items changed, e.g. `changed postingRules PR_PREM_ADDED (lines/AR0_DR, lines/PW0_CR)`. Posting rules can be deactivated (`active: false`) and dated (`effectiveFrom`/`effectiveTo` on the book date) within a version. Plans carry every derived measure evaluated, with its lineage.
 
+## AI-assisted configuration from a BRD (proposals only)
+
+An editor uploads a business requirements document (Word `.docx`, text or Markdown, at most 1.5 MB) and the AI proposes the configuration one step at a time, each approved by the editor before the next: **1. business events → 2. measures → 3. formulas → 4. debit and credit lines with synthetic test cases (LHS = RHS)**. Mapping and data collection are separate (Data Workbench) and never pass through the AI.
+
+- **Every proposal is checked.** Each item quotes the BRD sentences it relies on, and every quote is checked against the text; a quote not found is flagged. The engine validates the draft with the proposal exactly as saving would, runs the test cases (debits must equal credits per company and currency), and the AI repairs what the engine finds, at most 3 attempts. Anything still wrong is shown, never hidden.
+- **Nothing is saved by the AI.** The editor approves a step and the studio saves it to the draft with a reason; the audit trail records `origin: {kind: AI_STEP, step, provider, model, brd}`. Validation, and approval by someone who did not edit the version, are unchanged.
+- **Guardrails in code, not only in the prompt.** Account numbers and assignment rules are never proposed: a person enters them (gaps), and so are a closed dimension's values. Catalog events and measures come first; custom ones are flagged. An event that lists business keys always lists its economic key. Only drafts, only `CONFIG_EDITOR`. A trial run gives classes still without an account an in-memory placeholder so the balance can be checked; it is never saved.
+- **Provider.** OpenAI chat completions in JSON mode, configured by a settings file named in `GL_AI_SETTINGS`, in the QA Workbench's format: `AI_PROVIDER=openai`, `OPENAI_API_KEY`, `OPENAI_MODEL` (default `gpt-4.1`), `OPENAI_BASE_URL` (HTTPS or this machine only), `AI_ENABLED`. The file is read on every request; the key is never logged, stored or sent to the browser. Without it, `GET /ai/status` says why and the studio works without AI.
+- **Data sent to the provider:** the BRD text and the configuration (codes, names, formulas, rules). Never policy or customer data. Do not upload a BRD that contains personal data.
+- **API:** `GET /ai/status`; `POST /configs/{id}/versions/{n}/ai/brd` (read the document; nothing goes to the AI); `POST /configs/{id}/versions/{n}/ai/steps/{events|measures|formulas|rules}`.
+- **Sample:** `acme.all.all.gl.spec/_harness/fixtures/brd/motor-renewals-brd.md` (synthetic). The tests take it through all four steps with a stand-in for the provider and end with a configuration that validates once a person has entered the account numbers.
+
 ## Roles and maker-checker (US-004)
 
 Identity comes from the platform: the app core sets `x-mycel-user`, and the request names its tenant in `x-gl-tenant`. **What a user may do in a tenant is GL's own decision**, stored per tenant in `role_assignment`:

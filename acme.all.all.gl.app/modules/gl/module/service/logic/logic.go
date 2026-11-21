@@ -130,6 +130,9 @@ var routes = []route{
 	r("GET", "/configs/{configId}/versions/{version}/pipeline", roleGated, versionPipeline, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/check", roleGated, checkDraft, roleEditors...),
 	r("POST", "/configs/{configId}/versions/{version}/accounts/check", roleGated, checkAccount, roleReaders...),
+	r("GET", "/ai/status", authenticated, aiStatus),
+	r("POST", "/configs/{configId}/versions/{version}/ai/brd", roleGated, aiReadBRD, roleEditors...),
+	r("POST", "/configs/{configId}/versions/{version}/ai/steps/{step}", roleGated, aiStep, roleEditors...),
 }
 
 func match(rt route, segs []string) (map[string]string, bool) {

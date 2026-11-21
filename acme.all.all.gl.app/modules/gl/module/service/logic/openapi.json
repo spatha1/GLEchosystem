@@ -1304,6 +1304,158 @@
           }
         }
       }
+    },
+    "/m/gl/ai/status": {
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_aiStatus",
+        "summary": "Whether AI drafting from a BRD is available on this server, with the provider and model, or why not (no settings file, no key, switched off). The key is never returned.",
+        "responses": {
+          "200": {
+            "description": "available, provider, model, reason"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/ai/brd": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_aiReadBRD",
+        "summary": "Read a business requirements document (Word .docx, text or Markdown, at most 1.5 MB) into text for the AI steps. Draft versions, CONFIG_EDITOR. Nothing is sent to the AI and nothing is stored.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "data"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "data": {
+                    "type": "string",
+                    "description": "the file's content, base64"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "name, chars, text"
+          },
+          "400": {
+            "description": "unsupported, empty or oversized document"
+          },
+          "409": {
+            "description": "the version is not a draft"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/ai/steps/{step}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        },
+        {
+          "name": "step",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "events",
+              "measures",
+              "formulas",
+              "rules"
+            ]
+          }
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_aiStep",
+        "summary": "One AI step from a BRD against the draft as it is: events, then measures, then formulas, then debit/credit lines with synthetic test cases (LHS = RHS). The proposal quotes its BRD evidence (checked against the text), is validated by the engine and repaired by the AI at most 3 times; account numbers and closed-dimension values are left to a person (gaps). Nothing is saved: the person approves and the studio saves with PUT and origin AI_STEP. Draft versions, CONFIG_EDITOR.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "brd"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "brd": {
+                    "type": "object",
+                    "required": [
+                      "name",
+                      "text"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string",
+                        "maxLength": 200000
+                      }
+                    }
+                  },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 4000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "configId, version, contentDigest, proposal {step, provider, model, items, gaps, questions, notes, findings, problems, cases, balance, attempts, usage}"
+          },
+          "409": {
+            "description": "the version is not a draft"
+          },
+          "503": {
+            "description": "AI_UNAVAILABLE: not set up, or the provider failed"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1463,6 +1615,41 @@
           },
           "reason": {
             "type": "string"
+          },
+          "origin": {
+            "type": "object",
+            "required": [
+              "kind",
+              "step"
+            ],
+            "additionalProperties": false,
+            "description": "set when the change was proposed by an AI step and approved by the caller; recorded in the audit trail",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "AI_STEP"
+                ]
+              },
+              "step": {
+                "type": "string",
+                "enum": [
+                  "events",
+                  "measures",
+                  "formulas",
+                  "rules"
+                ]
+              },
+              "provider": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string"
+              },
+              "brd": {
+                "type": "string"
+              }
+            }
           }
         }
       },

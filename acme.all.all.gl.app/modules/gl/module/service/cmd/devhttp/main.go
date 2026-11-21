@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"gl/ai"
 	"gl/logic"
 	"gl/pghost"
 
@@ -57,6 +58,8 @@ func main() {
 			log.Fatalf("GL_DEV_SEED_ROLES: %v", err)
 		}
 	}
+	// AI drafting (BRD steps) reads its provider settings from GL_AI_SETTINGS on each request; unset, the studio says AI is not set up.
+	logic.AIDrafter = func() ai.Drafter { return ai.Load(os.Getenv("GL_AI_SETTINGS")) }
 	prefix := "/m/" + logic.Token + "/"
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {

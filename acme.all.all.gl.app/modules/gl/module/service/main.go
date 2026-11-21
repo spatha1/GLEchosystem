@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 
+	"gl/ai"
 	"gl/logic"
 
 	modulesdk "github.com/mycelpf/mycel_module_sdk"
@@ -18,6 +19,8 @@ const contractVersion = "0.2.0"
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
+	// AI drafting reads its provider settings from this file on each request; without it the studio says AI is not set up.
+	logic.AIDrafter = func() ai.Drafter { return ai.Load(os.Getenv("GL_AI_SETTINGS")) }
 	server.Serve(descriptor())
 }
 

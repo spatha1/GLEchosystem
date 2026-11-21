@@ -12,6 +12,9 @@
 !**/.mycel.infra/secrets/.gitkeep
 *.pem
 *.key
+# AI provider settings (GL_AI_SETTINGS): hold an API key
+*ai-settings*
+*.ai.env
 
 # Agent instruction files (local)
 CLAUDE.md
