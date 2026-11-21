@@ -34,7 +34,9 @@ type AssignmentRule struct {
 
 const wildcard = "*"
 
-var pseudoDimensions = []string{"ENTITY", "CURRENCY"}
+// pseudoDimensions are matched from the line itself, not from a source field: its legal entity,
+// its currency and (ALTB-03) the type of the event that produced it.
+var pseudoDimensions = []string{"ENTITY", "CURRENCY", "EVENT_TYPE"}
 
 func (r AssignmentRule) ledger() string {
 	if r.Ledger == "" {
@@ -197,10 +199,16 @@ func validateAssignments(d *Document) []Finding {
 				if c, ok := idx["COMPANY"]; ok && v != wildcard && !idx.open("COMPANY") && len(c.Values) > 0 && !oneOf(v, c.Values) {
 					fs = append(fs, errf(p, "UNKNOWN_DIMENSION_VALUE", "rule %s matches ENTITY %q, which is not a COMPANY value", r.Code, v))
 				}
+			case k == "EVENT_TYPE":
+				if v != wildcard && !hasEvent(d, v) {
+					fs = append(fs, errf(p, "UNKNOWN_EVENT_TYPE", "rule %s matches EVENT_TYPE %q, which is not an event type of this configuration", r.Code, v))
+				} else if v != wildcard && !eventPostsClass(d, v, r.Class) {
+					fs = append(fs, warnf(p, "ASSIGNMENT_NEVER_APPLIES", "rule %s matches EVENT_TYPE %s, but no posting rule of %s has a %s line, so it never applies", r.Code, v, v, r.Class))
+				}
 			default:
 				x, ok := idx[k]
 				if !ok && k != "BOOKING_CLASS" {
-					fs = append(fs, errf(p, "UNKNOWN_DIMENSION", "rule %s matches on %s, which is not a configured dimension (or ENTITY, CURRENCY)", r.Code, k))
+					fs = append(fs, errf(p, "UNKNOWN_DIMENSION", "rule %s matches on %s, which is not a configured dimension (or ENTITY, CURRENCY, EVENT_TYPE)", r.Code, k))
 				} else if ok && v != wildcard && !idx.open(k) && len(x.Values) > 0 && !oneOf(v, x.Values) {
 					fs = append(fs, errf(p, "UNKNOWN_DIMENSION_VALUE", "rule %s matches %s = %q, which is not one of its values (%s)", r.Code, k, v, strings.Join(x.Values, ", ")))
 				}
@@ -334,6 +342,7 @@ func AssignAccounts(d *Document, ref ConfigRef, p *PostingPlan, bookDate time.Ti
 		for k, v := range l.Dimensions {
 			vals[k] = v
 		}
+		vals["EVENT_TYPE"] = p.EventType // ALTB-03: always the event's own type, never a dimension of that name
 		a, err := AssignAccount(d, ref, l.Class, vals, bookDate)
 		l.Assignment = &a
 		if err == nil {
@@ -372,4 +381,29 @@ func PreviewPosting(d *Document, ref ConfigRef, in EventInput) (*PostingPlan, er
 	}
 	p.BookDate = day
 	return p, AssignAccounts(d, ref, p, t)
+}
+
+// hasEvent says whether the configuration declares an event type.
+func hasEvent(d *Document, code string) bool {
+	for _, e := range d.Events {
+		if e.Code == code {
+			return true
+		}
+	}
+	return false
+}
+
+// eventPostsClass says whether some posting rule of the event has a line of the class.
+func eventPostsClass(d *Document, event, class string) bool {
+	for _, r := range d.PostingRules {
+		if r.EventType != event {
+			continue
+		}
+		for _, l := range r.Lines {
+			if l.Class == class {
+				return true
+			}
+		}
+	}
+	return false
 }

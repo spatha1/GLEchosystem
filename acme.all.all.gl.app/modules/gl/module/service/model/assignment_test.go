@@ -302,3 +302,76 @@ func TestAssignmentRuleValidation(t *testing.T) {
 		}
 	}
 }
+
+// withRule adds one assignment rule to the demo set.
+func withRule(r map[string]any) func(c map[string]any) {
+	return func(c map[string]any) { c["accountAssignmentRules"] = append(c["accountAssignmentRules"].([]any), r) }
+}
+
+// ALTB-03: an assignment rule may match on the event type, like ENTITY and CURRENCY. The more
+// specific rule wins for that event only; other events keep their account.
+func TestEventTypeChoosesTheAccountForThatEventOnly(t *testing.T) {
+	d := assignmentDoc(t, withRule(assign("AA_AR0_INVOICED_MOTOR", "AR0", "9948500", map[string]any{"EVENT_TYPE": "INVOICED", "LOB": "MOTOR"})))
+	e2 := e2In()
+	e2.Dimensions["LOB"] = "MOTOR"
+	p := preview(t, d, e2)
+	for _, l := range p.Lines {
+		if l.Class != "AR0" {
+			continue
+		}
+		if l.Account != "9948500" || l.Assignment == nil || l.Assignment.Rule != "AA_AR0_INVOICED_MOTOR" {
+			t.Fatalf("an INVOICED motor AR0 line goes to 9948500 by the event-type rule: %+v", l.Assignment)
+		}
+		if !strings.Contains(strings.Join(l.Assignment.Why, "; "), "EVENT_TYPE = INVOICED (exact)") {
+			t.Errorf("the reason names the event type: %v", l.Assignment.Why)
+		}
+	}
+	if got := accountsOfPlan(preview(t, d, e1In())); got[0] != "AR0→9948523" {
+		t.Errorf("a PREM_ADDED motor AR0 line keeps 9948523: %v", got)
+	}
+}
+
+// ALTB-03: two equally specific rules that one line could match are still refused, never guessed.
+func TestEventTypeTiesAreRefused(t *testing.T) {
+	fs := validateMap(assignmentCatalog(withRule(assign("AA_AR0_INVOICED", "AR0", "9948500", map[string]any{"EVENT_TYPE": "INVOICED"}))))
+	if !hasCode(fs, "AMBIGUOUS_ASSIGNMENT") {
+		t.Errorf("EVENT_TYPE = INVOICED and LOB = MOTOR tie for an INVOICED motor line: %v", findingCodes(fs))
+	}
+}
+
+// ALTB-03: the event type must be one of the configuration's events; a rule for an event that
+// never posts the class is flagged; and the event type is never a field to collect.
+func TestEventTypeMatchValidationAndManifest(t *testing.T) {
+	fs := validateMap(assignmentCatalog(withRule(assign("AA_AR0_NOPE", "AR0", "9948500", map[string]any{"EVENT_TYPE": "NOPE", "LOB": "HOME"}))))
+	if !hasCode(fs, "UNKNOWN_EVENT_TYPE") {
+		t.Errorf("an unknown event type is refused: %v", findingCodes(fs))
+	}
+	fs = validateMap(assignmentCatalog(withRule(assign("AA_AR0_PAY", "AR0", "9948500", map[string]any{"EVENT_TYPE": "PAYMENT_RECEIVED", "LOB": "HOME"}))))
+	if !hasCode(fs, "ASSIGNMENT_NEVER_APPLIES") || hasCode(fs, "UNKNOWN_EVENT_TYPE") {
+		t.Errorf("PAYMENT_RECEIVED posts no AR0 line, so the rule never applies: %v", findingCodes(fs))
+	}
+	c := assignmentCatalog(withRule(assign("AA_AR0_INVOICED_MOTOR", "AR0", "9948500", map[string]any{"EVENT_TYPE": "INVOICED", "LOB": "MOTOR"})))
+	fs = validateMap(c)
+	if hasCode(fs, "ASSIGNMENT_DIMENSION_NOT_CARRIED") || hasCode(fs, "UNKNOWN_DIMENSION") || len(errorsOf(fs)) > 0 {
+		t.Errorf("EVENT_TYPE is matched from the event itself: %v", findingCodes(fs))
+	}
+	m, _ := CompileManifest(docOf(t, c), "DEMO", demoRef)
+	for _, ev := range m.Events {
+		for _, f := range ev.Fields {
+			if f.FieldCode == "EVENT_TYPE" {
+				t.Errorf("%s asks the source for EVENT_TYPE", ev.EventType)
+			}
+		}
+	}
+}
+
+// ALTB-03: a line's dimensions cannot overwrite the event type it is matched on.
+func TestEventTypeCannotBeOverwrittenByADimension(t *testing.T) {
+	d := assignmentDoc(t, withRule(assign("AA_AR0_INVOICED_MOTOR", "AR0", "9948500", map[string]any{"EVENT_TYPE": "INVOICED", "LOB": "MOTOR"})))
+	p := &PostingPlan{EventType: "INVOICED", Lines: []PlannedLine{{Class: "AR0", Side: "C", Amount: "1.00", Currency: "AUD", Entity: "C01",
+		Keys: map[string]string{"POLICY_NO": "P1"}, Dimensions: map[string]string{"LOB": "MOTOR", "EVENT_TYPE": "PREM_ADDED"}}}}
+	_ = AssignAccounts(d, demoRef, p, day("2026-01-05"))
+	if a := p.Lines[0].Assignment; a == nil || a.Rule != "AA_AR0_INVOICED_MOTOR" {
+		t.Errorf("the plan's event type is used, not a dimension value: %+v", a)
+	}
+}

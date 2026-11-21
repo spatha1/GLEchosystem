@@ -959,7 +959,7 @@
             "type": "string",
             "minLength": 1
           },
-          "description": "Dimension (or ENTITY, CURRENCY, BOOKING_CLASS) → exact value, or \"*\" for any present value; unnamed dimensions do not matter"
+          "description": "Dimension (or ENTITY, CURRENCY, EVENT_TYPE, BOOKING_CLASS) → exact value, or \"*\" for any present value; unnamed dimensions do not matter. EVENT_TYPE is the type of the event that produced the line"
         },
         "account": {
           "type": "string",

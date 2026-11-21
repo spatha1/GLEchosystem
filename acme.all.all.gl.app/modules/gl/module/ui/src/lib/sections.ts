@@ -529,8 +529,9 @@ export const specs: Record<string, SectionSpec> = {
 				label: 'When (dimension = value; * = any value)',
 				type: 'pairs',
 				wide: true,
-				// CURRENCY is also a standard dimension: list each key once.
-				pairKeys: (c, cat) => uniq([...dimensionOptions(c, cat), ...opt(['ENTITY', 'CURRENCY'])])
+				// CURRENCY is also a standard dimension: list each key once. EVENT_TYPE (ALTB-03) is the
+				// type of the event that produced the line; its value is an event code.
+				pairKeys: (c, cat) => uniq([...dimensionOptions(c, cat), ...opt(['ENTITY', 'CURRENCY', 'EVENT_TYPE'])])
 			},
 			{
 				key: 'account',

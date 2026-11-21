@@ -126,6 +126,9 @@ describe('section editors', () => {
 		};
 		for (const [name, spec] of Object.entries(specs)) walk(name, spec.fields);
 		expect(found).toEqual([]);
+		// ALTB-03: an assignment rule can also match on the event type.
+		const match = specs.accountAssignmentRules.fields.find((f) => f.key === 'match')!;
+		expect(match.pairKeys!(c, cat, {}).map((o) => o.value)).toEqual(expect.arrayContaining(['ENTITY', 'CURRENCY', 'EVENT_TYPE', 'LOB']));
 	});
 });
 

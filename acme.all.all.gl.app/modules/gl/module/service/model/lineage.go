@@ -756,6 +756,8 @@ func (b *graphBuilder) accounts(class string, list *EventList) {
 			switch k {
 			case "ENTITY":
 				continue // the line's legal entity, already needed by the line
+			case "EVENT_TYPE":
+				continue // the event itself (ALTB-03): never a field to collect
 			case "CURRENCY":
 				src = fieldID("", "CURRENCY")
 			default:
