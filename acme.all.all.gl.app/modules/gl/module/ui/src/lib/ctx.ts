@@ -1,6 +1,6 @@
 // What every screen inside a version needs: the version (with its content), who is
 // looking, whether they may edit it, and how to save, reload and navigate.
-import type { Client } from './api';
+import type { Client, Origin } from './api';
 import type { Me } from './types';
 import type { Content, VersionFull } from './studio';
 import type { Route } from './route';
@@ -17,8 +17,8 @@ export interface Ctx {
 	isEditor: boolean;
 	route: Route;
 	go: (r: Route) => void;
-	/** Saves edited content to this draft (PUT with the digest it was read at). */
-	save: (content: Content, reason: string) => Promise<void>;
+	/** Saves edited content to this draft (PUT with the digest it was read at); origin marks an approved AI proposal. */
+	save: (content: Content, reason: string, origin?: Origin) => Promise<void>;
 	/** Opens the "new draft from this version" dialog; then navigates to `then` in the draft. */
 	startDraft: (then?: Route) => void;
 	/** Increments whenever the version is reloaded, so views refetch. */

@@ -19,6 +19,14 @@ export const versionViews: VersionView[] = [
 			'The business events this version configures. Select one to see what it is, where its data comes from, how its measures are calculated, which rules post it, which source fields it needs, and to simulate it.'
 	},
 	{
+		key: 'ai',
+		label: 'Configure from a BRD',
+		short: 'AI',
+		icon: 'ai',
+		purpose:
+			'Upload a business requirements document. The AI proposes the business events, then the measures, then the formulas, then the debit and credit lines with test cases, and you approve each step before it is saved to this draft.'
+	},
+	{
 		key: 'fields',
 		label: 'Required fields',
 		short: 'Fields',

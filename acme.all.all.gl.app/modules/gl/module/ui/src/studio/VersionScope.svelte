@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Client, ApiError } from '../lib/api';
+	import type { Client, ApiError, Origin } from '../lib/api';
 	import type { Me } from '../lib/types';
 	import type { Content, EventSummary, Stage, VersionFull } from '../lib/studio';
 	import type { Finding } from '../lib/types';
@@ -21,6 +21,7 @@
 	import AccountsPage from './AccountsPage.svelte';
 	import HistoryPage from './HistoryPage.svelte';
 	import SectionEditor from './SectionEditor.svelte';
+	import AIWizard from './AIWizard.svelte';
 	import { specs } from '../lib/sections';
 	import { viewOf } from '../lib/views';
 
@@ -96,9 +97,9 @@
 		}
 	}
 
-	async function save(content: Content, reason: string) {
+	async function save(content: Content, reason: string, origin?: Origin) {
 		if (!version) return;
-		await api.saveDraft(configId, n, version.contentDigest, content, reason);
+		await api.saveDraft(configId, n, version.contentDigest, content, reason, origin);
 		await load();
 	}
 
@@ -248,6 +249,8 @@
 						onsaved={(code) => code && go({ configId, version: n, event: code })}
 					/>
 				</div>
+			{:else if tab === 'ai'}
+				<AIWizard {ctx} />
 			{:else if tab === 'fields'}
 				<FieldsPage {ctx} />
 			{:else if tab === 'mapping'}

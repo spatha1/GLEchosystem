@@ -14,6 +14,16 @@ import type {
 	VersionFull
 } from './studio';
 import type { EventCatalog, MeasureDef } from './sections';
+import type { AIProposal, AIStatus, AIStepName, BRDText } from './ai';
+
+/** Where a saved change came from, recorded in the audit trail. */
+export interface Origin {
+	kind: 'AI_STEP';
+	step: AIStepName;
+	provider?: string;
+	model?: string;
+	brd?: string;
+}
 
 export const BASE = '/m/gl';
 
@@ -79,8 +89,13 @@ export function client(tenant: string, fetcher: Fetcher = (i, o) => fetch(i, o))
 		newDraft: (id: string, basedOn: number, effectiveFrom: string, reason: string) =>
 			call<VersionFull>('POST', c(id) + '/versions', { basedOnVersion: basedOn, effectiveFrom, reason }),
 		/** Save edited content to a draft; baseDigest guards against overwriting another editor. */
-		saveDraft: (id: string, n: number, baseDigest: string, content: unknown, reason: string) =>
-			call<VersionFull>('PUT', v(id, n), { baseDigest, content, reason }),
+		saveDraft: (id: string, n: number, baseDigest: string, content: unknown, reason: string, origin?: Origin) =>
+			call<VersionFull>('PUT', v(id, n), origin ? { baseDigest, content, reason, origin } : { baseDigest, content, reason }),
+		/** AI: whether it is set up; read a BRD; one step's proposal (nothing is saved). */
+		aiStatus: () => call<AIStatus>('GET', '/ai/status'),
+		aiReadBRD: (id: string, n: number, name: string, data: string) => call<BRDText & { chars: number }>('POST', v(id, n) + '/ai/brd', { name, data }),
+		aiStep: (id: string, n: number, step: AIStepName, brd: BRDText, notes?: string) =>
+			call<{ contentDigest: string; proposal: AIProposal }>('POST', v(id, n) + '/ai/steps/' + step, notes ? { brd, notes } : { brd }),
 		/** Validate edited content without saving it. */
 		check: (id: string, n: number, content: unknown) =>
 			call<{ ok: boolean; findings: Finding[]; contentDigest: string; changes: ItemChange[] }>('POST', v(id, n) + '/check', { content }),
