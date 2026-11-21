@@ -9,7 +9,7 @@
 	import type { PlannedLine } from '../lib/types';
 	import { clone, uniqueCode, withScenario } from '../lib/content';
 	import { amount } from '../lib/format';
-	import { glossary, sideWord } from '../lib/explain';
+	import { glossary, movementWord, natureWord, sideWord } from '../lib/explain';
 	import Formula from './Formula.svelte';
 	import LegLineage from './LegLineage.svelte';
 	import ReasonDialog from '../components/ReasonDialog.svelte';
@@ -404,20 +404,24 @@
 						{#if e.total}<span class="badge {e.total.balanced ? 'ok' : 'bad'}">{e.total.balanced ? 'balanced' : 'not balanced'} · Dr {amount(e.total.debit)} · Cr {amount(e.total.credit)}</span>{/if}
 					</div>
 					<table class="data jt">
-						<colgroup><col style="width:4%" /><col style="width:26%" /><col style="width:8%" /><col style="width:12%" /><col style="width:12%" /><col style="width:12%" /><col /></colgroup>
-						<thead><tr><th>#</th><th>Account</th><th>Class</th><th class="num">Debit</th><th class="num">Credit</th><th>Rule line</th><th>Keys</th></tr></thead>
+						<colgroup><col style="width:4%" /><col style="width:22%" /><col style="width:8%" /><col style="width:15%" /><col style="width:11%" /><col style="width:11%" /><col style="width:11%" /><col /></colgroup>
+						<thead><tr><th>#</th><th>Account</th><th>Class</th><th>Movement</th><th class="num">Debit</th><th class="num">Credit</th><th>Rule line</th><th>Keys</th></tr></thead>
 						<tbody>
 							{#each e.lines as l (l.lineNo)}
 								<tr class="leg" class:on={selected === l.lineNo} class:problem={!!l.problem} onclick={() => (selected = l.lineNo)}>
 									<td>{l.lineNo}</td>
 									<td><span class="mono"><b>{l.account ?? '—'}</b></span> <span class="small muted">{acctName(l.account)}</span></td>
 									<td class="mono">{l.class}</td>
+									<td
+										>{#if l.movement}<span class="mv {l.movement === 'INCREASE' ? 'inc' : 'dec'}">{movementWord(l.movement)}</span>
+											<span class="small muted">{natureWord(l.nature)}, normally {sideWord(l.normalSide ?? 'D').toLowerCase()}</span>{:else}—{/if}</td
+									>
 									<td class="num side-D">{l.side === 'D' ? amount(l.amount) : ''}</td>
 									<td class="num side-C">{l.side === 'C' ? amount(l.amount) : ''}</td>
 									<td class="mono small">{l.template}{l.item ? ` #${l.item}` : ''}</td>
 									<td class="small">{Object.entries(l.keys).map(([k, v]) => `${k} ${v}`).join(' · ')}</td>
 								</tr>
-								{#if l.problem}<tr class="prob"><td></td><td colspan="6"><div role="alert">{l.problem}</div></td></tr>{/if}
+								{#if l.problem}<tr class="prob"><td></td><td colspan="7"><div role="alert">{l.problem}</div></td></tr>{/if}
 							{/each}
 						</tbody>
 					</table>
@@ -443,6 +447,16 @@
 {/if}
 
 <style>
+	.mv {
+		font-weight: 600;
+		white-space: nowrap;
+	}
+	.mv.inc {
+		color: var(--gl-ok);
+	}
+	.mv.dec {
+		color: var(--gl-warn);
+	}
 	.sim {
 		display: grid;
 		gap: 14px;

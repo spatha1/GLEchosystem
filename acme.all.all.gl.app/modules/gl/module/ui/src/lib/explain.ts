@@ -30,6 +30,26 @@ export function natureWord(n?: string): string {
 	return (n ?? '').toLowerCase();
 }
 
+/** ALTB-01: a side increases a class when it is the class's normal side, else it decreases it. */
+export function movementOf(side: string, normalSide?: string): 'INCREASE' | 'DECREASE' | undefined {
+	if (!normalSide) return undefined;
+	return side === normalSide ? 'INCREASE' : 'DECREASE';
+}
+
+export function movementWord(m?: string): string {
+	return m === 'INCREASE' ? '▲ increases' : m === 'DECREASE' ? '▼ decreases' : '';
+}
+
+/** Why a configured line is a debit or a credit, for a positive amount and for a negative one. */
+export function movementText(side: string, cls?: { name: string; nature: string; normalSide: string }): string {
+	if (!cls) return '';
+	const m = movementOf(side, cls.normalSide);
+	const normally = cls.normalSide === 'D' ? 'debit' : 'credit';
+	const verb = m === 'INCREASE' ? 'increases' : 'decreases';
+	const other = m === 'INCREASE' ? 'decreases' : 'increases';
+	return `A positive amount ${verb} ${cls.name} (${natureWord(cls.nature)}, normally a ${normally}); a negative amount posts on the other side and ${other} it.`;
+}
+
 /** How a line's legal entity is decided. */
 export function entityText(v: EventView, lv: LineView): string {
 	const e = lv.line.entity?.trim();

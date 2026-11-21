@@ -355,3 +355,56 @@ func TestInvalidLinePlansFailValidation(t *testing.T) {
 		t.Errorf("posting without a rule: %v", err)
 	}
 }
+
+// movements renders why each line is a debit or a credit: "AR0 ASSET D D INCREASE".
+func movements(p *PostingPlan) []string {
+	var out []string
+	for _, l := range p.Lines {
+		out = append(out, l.Class+" "+l.Nature+" "+l.Side+" "+l.NormalSide+" "+l.Movement)
+	}
+	return out
+}
+
+// ALTB-01: every planned line says its class's nature, its normal side and whether the posted
+// side increases or decreases the class.
+func TestLinesSayWhyTheyAreDebitsOrCredits(t *testing.T) {
+	d := postingDoc(t, nil)
+	if got, want := movements(plan(t, d, e1In())), []string{"AR0 ASSET D D INCREASE", "PW0 INCOME C C INCREASE", "TX0 LIABILITY C C INCREASE"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("E1 movements: %v", got)
+	}
+	if got, want := movements(plan(t, d, e2In())), []string{"AR1 ASSET D D INCREASE", "AR1 ASSET D D INCREASE", "AR0 ASSET C D DECREASE", "AR0 ASSET C D DECREASE"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("E2 movements: %v", got)
+	}
+}
+
+// ALTB-01: the movement is read against the class's configured normal side, not its nature, so
+// a contra class (an asset that is normally a credit) reads correctly.
+func TestMovementFollowsTheConfiguredNormalSide(t *testing.T) {
+	d := postingDoc(t, func(c map[string]any) {
+		for _, x := range c["accountingClasses"].([]any) {
+			if m := x.(map[string]any); m["code"] == "AR0" {
+				m["normalSide"] = "C"
+			}
+		}
+	})
+	p := plan(t, d, e1In())
+	if got := movements(p)[0]; got != "AR0 ASSET D C DECREASE" {
+		t.Errorf("a debit to a credit-normal asset class decreases it: %s", got)
+	}
+	if got := movements(p)[1]; got != "PW0 INCOME C C INCREASE" {
+		t.Errorf("other classes keep their default: %s", got)
+	}
+}
+
+// ALTB-01: a negative amount flips the side, and the movement follows the side actually posted.
+func TestNegativeAmountsFlipTheMovementWithTheSide(t *testing.T) {
+	in := e1In()
+	in.Measures = map[string]string{"PREMIUM": "-1000.00", "TAX": "-100.00"}
+	p := plan(t, postingDoc(t, nil), in)
+	if got, want := movements(p), []string{"AR0 ASSET C D DECREASE", "PW0 INCOME D C DECREASE", "TX0 LIABILITY D C DECREASE"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("negative E1 movements: %v", got)
+	}
+	if !p.Balanced {
+		t.Errorf("a flipped plan still balances: %+v", p.Totals)
+	}
+}

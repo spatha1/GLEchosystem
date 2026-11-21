@@ -4,6 +4,7 @@ import { amount, digest, keyList, when } from './format';
 import { actionsFor } from './permissions';
 import type { Me, Version } from './types';
 import { specs, type Catalog, type Field, type Option } from './sections';
+import { movementOf, movementText, movementWord } from './explain';
 
 describe('format', () => {
 	it('regroups exact decimals without floating point', () => {
@@ -125,5 +126,19 @@ describe('section editors', () => {
 		};
 		for (const [name, spec] of Object.entries(specs)) walk(name, spec.fields);
 		expect(found).toEqual([]);
+	});
+});
+
+describe('movement (ALTB-01)', () => {
+	it("reads a side against the class's normal side, so a contra class reads correctly", () => {
+		expect(movementOf('D', 'D')).toBe('INCREASE');
+		expect(movementOf('C', 'D')).toBe('DECREASE');
+		expect(movementOf('D', 'C')).toBe('DECREASE');
+		expect(movementOf('D', undefined)).toBeUndefined();
+		expect(movementWord('INCREASE')).toBe('▲ increases');
+		expect(movementWord('DECREASE')).toBe('▼ decreases');
+		expect(movementText('D', { name: 'Provision for doubtful premium', nature: 'ASSET', normalSide: 'C' })).toBe(
+			'A positive amount decreases Provision for doubtful premium (asset, normally a credit); a negative amount posts on the other side and increases it.'
+		);
 	});
 });

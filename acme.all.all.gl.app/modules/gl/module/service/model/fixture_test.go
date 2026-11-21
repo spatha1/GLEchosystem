@@ -81,3 +81,32 @@ func TestGLTest001ConfigurationReproducesTheWalkthroughJournals(t *testing.T) {
 		}
 	}
 }
+
+// ALTB-01: on GL-TEST-001, every E1–E3 line says which way it moves its class: the receivable
+// allocations decrease AR1, everything else increases its class.
+func TestGLTest001LinesSayTheirMovement(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join(spec, "_harness", "fixtures", "GL-TEST-001.config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, _ := Parse(b)
+	e2 := e2In()
+	e2.Dimensions["LOB"] = "MOTOR"
+	for _, c := range []struct {
+		name string
+		in   EventInput
+		want []string
+	}{
+		{"E1", e1In(), []string{"AR0 ASSET D D INCREASE", "PW0 INCOME C C INCREASE", "TX0 LIABILITY C C INCREASE"}},
+		{"E2", e2, []string{"AR1 ASSET D D INCREASE", "AR1 ASSET D D INCREASE", "AR0 ASSET C D DECREASE", "AR0 ASSET C D DECREASE"}},
+		{"E3", e3In("BANK-C09"), []string{"PR0 ASSET D D INCREASE", "IC1 LIABILITY C C INCREASE", "IC0 ASSET D D INCREASE", "AR1 ASSET C D DECREASE", "AR1 ASSET C D DECREASE"}},
+	} {
+		p, err := PreviewPosting(doc, demoRef, c.in)
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		if got := movements(p); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s movements:\n got %v\nwant %v", c.name, got, c.want)
+		}
+	}
+}

@@ -137,6 +137,14 @@ describe('rule page', () => {
 		expect(within(lines).getAllByText('Credit')).toHaveLength(2);
 		expect(within(lines).getByText(/AA_AR0_MOTOR: 9948523 .* when LOB = MOTOR/)).toBeTruthy();
 	});
+	it('says why each line is a debit or a credit: the movement it makes on its class (ALTB-01)', () => {
+		const ctx = ctxFor({ route: { configId: 'GL_TEST_001', version: 1, event: 'PREM_ADDED', rule: 'PR_PREM_ADDED' } });
+		render(RulePage, { ctx, view: prem });
+		const lines = screen.getByRole('heading', { name: /Debit and credit lines/ }).closest('section')!;
+		expect(within(lines).getAllByText('▲ increases')).toHaveLength(3);
+		expect(within(lines).getByText(/A positive amount increases Policy receivable \(asset, normally a debit\); a negative amount posts on the other side and decreases it\./)).toBeTruthy();
+		expect(within(lines).getByText(/A positive amount increases Tax payable \(liability, normally a credit\)/)).toBeTruthy();
+	});
 	it('in a draft, deactivating saves the rule as inactive with a reason', async () => {
 		const ctx = ctxFor({ route: { configId: 'GL_TEST_001', version: 2, event: 'PREM_ADDED', rule: 'PR_PREM_ADDED' }, canEdit: true });
 		ctx.version = { ...ctx.version, version: 2, status: 'draft' };
@@ -180,6 +188,9 @@ describe('simulation', () => {
 		expect((ctx.api.plan as any).mock.calls[0][2].lists.ALLOCATION_LIST).toHaveLength(2);
 		const journal = screen.getByRole('heading', { name: /^Journal/ }).closest('section')!;
 		expect(within(journal).getAllByText(/balanced · Dr 1,099.50 · Cr 1,099.50/)).toHaveLength(2); // C09 and C01, each balanced
+		expect(within(journal).getAllByText('▲ increases')).toHaveLength(3); // cash, due to, due from
+		expect(within(journal).getAllByText('▼ decreases')).toHaveLength(2); // the two invoice allocations reduce the receivable
+		expect(within(journal).getAllByText('asset, normally debit').length).toBeGreaterThan(0);
 		await vi.waitFor(() => expect(screen.getByText('Matches expectation')).toBeTruthy());
 		const alloc = within(journal).getByText('550.00').closest('tr')!;
 		await fireEvent.click(alloc);

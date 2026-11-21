@@ -318,6 +318,21 @@ type PlannedLine struct {
 	Ledger      string            `json:"ledger,omitempty"`     // US-013
 	Assignment  *Assignment       `json:"assignment,omitempty"` // US-013: rule, version and why
 	Problem     string            `json:"problem,omitempty"`    // why the line cannot post
+	// ALTB-01: why the line is a debit or a credit. Nature and NormalSide come from the line's
+	// accounting class (the configured normal side, else the default for its nature); Movement
+	// says whether the side actually posted (after a negative amount flips it) increases the class.
+	Nature     string `json:"nature,omitempty"`     // ASSET | LIABILITY | EQUITY | INCOME | EXPENSE
+	NormalSide string `json:"normalSide,omitempty"` // D | C
+	Movement   string `json:"movement,omitempty"`   // INCREASE | DECREASE
+}
+
+// Movement is INCREASE when side is the class's normal side, else DECREASE: a debit to a
+// debit-normal class (or a credit to a credit-normal one) increases its balance.
+func Movement(c AccountingClass, side string) string {
+	if side == c.Side() {
+		return "INCREASE"
+	}
+	return "DECREASE"
 }
 
 // BalanceTotal is one entity and currency's debits and credits.
@@ -550,8 +565,12 @@ func PlanPosting(d *Document, ref ConfigRef, in EventInput) (*PostingPlan, error
 					expl += fmt.Sprintf(" for %s item %d", l.list.Code, sc.item)
 				}
 			}
-			plan.Lines = append(plan.Lines, PlannedLine{LineNo: len(plan.Lines) + 1, Template: l.Code, Item: sc.item, Class: l.Class, Side: side,
-				Amount: s, Currency: v.Currency, Entity: entity, Keys: lk, Dimensions: ld, Explanation: expl + note, Trace: tr})
+			pl := PlannedLine{LineNo: len(plan.Lines) + 1, Template: l.Code, Item: sc.item, Class: l.Class, Side: side,
+				Amount: s, Currency: v.Currency, Entity: entity, Keys: lk, Dimensions: ld, Explanation: expl + note, Trace: tr}
+			if c, ok := ClassOf(d, l.Class); ok {
+				pl.Nature, pl.NormalSide, pl.Movement = c.Nature, c.Side(), Movement(c, side)
+			}
+			plan.Lines = append(plan.Lines, pl)
 		}
 	}
 

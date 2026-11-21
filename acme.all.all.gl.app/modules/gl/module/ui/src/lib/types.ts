@@ -110,6 +110,10 @@ export interface PlannedLine {
 	ledger?: string;
 	assignment?: Assignment;
 	problem?: string;
+	/** ALTB-01: the class's nature, its normal side and whether the posted side increases it. */
+	nature?: string;
+	normalSide?: 'D' | 'C';
+	movement?: 'INCREASE' | 'DECREASE';
 }
 
 export interface RuleMatch {

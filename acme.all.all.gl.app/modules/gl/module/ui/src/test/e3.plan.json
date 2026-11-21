@@ -67,7 +67,10 @@
        "reason": "default for class PR0 (matches any line)"
       }
      ]
-    }
+    },
+    "nature": "ASSET",
+    "normalSide": "D",
+    "movement": "INCREASE"
    },
    {
     "lineNo": 2,
@@ -118,7 +121,10 @@
        "reason": "default for class IC1 (matches any line)"
       }
      ]
-    }
+    },
+    "nature": "LIABILITY",
+    "normalSide": "C",
+    "movement": "INCREASE"
    },
    {
     "lineNo": 3,
@@ -169,7 +175,10 @@
        "reason": "default for class IC0 (matches any line)"
       }
      ]
-    }
+    },
+    "nature": "ASSET",
+    "normalSide": "D",
+    "movement": "INCREASE"
    },
    {
     "lineNo": 4,
@@ -223,7 +232,10 @@
        "reason": "default for class AR1 (matches any line)"
       }
      ]
-    }
+    },
+    "nature": "ASSET",
+    "normalSide": "D",
+    "movement": "DECREASE"
    },
    {
     "lineNo": 5,
@@ -277,7 +289,10 @@
        "reason": "default for class AR1 (matches any line)"
       }
      ]
-    }
+    },
+    "nature": "ASSET",
+    "normalSide": "D",
+    "movement": "DECREASE"
    }
   ],
   "skipped": [],

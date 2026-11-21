@@ -2,7 +2,7 @@
 	import type { ApiError } from '../lib/api';
 	import type { Ctx } from '../lib/ctx';
 	import type { EventView, PostingRule } from '../lib/studio';
-	import { accountText, entityText, glossary, natureWord, ruleWhen, sideWord } from '../lib/explain';
+	import { accountText, entityText, glossary, movementOf, movementText, movementWord, natureWord, ruleWhen, sideWord } from '../lib/explain';
 	import { clone, newRule, uniqueCode, withRule, withoutRule, under } from '../lib/content';
 	import Formula from './Formula.svelte';
 	import RuleEditor from './RuleEditor.svelte';
@@ -181,12 +181,14 @@
 						<span class="mono"><b>{l.line.class}</b></span>
 						<span>{l.class?.name ?? 'unknown class'}</span>
 						<span class="muted small">· line {l.line.code}</span>
+						{#if l.class}{@const m = movementOf(l.line.side, l.class.normalSide)}<span class="mv {m === 'INCREASE' ? 'inc' : 'dec'}">{movementWord(m)}</span>{/if}
 					</div>
 					<ul class="explain">
 						<li>
 							<span class="k">Class</span>
 							<span>{l.class ? `${l.class.name}: ${natureWord(l.class.nature)}, normally a ${l.class.normalSide === 'D' ? 'debit' : 'credit'}, ${l.class.statement.replaceAll('_', ' ').toLowerCase()}` : 'not an accounting class'}</span>
 						</li>
+						{#if l.class}<li><span class="k">Movement</span> <span>{movementText(l.line.side, l.class)}</span></li>{/if}
 						<li>
 							<span class="k">Amount</span>
 							<span><Formula src={l.line.amount} {known} />
@@ -226,6 +228,16 @@
 {/if}
 
 <style>
+	.mv {
+		font-weight: 600;
+		font-size: 12.5px;
+	}
+	.mv.inc {
+		color: var(--gl-ok);
+	}
+	.mv.dec {
+		color: var(--gl-warn);
+	}
 	.rhead {
 		display: flex;
 		flex-wrap: wrap;
