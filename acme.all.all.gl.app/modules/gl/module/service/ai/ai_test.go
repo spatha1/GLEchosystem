@@ -428,3 +428,26 @@ func TestExtractText(t *testing.T) {
 		t.Fatalf("an oversized BRD is refused, never cut short: %v", err)
 	}
 }
+
+func TestEvaluateScoresARunOnReferenceDataOnly(t *testing.T) {
+	ref, err := ReferenceOnly(fixture(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(ref), "PREM_ADDED") {
+		t.Fatal("reference data only: no events, rules or scenarios")
+	}
+	good := &stub{answers: []string{eventsAnswer, measuresAnswer, formulasWrong, formulasRight, rulesAnswer(true)}}
+	rep := Evaluate(context.Background(), good, sampleBRD(t), ref, "2026-12-01", check)
+	if !rep.OK || len(rep.Steps) != 4 || rep.Findings != 0 || strings.Join(rep.Events, ",") != "RENEWAL" {
+		t.Fatalf("report %+v", rep)
+	}
+	ev, fo, ru := rep.Steps[0], rep.Steps[2], rep.Steps[3]
+	if ev.Quotes != 2 || ev.QuotesFound != 1 || fo.Attempts != 2 || ru.Cases != 2 || ru.CasesBalanced != 2 || ru.Gaps != 3 {
+		t.Fatalf("scores: events %+v formulas %+v rules %+v", ev, fo, ru)
+	}
+	bad := &stub{answers: []string{eventsAnswer, measuresAnswer, formulasRight, rulesAnswer(false), rulesAnswer(false), rulesAnswer(false)}}
+	if rep := Evaluate(context.Background(), bad, sampleBRD(t), ref, "2026-12-01", check); rep.OK || rep.Steps[3].CasesBalanced == rep.Steps[3].Cases {
+		t.Fatalf("an unbalanced rule must fail the run: %+v", rep.Steps[3])
+	}
+}
