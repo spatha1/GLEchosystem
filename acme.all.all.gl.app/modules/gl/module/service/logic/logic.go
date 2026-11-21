@@ -28,12 +28,15 @@ var (
 	Migration0001SQL string
 	//go:embed sql/0002_roles_maker_checker.sql
 	Migration0002SQL string
+	//go:embed sql/0003_sandbox_ledger.sql
+	Migration0003SQL string
 )
 
 // Ledger ids of the shipped migrations.
 const (
 	Migration0001ID = "0001_config_store"
 	Migration0002ID = "0002_roles_maker_checker"
+	Migration0003ID = "0003_sandbox_ledger"
 )
 
 // Migrations is the ordered list the module ships. main.go, the dev adapter and the tests
@@ -42,6 +45,7 @@ func Migrations() []modulesdk.Migration {
 	return []modulesdk.Migration{
 		{ID: Migration0001ID, SQL: Migration0001SQL},
 		{ID: Migration0002ID, SQL: Migration0002SQL},
+		{ID: Migration0003ID, SQL: Migration0003SQL},
 	}
 }
 
@@ -92,6 +96,8 @@ var (
 	roleEditors   = []string{RoleConfigEditor}
 	roleApprovers = []string{RoleConfigApprover}
 	roleAdmins    = []string{RoleAdmin}
+	// ALTB-05: operators run approved configuration, so they open sandbox books and post to them.
+	roleOperators = []string{RoleOperator}
 )
 
 var routes = []route{
@@ -131,6 +137,10 @@ var routes = []route{
 	r("GET", "/configs/{configId}/versions/{version}/pipeline", roleGated, versionPipeline, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/check", roleGated, checkDraft, roleEditors...),
 	r("POST", "/configs/{configId}/versions/{version}/accounts/check", roleGated, checkAccount, roleReaders...),
+	r("GET", "/ledger/sandbox/books", roleGated, listBooks, roleReaders...),
+	r("POST", "/ledger/sandbox/books", roleGated, createBook, roleOperators...),
+	r("GET", "/ledger/sandbox/books/{bookId}", roleGated, getBook, roleReaders...),
+	r("POST", "/ledger/sandbox/books/{bookId}/post", roleGated, postToBook, roleOperators...),
 	r("GET", "/ai/status", authenticated, aiStatus),
 	r("POST", "/configs/{configId}/versions/{version}/ai/brd", roleGated, aiReadBRD, roleEditors...),
 	r("POST", "/configs/{configId}/versions/{version}/ai/steps/{step}", roleGated, aiStep, roleEditors...),

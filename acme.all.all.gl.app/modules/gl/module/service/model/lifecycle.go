@@ -40,7 +40,12 @@ type LifecycleResult struct {
 // that cannot be posted (refused, unbalanced, or a line without a valid account), because every
 // later event may depend on it.
 func PreviewLifecycle(d *Document, ref ConfigRef, events []LifecycleEvent) LifecycleResult {
-	led := NewTempLedger(d)
+	return RunLifecycle(d, ref, events, NewTempLedger(d))
+}
+
+// RunLifecycle is PreviewLifecycle on a given ledger: an empty one for a preview, or one loaded
+// with a book's posted lines for a posting run (ALTB-05). Both go through this one loop.
+func RunLifecycle(d *Document, ref ConfigRef, events []LifecycleEvent, led *TempLedger) LifecycleResult {
 	res := LifecycleResult{Config: ref, Steps: []LifecycleStep{}}
 	for i, e := range events {
 		st := LifecycleStep{Step: i + 1, Code: e.Code}

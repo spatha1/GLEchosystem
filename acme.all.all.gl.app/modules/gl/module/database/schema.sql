@@ -14,3 +14,11 @@ set search_path to gl;
 --                   config_audit_append_only
 --   index           config_version_one_approved_start (one approved start per date)
 --   row-level security, FORCED, on all three tables: tenant_id = current_setting('gl.tenant_id')
+
+-- 0003_sandbox_ledger (ALTB-05)
+--   sandbox_book    (tenant_id, book_id) — sandbox = true (CHECK), pins config_id + config_version
+--   sandbox_posting (tenant_id, book_id, seq) — one source event (system, id, version) once per
+--                   book; its C6 journal entries (jsonb), book date, who/when
+--   sandbox_line    (tenant_id, book_id, line_id) — each posted line with the keys later events read
+--   triggers        sandbox_*_append_only (never updated or deleted)
+--   row-level security, FORCED, on all three tables: tenant_id = current_setting('gl.tenant_id')

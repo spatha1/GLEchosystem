@@ -1529,6 +1529,198 @@
           }
         }
       }
+    },
+    "/m/gl/ledger/sandbox/books": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_listSandboxBooks",
+        "summary": "List the tenant's sandbox ledger books (every book is a sandbox: synthetic data only)",
+        "responses": {
+          "200": {
+            "description": "books: id, pinned configuration version, who opened it and why, number of postings"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_createSandboxBook",
+        "summary": "Open an empty sandbox book that posts with one approved configuration version (OPERATOR)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "bookId",
+                  "configId",
+                  "version",
+                  "reason"
+                ],
+                "properties": {
+                  "bookId": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "configId": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "the book"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/ledger/sandbox/books/{bookId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "name": "bookId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "description": "the sandbox book's id"
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_getSandboxBook",
+        "summary": "A sandbox book: its postings with their journal entries (C6) and its balances",
+        "responses": {
+          "200": {
+            "description": "book, postings (source event, economic event key, book date, journals), balances by entity, currency, account and subledger key"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/ledger/sandbox/books/{bookId}/post": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "name": "bookId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "description": "the sandbox book's id"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_postToSandboxBook",
+        "summary": "Post synthetic events to a sandbox book, in order, through the same engine as a posting preview (OPERATOR). All or nothing; a resend of a posted event is unchanged",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "steps"
+                ],
+                "properties": {
+                  "steps": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "scenario": {
+                          "type": "string",
+                          "description": "a scenario code of the configuration the book posts with"
+                        },
+                        "code": {
+                          "type": "string",
+                          "description": "a label for the step (default: the scenario code)"
+                        },
+                        "input": {
+                          "$ref": "#/components/schemas/gl_EventInput"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "each step POSTED (with its journal entries) or UNCHANGED, and the book's balances after"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
     }
   },
   "components": {

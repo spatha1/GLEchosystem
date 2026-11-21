@@ -158,6 +158,11 @@ func TestMigrationsApplyRollBackAndReapply(t *testing.T) {
 		"trigger:role_audit_append_only", "policy:role_assignment.tenant_isolation", "policy:role_audit.tenant_isolation",
 		"column:config_version.editors",
 		"constraint:config_version_maker_checker:valid=true", "constraint:config_version_has_editor:valid=true",
+		// 0003 (ALTB-05)
+		"table:sandbox_book:rls=true:force=true", "table:sandbox_posting:rls=true:force=true", "table:sandbox_line:rls=true:force=true",
+		"function:sandbox_append_only", "trigger:sandbox_book_append_only", "trigger:sandbox_posting_append_only", "trigger:sandbox_line_append_only",
+		"policy:sandbox_book.tenant_isolation", "policy:sandbox_posting.tenant_isolation", "policy:sandbox_line.tenant_isolation",
+		"constraint:sandbox_book_sandbox_check:valid=true",
 	} {
 		if !contains(first, want) {
 			t.Errorf("after up: missing %s (have %v)", want, first)

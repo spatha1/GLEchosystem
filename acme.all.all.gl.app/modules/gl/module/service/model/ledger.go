@@ -62,6 +62,24 @@ func (t *TempLedger) Post(step int, p *PostingPlan) error {
 	return nil
 }
 
+// Load adds lines already posted (by a store), so later events read them. Step 0 marks them as
+// posted before this run.
+func (t *TempLedger) Load(lines []LedgerLine) error {
+	for _, l := range lines {
+		day, ok := ParseDay(l.BookDate)
+		if !ok {
+			return &CodeError{"MISSING_BOOK_DATE", "a posted line has no book date: " + l.LineID}
+		}
+		r, err := formula.ParseDecimal(l.Amount)
+		if err != nil {
+			return err
+		}
+		t.lines = append(t.lines, ledgerLine{class: l.Class, account: l.Account, side: l.Side, entity: l.Entity, currency: l.Currency,
+			bookDate: day, amount: r, keys: l.Keys})
+	}
+	return nil
+}
+
 // OpenBalance implements LedgerReader.
 func (t *TempLedger) OpenBalance(class, key, value, entity, currency string, asOf time.Time) (*big.Rat, error) {
 	c, ok := ClassOf(t.d, class)
