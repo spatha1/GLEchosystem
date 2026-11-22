@@ -186,12 +186,19 @@
           },
           "description": "Detailed by US-028"
         },
+        "outputLayouts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/outputLayout"
+          },
+          "description": "ALTB-10: record layouts of output files"
+        },
         "outputProfiles": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$ref": "#/$defs/outputProfile"
           },
-          "description": "Detailed by US-039"
+          "description": "ALTB-10: output files (fixed width, delimited or JSON lines) made from posted lines"
         },
         "scenarios": {
           "type": "array",
@@ -1117,6 +1124,226 @@
             "",
             "NEXT_PERIOD"
           ]
+        }
+      }
+    },
+    "outputField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source": {
+          "enum": [
+            "CONSTANT",
+            "ACCOUNT",
+            "CLASS",
+            "ENTITY",
+            "CURRENCY",
+            "DATE",
+            "PERIOD",
+            "AMOUNT",
+            "SIGNED_AMOUNT",
+            "SIDE",
+            "JOURNAL_TYPE",
+            "DIMENSION",
+            "KEY"
+          ]
+        },
+        "value": {
+          "type": "string"
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "format": {
+          "type": "string"
+        },
+        "decimals": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "align": {
+          "enum": [
+            "LEFT",
+            "RIGHT"
+          ]
+        },
+        "pad": {
+          "type": "string",
+          "maxLength": 1
+        },
+        "indent": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lengths": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "outputLayout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "fields"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "description": {
+          "type": "string"
+        },
+        "recordLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/outputField"
+          }
+        }
+      }
+    },
+    "outputProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "format",
+        "layout",
+        "sections"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "description": {
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "FIXED_WIDTH",
+            "DELIMITED",
+            "JSON_LINES"
+          ]
+        },
+        "layout": {
+          "$ref": "#/$defs/code"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "delimiter": {
+          "type": "string"
+        },
+        "header": {
+          "type": "boolean"
+        },
+        "sort": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reversals": {
+          "enum": [
+            "EXCLUDE",
+            "INCLUDE"
+          ]
+        },
+        "fieldOverrides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/outputField"
+          }
+        },
+        "sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "group"
+            ],
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "excludeAccounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "journalTypes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "group": {
+                "enum": [
+                  "LINE",
+                  "SUMMARY",
+                  "NET"
+                ]
+              },
+              "groupBy": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "dailyOffset": {
+                "enum": [
+                  "",
+                  "SAME_DAY",
+                  "MONTH_END"
+                ]
+              },
+              "offsetOverrides": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/outputField"
+                }
+              }
+            }
+          }
         }
       }
     }

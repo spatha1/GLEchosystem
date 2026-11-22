@@ -485,3 +485,68 @@ func classifySandbox(err error) *apiError {
 	}
 	return classify(err)
 }
+
+// produceFile — GET /ledger/sandbox/books/{bookId}/files/{profile}?from=&to= (ALTB-10): the
+// output file a profile of the pinned configuration makes from the book's lines booked in
+// [from, to] (default: the last posting's book date). Read-only: nothing is stored or sent.
+func produceFile(c *call) modulesdk.Response {
+	bookID, profile := c.params["bookId"], c.params["profile"]
+	if e := pathCode("bookId", bookID); e != nil {
+		return e.response()
+	}
+	if e := pathCode("profile", profile); e != nil {
+		return e.response()
+	}
+	b, e := loadBook(c, bookID)
+	if e != nil {
+		return e.response()
+	}
+	postings, e := loadPostings(c, bookID)
+	if e != nil {
+		return e.response()
+	}
+	lines, e := loadLines(c, bookID)
+	if e != nil {
+		return e.response()
+	}
+	doc, _, e := loadValidDocument(c, b.ConfigID, b.ConfigVersion)
+	if e != nil {
+		return e.response()
+	}
+	led := model.NewTempLedger(doc)
+	if err := led.Load(lines); err != nil {
+		return errInternal("a posted line could not be read").response()
+	}
+	from, to := led.LastBookDate(), led.LastBookDate()
+	for _, q := range []struct {
+		name string
+		at   *time.Time
+	}{{"from", &from}, {"to", &to}} {
+		if v := c.query(q.name); v != "" {
+			day, ok := model.ParseDay(v)
+			if !ok {
+				return errInvalid(q.name, q.name+" must be a date, YYYY-MM-DD").response()
+			}
+			*q.at = day
+		}
+	}
+	if to.Before(from) {
+		return errInvalid("to", "to must not be before from").response()
+	}
+	var journals []model.JournalEntry
+	for _, p := range postings {
+		journals = append(journals, p.Journals...)
+	}
+	ol, err := model.OutputLinesOf(doc, lines, journals)
+	if err != nil {
+		return errInternal("a posted line could not be read").response()
+	}
+	f, err := model.ProduceFile(doc, profile, ol, from, to)
+	if err != nil {
+		if model.ErrorCode(err) == "UNKNOWN_PROFILE" {
+			return errNotFound("output profile " + profile + " is not in " + b.ConfigID + " v" + strconv.Itoa(b.ConfigVersion)).response()
+		}
+		return (&apiError{Status: 422, Code: model.ErrorCode(err), Message: err.Error()}).response()
+	}
+	return jsonResponse(200, map[string]any{"book": b.BookID, "from": dayString(from), "to": dayString(to), "file": f})
+}

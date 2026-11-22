@@ -2,7 +2,7 @@
 // data; the element keeps it in its state and, when asked to (hash-routing), mirrors it in
 // the URL so a view can be linked to and the browser's back button works.
 
-export type VersionTab = 'events' | 'ai' | 'fields' | 'mapping' | 'simulate' | 'impact' | 'accounts' | 'history';
+export type VersionTab = 'events' | 'ai' | 'fields' | 'mapping' | 'simulate' | 'impact' | 'accounts' | 'outputs' | 'history';
 /** The steps of an event's guided flow (plus the lineage map). */
 export type EventTab =
 	| 'details'
@@ -38,7 +38,7 @@ export interface Route {
 	admin?: 'roles';
 }
 
-const versionTabs: VersionTab[] = ['events', 'ai', 'fields', 'mapping', 'simulate', 'impact', 'accounts', 'history'];
+const versionTabs: VersionTab[] = ['events', 'ai', 'fields', 'mapping', 'simulate', 'impact', 'accounts', 'outputs', 'history'];
 const eventTabs: EventTab[] = [
 	'details',
 	'measures',

@@ -52,6 +52,8 @@ type Document struct {
 	Scenarios         []Scenario
 	LifecycleProfiles []LifecycleProfile // ALTB-07
 	JournalTypes      []JournalType      // ALTB-09
+	OutputLayouts     []OutputLayout     // ALTB-10
+	OutputProfiles    []OutputProfile    // ALTB-10
 }
 
 var codeRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
@@ -125,6 +127,10 @@ func Parse(canonical []byte) (*Document, []Finding) {
 	doc.LifecycleProfiles, f = decodeSection[LifecycleProfile]("lifecycleProfiles", s["lifecycleProfiles"])
 	fs = append(fs, f...)
 	doc.JournalTypes, f = decodeSection[JournalType]("journalTypes", s["journalTypes"])
+	fs = append(fs, f...)
+	doc.OutputLayouts, f = decodeSection[OutputLayout]("outputLayouts", s["outputLayouts"])
+	fs = append(fs, f...)
+	doc.OutputProfiles, f = decodeSection[OutputProfile]("outputProfiles", s["outputProfiles"])
 	fs = append(fs, f...)
 	return doc, fs
 }

@@ -63,6 +63,14 @@ export const versionViews: VersionView[] = [
 			'Posting rules name accounting classes; each class is served by the client’s accounts; assignment rules choose the account for each line by dimension, priority and date. A line with no matching account, or two equally good ones, is refused — never guessed.'
 	},
 	{
+		key: 'outputs',
+		label: 'Output files',
+		short: 'Outputs',
+		icon: 'upload',
+		purpose:
+			'The files the client’s ledger or other systems import, made from posted lines: record layouts and the files that use them (fixed width, delimited or JSON lines). Produce them from a sandbox book in the Ledger.'
+	},
+	{
 		key: 'history',
 		label: 'Findings and history',
 		short: 'History',

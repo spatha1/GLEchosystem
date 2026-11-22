@@ -157,3 +157,25 @@ describe('reversing journals in a book (ALTB-09)', () => {
 		expect(within(postings).getByText(`reversal of ${j.journalId}, 2026-08-01`)).toBeTruthy();
 	});
 });
+
+describe('output files from a book (ALTB-10)', () => {
+	it('produces a file of the pinned configuration for a date range and shows its checks', async () => {
+		const content = structuredClone(fixtureConfig) as any;
+		content.outputProfiles = [{ code: 'DAILY', format: 'FIXED_WIDTH', layout: 'L30', sections: [{ group: 'SUMMARY' }] }];
+		const file = { profile: 'DAILY', name: 'GL-20260715.txt', format: 'FIXED_WIDTH', records: 2, debit: '91.67', credit: '91.67', balanced: true,
+			checks: ['every record is 30 characters'], content: '120000  20260715000000009167D\n120010  20260715000000009167C\n' };
+		const api = apiWith({ version: vi.fn(async () => ({ content })), sandboxFile: vi.fn(async () => ({ from: '2026-07-15', to: '2026-07-15', file })) });
+		render(LedgerSandbox, { api, me: viewer, book: 'SANDBOX_JAN', go: vi.fn() });
+		const card = await screen.findByRole('region', { name: 'Output files' });
+		const produce = within(card).getByRole('button', { name: 'Produce file' }) as HTMLButtonElement;
+		expect(produce.disabled).toBe(true); // nothing chosen
+		await fireEvent.change(within(card).getByLabelText(/File/), { target: { value: 'DAILY' } });
+		await fireEvent.change(within(card).getByLabelText(/^From/), { target: { value: '2026-07-15' } });
+		await fireEvent.change(within(card).getByLabelText(/^To/), { target: { value: '2026-07-15' } });
+		await fireEvent.click(produce);
+		await vi.waitFor(() => expect(api.sandboxFile).toHaveBeenCalledWith('SANDBOX_JAN', 'DAILY', '2026-07-15', '2026-07-15'));
+		expect((await within(card).findByRole('status')).textContent).toMatch(/GL-20260715.txt.*2 records.*balanced/s);
+		expect(within(card).getByLabelText('File content').textContent).toContain('120000  20260715000000009167D');
+		expect(within(card).getByRole('button', { name: 'Download' })).toBeTruthy();
+	});
+});

@@ -8,6 +8,7 @@ import type {
 	Impact,
 	ItemChange,
 	LifecycleResult,
+	OutputFile,
 	SandboxBook,
 	SandboxBookView,
 	SandboxPostResult,
@@ -123,6 +124,12 @@ export function client(tenant: string, fetcher: Fetcher = (i, o) => fetch(i, o))
 			call<SandboxBook>('POST', '/ledger/sandbox/books', { bookId, configId, version, reason }),
 		sandboxBook: (bookId: string, asOf?: string) =>
 			call<SandboxBookView>('GET', '/ledger/sandbox/books/' + encodeURIComponent(bookId) + (asOf ? `?asOf=${encodeURIComponent(asOf)}` : '')),
+		/** ALTB-10: an output file of the book's lines booked in [from, to]; nothing is stored or sent. */
+		sandboxFile: (bookId: string, profile: string, from: string, to: string) =>
+			call<{ from: string; to: string; file: OutputFile }>(
+				'GET',
+				`/ledger/sandbox/books/${encodeURIComponent(bookId)}/files/${encodeURIComponent(profile)}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+			),
 		postToSandbox: (bookId: string, steps: LifecycleStepInput[]) =>
 			call<SandboxPostResult>('POST', '/ledger/sandbox/books/' + encodeURIComponent(bookId) + '/post', { steps }),
 		impact: (id: string, n: number, against?: number) => call<Impact>('GET', v(id, n) + '/impact' + (against ? `?against=${against}` : '')),

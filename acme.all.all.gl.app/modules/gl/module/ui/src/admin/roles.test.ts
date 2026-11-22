@@ -81,3 +81,15 @@ describe('journal types (ALTB-09)', () => {
 		expect(specs.journalTypes.columns.find((c) => c.label === 'Reversal')!.value({ code: 'RJ', reverse: 'NEXT_PERIOD' }, {})).toBe('next period');
 	});
 });
+
+describe('output files configuration (ALTB-10)', () => {
+	it('keeps numbers as numbers in layout fields and has its own page', () => {
+		const layout = cleanItem(specs.outputLayouts.fields, {
+			code: 'TRF',
+			recordLength: '40',
+			fields: [{ name: 'STATE', start: '1', length: '3', source: 'DIMENSION', refs: ['STATE'], lengths: ['2', '3', 'x'] }]
+		});
+		expect(layout).toEqual({ code: 'TRF', recordLength: 40, fields: [{ name: 'STATE', start: 1, length: 3, source: 'DIMENSION', refs: ['STATE'], lengths: [2, 3] }] });
+		expect(fromHash(toHash({ configId: 'C', version: 1, tab: 'outputs' }))).toEqual({ configId: 'C', version: 1, tab: 'outputs' });
+	});
+});

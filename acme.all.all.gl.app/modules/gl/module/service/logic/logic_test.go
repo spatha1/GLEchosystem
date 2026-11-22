@@ -112,21 +112,21 @@ func TestValidatorsRunAndReportDeterministically(t *testing.T) {
 	saved := sectionValidators
 	defer func() { sectionValidators = saved }()
 	sectionValidators = map[string][]SectionValidator{}
-	RegisterSectionValidator("outputProfiles", func(items []map[string]any, _ map[string][]map[string]any) []Finding {
+	RegisterSectionValidator("reconciliationEquations", func(items []map[string]any, _ map[string][]map[string]any) []Finding {
 		var fs []Finding
 		for i := len(items) - 1; i >= 0; i-- {
 			if items[i]["code"] == nil {
-				fs = append(fs, Finding{Path: "outputProfiles/" + string(rune('0'+i)), Code: "MISSING_CODE", Severity: "error", Message: "code is required"})
+				fs = append(fs, Finding{Path: "reconciliationEquations/" + string(rune('0'+i)), Code: "MISSING_CODE", Severity: "error", Message: "code is required"})
 			}
 		}
 		return fs
 	})
-	cb, _, shape, _ := CanonicalContent([]byte(`{"outputProfiles":[{},{"code":"X"},{}]}`))
+	cb, _, shape, _ := CanonicalContent([]byte(`{"reconciliationEquations":[{},{"code":"X"},{}]}`))
 	rep := ValidateContent(cb, shape)
-	if rep.OK || len(rep.Findings) != 2 || rep.Findings[0].Path != "outputProfiles/0" {
+	if rep.OK || len(rep.Findings) != 2 || rep.Findings[0].Path != "reconciliationEquations/0" {
 		t.Fatalf("report: %+v", rep)
 	}
-	cok, _, ok, _ := CanonicalContent([]byte(`{"outputProfiles":[{"code":"X"}]}`))
+	cok, _, ok, _ := CanonicalContent([]byte(`{"reconciliationEquations":[{"code":"X"}]}`))
 	if r := ValidateContent(cok, ok); !r.OK || r.Findings == nil {
 		t.Errorf("a clean section should validate with an empty (non-null) findings list: %+v", r)
 	}

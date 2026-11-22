@@ -116,6 +116,8 @@ export const referenceSections = [
 	'accounts',
 	'accountAssignmentRules',
 	'reconciliationEquations',
+	'journalTypes',
+	'outputLayouts',
 	'outputProfiles'
 ];
 

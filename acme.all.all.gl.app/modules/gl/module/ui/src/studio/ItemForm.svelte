@@ -74,7 +74,7 @@
 							{#each opts(f).filter((o) => !arr(f).includes(o.value)) as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
 						</datalist>
 					</div>
-				{:else if f.type === 'strings'}
+				{:else if f.type === 'strings' || f.type === 'numbers'}
 					<input
 						id="{idp}-{f.key}"
 						class="field mono"

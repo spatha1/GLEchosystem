@@ -594,6 +594,19 @@ export interface SandboxBookView {
 	asOf?: string;
 }
 
+/** ALTB-10: a produced output file and its checks. */
+export interface OutputFile {
+	profile: string;
+	name: string;
+	format: string;
+	records: number;
+	debit: string;
+	credit: string;
+	balanced: boolean;
+	checks: string[];
+	content: string;
+}
+
 export interface SandboxPostResult {
 	book: SandboxBook;
 	steps: { step: number; code?: string; status: 'POSTED' | 'UNCHANGED'; seq?: number; detail?: string; journals?: JournalEntry[] }[];

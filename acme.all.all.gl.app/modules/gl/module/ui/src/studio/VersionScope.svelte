@@ -20,6 +20,7 @@
 	import LifecyclePanel from './LifecyclePanel.svelte';
 	import ImpactPage from './ImpactPage.svelte';
 	import AccountsPage from './AccountsPage.svelte';
+	import OutputsPage from './OutputsPage.svelte';
 	import HistoryPage from './HistoryPage.svelte';
 	import SectionEditor from './SectionEditor.svelte';
 	import AIWizard from './AIWizard.svelte';
@@ -265,6 +266,8 @@
 				<div class="life-gap"><LifecyclePanel {ctx} /></div>
 			{:else if tab === 'impact'}
 				<ImpactPage {ctx} />
+			{:else if tab === 'outputs'}
+				<OutputsPage {ctx} {findings} />
 			{:else if tab === 'accounts'}
 				<AccountsPage {ctx} {findings} />
 			{:else}

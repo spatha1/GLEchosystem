@@ -347,3 +347,44 @@ func TestSandboxReversingJournals(t *testing.T) {
 		t.Errorf("a bad date: %d", r.Status)
 	}
 }
+
+// ALTB-10: an output file is produced from a stored book, read-only, for any reader.
+func TestSandboxOutputFiles(t *testing.T) {
+	needDB(t)
+	c := fixtureConfig(t)
+	c["outputLayouts"] = []any{map[string]any{"code": "L30", "recordLength": 30, "fields": []any{
+		map[string]any{"name": "ACCOUNT", "start": 1, "length": 8, "source": "ACCOUNT"},
+		map[string]any{"name": "DATE", "start": 9, "length": 8, "source": "DATE", "format": "yyyyMMdd"},
+		map[string]any{"name": "AMOUNT", "start": 17, "length": 12, "source": "AMOUNT", "format": "IMPLIED", "decimals": 2, "align": "RIGHT", "pad": "0"},
+		map[string]any{"name": "SIDE", "start": 29, "length": 1, "source": "SIDE"}}}}
+	c["outputProfiles"] = []any{map[string]any{"code": "DAILY", "format": "FIXED_WIDTH", "layout": "L30", "fileName": "GL-{TO:yyyyMMdd}.txt",
+		"sort": []any{"ACCOUNT"}, "sections": []any{map[string]any{"group": "SUMMARY", "groupBy": []any{"ACCOUNT", "DATE"}}}}}
+	cfg := approvedFixture(t, c)
+	book := openBook(t, cfg)
+	mustStatus(t, do(t, "POST", "/ledger/sandbox/books/"+book+"/post", tenantA, operator, scenarios("E1", "E2", "E3")), 200)
+	path := "/ledger/sandbox/books/" + book + "/files/DAILY"
+	got := decode[struct {
+		From, To string
+		File     struct {
+			Name, Content, Debit, Credit string
+			Records                      int
+			Balanced                     bool
+		}
+	}](t, do(t, "GET", path+"?from=2026-01-01&to=2026-01-31", tenantA, viewer, nil), 200)
+	if got.File.Name != "GL-20260131.txt" || got.File.Records == 0 || !got.File.Balanced || !strings.Contains(got.File.Content, "4100100 2026010100000010000") {
+		t.Errorf("file: %+v", got.File)
+	}
+	last := decode[struct{ From, To string }](t, do(t, "GET", path, tenantA, viewer, nil), 200)
+	if last.From != "2026-01-10" || last.To != "2026-01-10" {
+		t.Errorf("default dates: %+v", last)
+	}
+	for _, c := range []struct {
+		path   string
+		tenant string
+		status int
+	}{{"/ledger/sandbox/books/" + book + "/files/NOPE", tenantA, 404}, {path + "?from=2026-02-01&to=2026-01-01", tenantA, 400}, {path, tenantB, 404}} {
+		if r := do(t, "GET", c.path, c.tenant, viewer, nil); r.Status != c.status {
+			t.Errorf("%s (%s): %d, want %d", c.path, c.tenant, r.Status, c.status)
+		}
+	}
+}

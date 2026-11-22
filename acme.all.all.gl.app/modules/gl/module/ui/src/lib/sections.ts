@@ -3,7 +3,7 @@
 // item (POST …/check and validation); these specs only shape the forms.
 import type { Content } from './studio';
 
-export type FieldType = 'text' | 'code' | 'number' | 'bool' | 'date' | 'select' | 'multi' | 'strings' | 'pairs' | 'rows' | 'formula';
+export type FieldType = 'text' | 'code' | 'number' | 'bool' | 'date' | 'select' | 'multi' | 'strings' | 'numbers' | 'pairs' | 'rows' | 'formula';
 
 export interface Option {
 	value: string;
@@ -157,6 +157,25 @@ function fromTemplate(item: any, code: string, c: Content, cat: Catalog) {
 	if (src && !item._sourceSystem) item._sourceSystem = src.code;
 }
 const eventOptions = (c: Content) => opt(codes(c, 'events'));
+
+/** ALTB-10: the fields of an output field (a layout's field, or an override of one). */
+function outputFieldFields(positioned: boolean): Field[] {
+	const f: Field[] = [
+		{ key: 'name', label: 'Name', type: 'text', required: true },
+		{ key: 'source', label: 'Value from', type: 'select', required: true, options: () => opt(['CONSTANT', 'ACCOUNT', 'CLASS', 'ENTITY', 'CURRENCY', 'DATE', 'PERIOD', 'AMOUNT', 'SIGNED_AMOUNT', 'SIDE', 'JOURNAL_TYPE', 'DIMENSION', 'KEY']) },
+		{ key: 'value', label: 'Constant, or value when empty', type: 'text' },
+		{ key: 'refs', label: 'Dimension or keys', type: 'strings', placeholder: 'e.g. STATE — or CLAIM_NO, POLICY_NO' },
+		{ key: 'format', label: 'Format', type: 'text', placeholder: 'yyyyMMdd · yyyyppp · IMPLIED · DECIMAL' },
+		{ key: 'decimals', label: 'Decimals', type: 'number' },
+		{ key: 'align', label: 'Align', type: 'select', options: () => opt(['LEFT', 'RIGHT']) },
+		{ key: 'pad', label: 'Pad with', type: 'text', placeholder: 'space; 0' },
+		{ key: 'indent', label: 'Spaces before', type: 'number' },
+		{ key: 'lengths', label: 'Only when its length is', type: 'numbers', placeholder: 'e.g. 2, 3' }
+	];
+	return positioned
+		? [f[0], { key: 'start', label: 'Start', type: 'number' }, { key: 'length', label: 'Length', type: 'number' }, ...f.slice(1)]
+		: [f[0], ...f.slice(1)];
+}
 
 export const specs: Record<string, SectionSpec> = {
 	sourceSystems: {
@@ -542,6 +561,75 @@ export const specs: Record<string, SectionSpec> = {
 		],
 		blank: () => ({ code: '' })
 	},
+	outputLayouts: {
+		section: 'outputLayouts',
+		title: 'Output layouts',
+		noun: 'output layout',
+		help: 'The record layout of output files: each field, where it sits (fixed width) or its column (delimited, JSON), and where its value comes from.',
+		key: (x) => x.code,
+		fields: [
+			{ key: 'code', label: 'Code', type: 'code', required: true, fixedOnEdit: true, placeholder: 'e.g. TRF_391' },
+			{ key: 'description', label: 'Description', type: 'text', wide: true },
+			{ key: 'recordLength', label: 'Record length (fixed width)', type: 'number' },
+			{ key: 'fields', label: 'Fields', type: 'rows', wide: true, fields: outputFieldFields(true) }
+		],
+		columns: [
+			{ label: 'Layout', value: (x) => x.code, mono: true },
+			{ label: 'Record', value: (x) => (x.recordLength ? `${x.recordLength} characters` : 'delimited / JSON') },
+			{ label: 'Fields', value: (x) => String((x.fields ?? []).length) }
+		],
+		blank: () => ({ code: '', fields: [] })
+	},
+	outputProfiles: {
+		section: 'outputProfiles',
+		title: 'Output files',
+		noun: 'output file',
+		help: 'A file made from posted lines: which ledger, accounts and journal types, one record per line or summed or netted (with an optional daily offset record), the format (fixed width, delimited or JSON lines), the order and the file name.',
+		key: (x) => x.code,
+		fields: [
+			{ key: 'code', label: 'Code', type: 'code', required: true, fixedOnEdit: true, placeholder: 'e.g. SUMMARY_AU' },
+			{ key: 'description', label: 'Description', type: 'text', wide: true },
+			{ key: 'format', label: 'Format', type: 'select', required: true, options: () => opt(['FIXED_WIDTH', 'DELIMITED', 'JSON_LINES']) },
+			{ key: 'layout', label: 'Layout', type: 'select', required: true, options: (c) => opt(codes(c, 'outputLayouts')) },
+			{ key: 'fileName', label: 'File name', type: 'text', wide: true, placeholder: 'e.g. GL-{TO:yyMMdd}.{PROFILE}.txt' },
+			{ key: 'entities', label: 'Only for companies', type: 'strings', placeholder: 'e.g. C01 — empty: all' },
+			{ key: 'delimiter', label: 'Delimiter (delimited)', type: 'text', placeholder: ',' },
+			{ key: 'header', label: 'Header row (delimited)', type: 'bool' },
+			{ key: 'sort', label: 'Sort by fields', type: 'strings', placeholder: 'e.g. ACCOUNT, PERIOD, DATE' },
+			{ key: 'reversals', label: 'Reversals the GL posts', type: 'select', options: () => [{ value: '', label: 'Leave out (the ledger reverses itself)' }, { value: 'INCLUDE', label: 'Include' }] },
+			{ key: 'fieldOverrides', label: 'Field overrides', type: 'rows', wide: true, fields: outputFieldFields(false) },
+			{
+				key: 'sections',
+				label: 'Sections',
+				type: 'rows',
+				wide: true,
+				fields: [
+					{ key: 'accounts', label: 'Accounts', type: 'strings', placeholder: 'empty: all' },
+					{ key: 'excludeAccounts', label: 'Except accounts', type: 'strings' },
+					{ key: 'journalTypes', label: 'Journal types', type: 'strings', placeholder: 'empty: all' },
+					{ key: 'group', label: 'Records', type: 'select', required: true, options: () => [
+						{ value: 'LINE', label: 'LINE — one per posted line' },
+						{ value: 'SUMMARY', label: 'SUMMARY — summed by the fields below and side' },
+						{ value: 'NET', label: 'NET — netted by the fields below, side from the sign' }
+					] },
+					{ key: 'groupBy', label: 'Group by', type: 'strings', placeholder: 'e.g. ACCOUNT, PERIOD, DATE, DIM:STATE' },
+					{ key: 'dailyOffset', label: 'Daily offset record', type: 'select', options: () => [
+						{ value: '', label: 'None' },
+						{ value: 'SAME_DAY', label: 'Per account and day, dated that day' },
+						{ value: 'MONTH_END', label: 'Per account and day, dated the month end' }
+					] },
+					{ key: 'offsetOverrides', label: 'Offset record overrides', type: 'rows', fields: outputFieldFields(false) }
+				]
+			}
+		],
+		columns: [
+			{ label: 'File', value: (x) => x.code, mono: true },
+			{ label: 'Format', value: (x) => x.format },
+			{ label: 'Layout', value: (x) => x.layout, mono: true },
+			{ label: 'Sections', value: (x) => ((x.sections ?? []) as any[]).map((s) => s.group).join(', ') }
+		],
+		blank: () => ({ code: '', format: 'FIXED_WIDTH', sections: [] })
+	},
 	accountAssignmentRules: {
 		section: 'accountAssignmentRules',
 		title: 'Account assignment rules',
@@ -608,6 +696,7 @@ export function cleanItem(fields: Field[], item: any): any {
 		let v = getPath(item, f.key);
 		if (f.type === 'number') v = v === '' || v == null ? undefined : Number(v);
 		if (f.type === 'bool') v = v ? true : undefined;
+		if (f.type === 'numbers' && Array.isArray(v)) v = v.map((x) => Number(x)).filter((x) => Number.isFinite(x));
 		if (typeof v === 'string') v = v.trim();
 		if (f.type === 'rows' && Array.isArray(v)) v = v.map((r) => cleanItem(f.fields ?? [], r)).filter((r) => !empty(r));
 		if (f.type === 'pairs' && v && typeof v === 'object') v = Object.fromEntries(Object.entries(v).filter(([k]) => k.trim()));

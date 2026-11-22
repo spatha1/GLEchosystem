@@ -6,7 +6,7 @@
 	import type { ApiError, Client } from '../lib/api';
 	import type { Me } from '../lib/types';
 	import type { Route } from '../lib/route';
-	import type { Account, JournalEntry, LifecycleProfile, SandboxBook, SandboxBookView, SandboxPostResult, Scenario } from '../lib/studio';
+	import type { Account, JournalEntry, LifecycleProfile, OutputFile, SandboxBook, SandboxBookView, SandboxPostResult, Scenario } from '../lib/studio';
 	import { amount, when } from '../lib/format';
 
 	let { api, me, book: bookId, go }: { api: Client; me: Me; book?: string; go: (r: Route) => void } = $props();
@@ -27,6 +27,36 @@
 	let scenarios = $state<Scenario[]>([]);
 	let accounts = $state<Account[]>([]);
 	let profiles = $state<LifecycleProfile[]>([]);
+	// ALTB-10: output files of the pinned configuration, produced from this book.
+	let outputs = $state<{ code: string; description?: string; format: string }[]>([]);
+	let outProfile = $state('');
+	let outFrom = $state('');
+	let outTo = $state('');
+	let produced = $state<OutputFile | null>(null);
+	let outError = $state('');
+	let producing = $state(false);
+	async function produce() {
+		if (!view || !outProfile) return;
+		producing = true;
+		outError = '';
+		produced = null;
+		try {
+			produced = (await api.sandboxFile(view.book.bookId, outProfile, outFrom, outTo)).file;
+		} catch (e) {
+			outError = errText(e);
+		} finally {
+			producing = false;
+		}
+	}
+	function download() {
+		if (!produced) return;
+		const url = URL.createObjectURL(new Blob([produced.content], { type: 'text/plain' }));
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = produced.name;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
 	let steps = $state<string[]>([]);
 	let adding = $state('');
 	let result = $state<SandboxPostResult | null>(null);
@@ -72,7 +102,9 @@
 				asOf = v.asOf ?? '';
 				try {
 					const ver = await api.version(v.book.configId, v.book.configVersion);
-					const content = ver.content as { scenarios?: Scenario[]; accounts?: Account[]; lifecycleProfiles?: LifecycleProfile[] };
+					const content = ver.content as { scenarios?: Scenario[]; accounts?: Account[]; lifecycleProfiles?: LifecycleProfile[]; outputProfiles?: { code: string; description?: string; format: string }[] };
+					outputs = content.outputProfiles ?? [];
+					outFrom = outTo = v.asOf ?? '';
 					scenarios = content.scenarios ?? [];
 					profiles = content.lifecycleProfiles ?? [];
 					accounts = content.accounts ?? [];
@@ -350,6 +382,36 @@
 			{/if}
 		</section>
 
+		{#if outputs.length}
+			<section class="card" aria-label="Output files">
+				<h3>Output files <span class="muted">— produced from this book; nothing is stored or sent</span></h3>
+				<div class="row pick">
+					<label class="lbl"
+						>File
+						<select class="field" bind:value={outProfile}>
+							<option value="">Choose…</option>
+							{#each outputs as o (o.code)}<option value={o.code}>{o.code} · {o.format}{o.description ? ` — ${o.description}` : ''}</option>{/each}
+						</select>
+					</label>
+					<label class="lbl">From <input class="field" type="date" value={outFrom} onchange={(e) => (outFrom = (e.currentTarget as HTMLInputElement).value)} /></label>
+					<label class="lbl">To <input class="field" type="date" value={outTo} onchange={(e) => (outTo = (e.currentTarget as HTMLInputElement).value)} /></label>
+					<button class="btn primary" onclick={produce} disabled={!outProfile || !outFrom || !outTo || producing}>{producing ? 'Producing…' : 'Produce file'}</button>
+				</div>
+				{#if outError}<div class="notice bad" role="alert">{outError}</div>{/if}
+				{#if produced}
+					<div class="sum" role="status">
+						<b class="mono">{produced.name}</b>
+						<span class="small">{produced.records} records · debit {amount(produced.debit)} · credit {amount(produced.credit)}</span>
+						<span class="badge {produced.balanced ? 'ok' : 'bad'}">{produced.balanced ? 'balanced' : 'not balanced'}</span>
+						{#each produced.checks as c (c)}<span class="badge info">{c}</span>{/each}
+						<span class="spacer"></span>
+						<button class="btn" onclick={download}>Download</button>
+					</div>
+					<pre class="file" aria-label="File content">{produced.content}</pre>
+				{/if}
+			</section>
+		{/if}
+
 		<section class="card" aria-label="Trial balance">
 			<div class="row">
 				<h3 class="grow">Trial balance <span class="muted">— by legal entity, account and subledger key</span></h3>
@@ -433,6 +495,16 @@
 	}
 	.journal + .journal {
 		margin-top: 10px;
+	}
+	.file {
+		max-height: 420px;
+		overflow: auto;
+		font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+		background: var(--gl-surface-2);
+		border: 1px solid var(--gl-border);
+		border-radius: 6px;
+		padding: 8px;
+		white-space: pre;
 	}
 	.asof {
 		flex: 0 0 180px;

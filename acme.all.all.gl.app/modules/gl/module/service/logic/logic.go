@@ -141,6 +141,7 @@ var routes = []route{
 	r("POST", "/ledger/sandbox/books", roleGated, createBook, roleOperators...),
 	r("GET", "/ledger/sandbox/books/{bookId}", roleGated, getBook, roleReaders...),
 	r("POST", "/ledger/sandbox/books/{bookId}/post", roleGated, postToBook, roleOperators...),
+	r("GET", "/ledger/sandbox/books/{bookId}/files/{profile}", roleGated, produceFile, roleReaders...),
 	r("GET", "/ai/status", authenticated, aiStatus),
 	r("POST", "/configs/{configId}/versions/{version}/ai/brd", roleGated, aiReadBRD, roleEditors...),
 	r("POST", "/configs/{configId}/versions/{version}/ai/steps/{step}", roleGated, aiStep, roleEditors...),
