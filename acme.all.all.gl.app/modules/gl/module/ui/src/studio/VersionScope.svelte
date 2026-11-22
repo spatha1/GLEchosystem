@@ -239,6 +239,10 @@
 		<div class="viewbody">
 			{#if tab === 'events'}
 				<EventsGrid {ctx} {events} />
+				<!-- ALTB-08: a new client names its source systems before its first event (which names its source). -->
+				<div class="addev">
+					<SectionEditor {ctx} spec={specs.sourceSystems} {findings} help="The client's insurance systems. Add them before the first event: each event names the one it comes from." />
+				</div>
 				<div class="addev">
 					<SectionEditor
 						{ctx}
