@@ -134,7 +134,9 @@ func ErrorCode(err error) string {
 }
 
 // ScenarioResult is one scenario run. Status is PASSED or FAILED against the expectation,
-// RAN when there is none, REFUSED when the engine refused an event that had no expectation.
+// RAN when there is none, REFUSED when the engine refused an event that had no expectation,
+// and LIFECYCLE when the scenario reads earlier postings (OPEN_BALANCE), so it can only be
+// checked as a step of a lifecycle, after the scenarios it depends on.
 type ScenarioResult struct {
 	Code        string         `json:"code"`
 	Description string         `json:"description,omitempty"`
@@ -161,12 +163,22 @@ func FindScenario(d *Document, code string) (Scenario, bool) {
 	return Scenario{}, false
 }
 
-// RunScenario previews a scenario's event and checks its expectation.
+// RunScenario previews a scenario's event on its own and checks its expectation.
 func RunScenario(d *Document, ref ConfigRef, s Scenario) ScenarioResult {
-	res := ScenarioResult{Code: s.Code, Description: s.Description, EventType: s.EventType, Mismatches: []string{}}
 	in := s.Input
 	in.EventType = s.EventType
 	plan, err := PreviewPosting(d, ref, in)
+	if ErrorCode(err) == "LEDGER_STATE_UNAVAILABLE" {
+		return ScenarioResult{Code: s.Code, Description: s.Description, EventType: s.EventType, Status: "LIFECYCLE", Mismatches: []string{},
+			Error: &ScenarioError{Code: "LEDGER_STATE_UNAVAILABLE", Message: "this scenario reads earlier postings: check it in a lifecycle profile, after the scenarios it depends on"}}
+	}
+	return CheckScenario(s, plan, err)
+}
+
+// CheckScenario checks a plan (or a refusal) against a scenario's expectation: on its own, or
+// as one step of a lifecycle preview or posting run (ALTB-08).
+func CheckScenario(s Scenario, plan *PostingPlan, err error) ScenarioResult {
+	res := ScenarioResult{Code: s.Code, Description: s.Description, EventType: s.EventType, Mismatches: []string{}}
 	res.Plan = plan
 	exp := s.Expect
 	if err != nil {

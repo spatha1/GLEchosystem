@@ -14,6 +14,7 @@
 	import Home from './studio/Home.svelte';
 	import VersionScope from './studio/VersionScope.svelte';
 	import LedgerSandbox from './ledger/LedgerSandbox.svelte';
+	import RolesPage from './admin/RolesPage.svelte';
 
 	let { tenant = '', hashRouting = false }: { tenant?: string; hashRouting?: boolean } = $props();
 
@@ -108,6 +109,10 @@
 	const inVersion = $derived(!!(route.configId && route.version));
 	const view = $derived(viewOf(route.tab));
 	const crumbs = $derived.by(() => {
+		if (route.admin) {
+			const a: { label: string; to?: Route; mono?: boolean }[] = [{ label: 'Administration', to: { admin: 'roles' } }, { label: 'Roles', to: { admin: 'roles' } }];
+			return a;
+		}
 		if (route.ledger) {
 			const l: { label: string; to?: Route; mono?: boolean }[] = [{ label: 'Ledger · sandbox', to: { ledger: true } }];
 			if (route.book) l.push({ label: route.book, to: { ledger: true, book: route.book }, mono: true });
@@ -171,7 +176,7 @@
 				<div class="navscroll">
 					{#if expanded}<div class="area">Client {me.tenantId}</div>{/if}
 					{#if expanded}<div class="sect" class:current={!inVersion}>1. Configurations</div>{/if}
-					<button class="item" data-selected={!inVersion && !route.ledger} aria-current={!inVersion && !route.ledger ? 'page' : undefined} title="All configurations" onclick={() => go({})}>
+					<button class="item" data-selected={!inVersion && !route.ledger && !route.admin} aria-current={!inVersion && !route.ledger && !route.admin ? 'page' : undefined} title="All configurations" onclick={() => go({})}>
 						{@html icon('configs')}<span class="lbl">{expanded ? 'All configurations' : 'Configs'}</span>
 					</button>
 
@@ -208,6 +213,12 @@
 					<button class="item" data-selected={!!route.ledger} aria-current={route.ledger ? 'page' : undefined} title="Sandbox ledger books" onclick={() => go({ ledger: true })}>
 						{@html icon('ledger')}<span class="lbl">{expanded ? 'Sandbox books' : 'Ledger'}</span>
 					</button>
+					{#if me.roles.includes('GL_ADMIN')}
+						{#if expanded}<div class="area">Administration</div>{/if}
+						<button class="item" data-selected={!!route.admin} aria-current={route.admin ? 'page' : undefined} title="People and roles" onclick={() => go({ admin: 'roles' })}>
+							{@html icon('client')}<span class="lbl">{expanded ? 'Roles' : 'Roles'}</span>
+						</button>
+					{/if}
 				</div>
 
 				<div class="who" title="{me.actor} · {me.roles.map((r) => roleNames[r] ?? r).join(', ')}">
@@ -243,7 +254,11 @@
 					>
 				</header>
 				<main>
-					{#if route.ledger}
+					{#if route.admin}
+						{#key tenant}
+							<RolesPage {api} {me} />
+						{/key}
+					{:else if route.ledger}
 						{#key tenant}
 							<LedgerSandbox {api} {me} book={route.book} {go} />
 						{/key}

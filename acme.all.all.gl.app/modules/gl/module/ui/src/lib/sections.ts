@@ -342,7 +342,8 @@ export const specs: Record<string, SectionSpec> = {
 			{ key: 'code', label: 'Code', type: 'code', required: true, fixedOnEdit: true, placeholder: 'e.g. LOB' },
 			{ key: 'custom', label: 'Custom dimension (not in the standard catalog)', type: 'bool' },
 			{ key: 'description', label: 'Description', type: 'text', wide: true },
-			{ key: 'values', label: 'Allowed values', type: 'strings', wide: true, placeholder: 'MOTOR, HOME — empty: any value' },
+			{ key: 'open', label: 'Any value (identifiers, e.g. a cost code): no list of allowed values', type: 'bool' },
+			{ key: 'values', label: 'Allowed values', type: 'strings', wide: true, placeholder: 'MOTOR, HOME — or tick "Any value" above' },
 			{ key: 'derivedBy.lookup', label: 'Derived by lookup', type: 'select', options: (c) => [{ value: '', label: '— carried by the event' }, ...opt(codes(c, 'lookups'))] },
 			{
 				key: 'normalizations',
@@ -358,7 +359,7 @@ export const specs: Record<string, SectionSpec> = {
 		],
 		columns: [
 			{ label: 'Dimension', value: (x) => x.code, mono: true },
-			{ label: 'Values', value: (x) => join(x.values), mono: true },
+			{ label: 'Values', value: (x) => (x.open ? 'any value' : join(x.values)), mono: true },
 			{ label: 'Comes from', value: (x) => (x.derivedBy?.lookup ? `lookup ${x.derivedBy.lookup}` : 'the event') }
 		],
 		blank: () => ({ code: '', values: [] })

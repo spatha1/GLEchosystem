@@ -430,6 +430,7 @@ func stepEvent(doc *model.Document, s postStep, i int) (model.LifecycleEvent, *a
 		ev.Input = sc.Input
 		ev.Input.EventType = sc.EventType
 		ev.Code = firstNonEmpty(s.Code, sc.Code)
+		ev.Scenario = sc.Code
 	} else {
 		ev.Input = *s.Input
 	}

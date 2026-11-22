@@ -144,3 +144,19 @@ export interface PostingPlan {
 	balanced: boolean;
 	bookDate?: string;
 }
+
+/** ALTB-08: one person's roles in the client, as the GL administrator manages them. */
+export interface RoleAssignment {
+	actor: string;
+	roles: { role: string; grantedBy: string; grantedAt: string }[];
+}
+
+export interface RoleAuditEntry {
+	auditId: number;
+	actor: string;
+	subject: string;
+	granted: string[] | null;
+	revoked: string[] | null;
+	reason: string;
+	at: string;
+}

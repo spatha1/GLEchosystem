@@ -8,12 +8,23 @@ const users = [
 	['lead@example.com', 'Lead (editor and approver)'],
 	['viewer@example.com', 'Viewer'],
 	['ops@example.com', 'Operator (runs approved configuration)'],
+	['admin@example.com', 'GL administrator (roles)'],
 	['outsider@example.com', 'No role']
 ];
 
 const clients = [
 	['CLIENT_A', 'Client A'],
-	['CLIENT_B', 'Client B']
+	['CLIENT_B', 'Client B'],
+	// More local clients from the environment, so a trial client needs no code change:
+	// VITE_GL_DEV_CLIENTS="CODE:Label,CODE2:Label 2". Tenants themselves come from the platform.
+	...String((import.meta as { env?: Record<string, string> }).env?.VITE_GL_DEV_CLIENTS ?? '')
+		.split(',')
+		.map((s) => s.trim())
+		.filter(Boolean)
+		.map((s) => {
+			const [code, label] = s.split(':');
+			return [code.trim(), (label ?? code).trim()];
+		})
 ];
 
 function cookie(name: string): string {

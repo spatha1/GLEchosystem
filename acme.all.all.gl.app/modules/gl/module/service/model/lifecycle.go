@@ -12,8 +12,9 @@ import (
 
 // LifecycleEvent is one event of a lifecycle, with the scenario it came from, if any.
 type LifecycleEvent struct {
-	Code  string     `json:"code,omitempty"`
-	Input EventInput `json:"input"`
+	Code     string     `json:"code,omitempty"`
+	Input    EventInput `json:"input"`
+	Scenario string     `json:"scenario,omitempty"` // ALTB-08: the scenario it came from; its expectation is checked
 }
 
 // LifecycleStep is one event's preview and the temporary ledger after it.
@@ -23,6 +24,9 @@ type LifecycleStep struct {
 	Plan     *PostingPlan    `json:"plan,omitempty"`
 	Error    *ScenarioError  `json:"error,omitempty"`
 	Balances []LedgerBalance `json:"balances"`
+	// ALTB-08: for a step from a scenario, its expectation checked against this step's result
+	// (which, unlike a scenario run on its own, sees the earlier steps' postings).
+	Check *ScenarioResult `json:"check,omitempty"`
 }
 
 // LifecycleResult is a whole lifecycle preview.
@@ -51,6 +55,13 @@ func RunLifecycle(d *Document, ref ConfigRef, events []LifecycleEvent, led *Temp
 		st := LifecycleStep{Step: i + 1, Code: e.Code}
 		p, err := PreviewPostingWith(d, ref, e.Input, led)
 		st.Plan = p
+		if e.Scenario != "" {
+			if s, ok := FindScenario(d, e.Scenario); ok {
+				c := CheckScenario(s, p, err)
+				c.Plan = nil
+				st.Check = &c
+			}
+		}
 		switch {
 		case err != nil:
 			// Includes a plan with no lines (every amount zero): the engine refuses it, and a

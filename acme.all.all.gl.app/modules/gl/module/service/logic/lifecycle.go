@@ -70,7 +70,7 @@ func previewLifecycle(c *call) modulesdk.Response {
 		}
 		in := sc.Input
 		in.EventType = sc.EventType
-		events = append(events, model.LifecycleEvent{Code: firstNonEmpty(s.Code, sc.Code), Input: in})
+		events = append(events, model.LifecycleEvent{Code: firstNonEmpty(s.Code, sc.Code), Input: in, Scenario: sc.Code})
 	}
 	res := model.PreviewLifecycle(doc, model.ConfigRef{ConfigID: configID, Version: n, ContentDigest: v.ContentDigest}, events)
 	return jsonResponse(200, map[string]any{"configId": configID, "version": n, "status": v.Status, "lifecycle": res})

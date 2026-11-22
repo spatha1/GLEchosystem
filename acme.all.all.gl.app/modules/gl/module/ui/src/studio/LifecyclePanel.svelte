@@ -30,6 +30,34 @@
 	let asking = $state(false);
 	let profileForm = $state({ code: '', description: '' });
 	let saveError = $state('');
+	// ALTB-08: each scenario step is checked against its expected journal; steps without one can
+	// have this run's journal recorded as their expectation.
+	let recording = $state(false);
+	const checked = $derived(result?.steps.filter((s) => s.check) ?? []);
+	const held = $derived(checked.filter((s) => s.check?.status === 'PASSED').length);
+	const toRecord = $derived(result?.steps.filter((s) => s.check?.status === 'RAN' && s.plan && !s.error) ?? []);
+
+	async function recordExpected(reason: string) {
+		saving = true;
+		saveError = '';
+		const c = structuredClone($state.snapshot(ctx.content)) as typeof ctx.content;
+		for (const st of toRecord) {
+			const s = ((c.scenarios ?? []) as Scenario[]).find((x) => x.code === st.code);
+			if (s && st.plan)
+				s.expect = { rule: st.plan.rule, legs: st.plan.lines.map((l) => ({ class: l.class, side: l.side, amount: l.amount, entity: l.entity, account: l.account })) };
+		}
+		try {
+			await ctx.save(c, reason);
+			recording = false;
+			result = null;
+		} catch (e) {
+			const err = e as ApiError;
+			saveError = `${err.code}: ${err.message}`;
+			recording = false;
+		} finally {
+			saving = false;
+		}
+	}
 
 	function loadProfile(code: string) {
 		fromProfile = code;
@@ -161,11 +189,18 @@
 			<span class="badge {result.complete ? 'ok' : 'bad'}">{result.complete ? 'Every step can post' : 'Stopped'}</span>
 			<span class="small">{result.steps.length} step{result.steps.length === 1 ? '' : 's'} · {result.lines} lines · {result.entries} journal entries</span>
 			<span class="badge info">Not posted</span>
+			{#if checked.length}<span class="badge {held === checked.length ? 'ok' : 'warn'}">{held} of {checked.length} steps as expected</span>{/if}
 		</div>
+		{#if ctx.canEdit && toRecord.length}
+			<div class="row recordrow">
+				<span class="small muted grow">{toRecord.length} step{toRecord.length === 1 ? ' has' : 's have'} no expected journal yet: check {toRecord.length === 1 ? 'its' : 'their'} journal below, then record it.</span>
+				<button class="btn" onclick={() => (recording = true)}>Record expected journals ({toRecord.length})</button>
+			</div>
+		{/if}
 		{#if result.stopped}<div class="notice bad" role="alert">Stopped at {result.stopped}. Later steps were not run: they may depend on it.</div>{/if}
 
 		<table class="data">
-			<thead><tr><th>#</th><th>Scenario</th><th>Event</th><th>Rule</th><th>Book date</th><th>Result</th><th></th></tr></thead>
+			<thead><tr><th>#</th><th>Scenario</th><th>Event</th><th>Rule</th><th>Book date</th><th>Result</th><th>Expected?</th><th></th></tr></thead>
 			<tbody>
 				{#each result.steps as s (s.step)}
 					<tr class:on={shown === s.step}>
@@ -176,6 +211,11 @@
 						<td>{s.plan?.bookDate ?? '—'}</td>
 						<td>
 							{#if s.error}<span class="badge bad">{s.error.code}</span>{:else}<span class="badge ok">{s.plan?.lines.length} lines, balanced</span>{/if}
+						</td>
+						<td>
+							{#if s.check}<span class="badge {s.check.status === 'PASSED' ? 'ok' : s.check.status === 'FAILED' ? 'bad' : 'info'}"
+									>{s.check.status === 'PASSED' ? 'as expected' : s.check.status === 'FAILED' ? 'differs' : s.check.status === 'RAN' ? 'no expectation' : s.check.status.toLowerCase()}</span
+								>{:else}—{/if}
 						</td>
 						<td><button class="btn link" onclick={() => (shown = s.step)}>{shown === s.step ? 'Shown' : 'Show'}</button></td>
 					</tr>
@@ -188,6 +228,7 @@
 				<section>
 					<h4>Step {shownStep.step} journal <span class="muted">({shownStep.code})</span></h4>
 					{#if shownStep.error}<div class="notice bad">{shownStep.error.code} — {shownStep.error.message}</div>{/if}
+					{#if shownStep.check?.mismatches.length}<div class="notice warn">Differs from the expected journal: {shownStep.check.mismatches.join(' · ')}</div>{/if}
 					{#if shownStep.plan?.lines.length}
 						<table class="data">
 							<thead><tr><th>Account</th><th>Entity</th><th>Movement</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
@@ -232,6 +273,17 @@
 	{/if}
 </section>
 
+{#if recording}
+	<ReasonDialog
+		title="Record expected journals for {toRecord.length} scenario{toRecord.length === 1 ? '' : 's'} in draft v{ctx.version.version}"
+		verb="Record"
+		detail="Each step's journal from this lifecycle becomes its scenario's expected journal, so later rule changes are checked against it."
+		busy={saving}
+		onsubmit={recordExpected}
+		oncancel={() => (recording = false)}
+	/>
+{/if}
+
 {#if asking}
 	<ReasonDialog
 		title="Save profile {profileForm.code.trim().toUpperCase()} to draft v{ctx.version.version}"
@@ -244,6 +296,10 @@
 {/if}
 
 <style>
+	.recordrow {
+		margin: 0 0 10px;
+		align-items: center;
+	}
 	.saveprof {
 		margin: 4px 0 10px;
 		align-items: end;

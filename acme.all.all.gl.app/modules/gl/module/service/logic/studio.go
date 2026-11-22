@@ -237,15 +237,21 @@ func versionPipeline(c *call) modulesdk.Response {
 	case len(doc.Scenarios) == 0:
 		sim.Status, sim.Detail = "PENDING", "no scenarios in this version"
 	default:
-		pass, bad := 0, 0
+		pass, bad, life := 0, 0, 0
 		for _, r := range model.RunScenarios(doc, ref, nil) {
-			if r.Status == "PASSED" || r.Status == "RAN" {
+			switch r.Status {
+			case "PASSED", "RAN":
 				pass++
-			} else {
+			case "LIFECYCLE":
+				life++
+			default:
 				bad++
 			}
 		}
 		sim.Status, sim.Detail = "DONE", fmt.Sprintf("%d of %d scenarios hold", pass, pass+bad)
+		if life > 0 {
+			sim.Detail += fmt.Sprintf("; %d read earlier postings and are checked in lifecycle profiles", life)
+		}
 		if bad > 0 {
 			sim.Status = "FAILED"
 		}

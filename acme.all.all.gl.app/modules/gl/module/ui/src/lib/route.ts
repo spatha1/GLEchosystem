@@ -34,6 +34,8 @@ export interface Route {
 	/** ALTB-06: the Ledger area (sandbox books), separate from the configuration studio. */
 	ledger?: boolean;
 	book?: string;
+	/** ALTB-08: the administration area (roles). */
+	admin?: 'roles';
 }
 
 const versionTabs: VersionTab[] = ['events', 'ai', 'fields', 'mapping', 'simulate', 'impact', 'accounts', 'history'];
@@ -56,6 +58,7 @@ const eventTabs: EventTab[] = [
 ];
 
 export function toHash(r: Route): string {
+	if (r.admin) return '#/admin/roles';
 	if (r.ledger) return r.book ? `#/ledger/b/${encodeURIComponent(r.book)}` : '#/ledger';
 	let p = '#/';
 	const q = new URLSearchParams();
@@ -84,6 +87,10 @@ export function fromHash(hash: string): Route {
 	const seg = path.split('/').filter(Boolean).map(decodeURIComponent);
 	const q = new URLSearchParams(query);
 	const r: Route = {};
+	if (seg[0] === 'admin') {
+		r.admin = 'roles';
+		return r;
+	}
 	if (seg[0] === 'ledger') {
 		r.ledger = true;
 		if (seg[1] === 'b' && seg[2]) r.book = seg[2];

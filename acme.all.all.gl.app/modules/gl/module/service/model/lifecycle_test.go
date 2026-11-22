@@ -53,7 +53,7 @@ func scenarioEvents(t *testing.T, d *Document, codes ...string) []LifecycleEvent
 		}
 		in := s.Input
 		in.EventType = s.EventType
-		out = append(out, LifecycleEvent{Code: code, Input: in})
+		out = append(out, LifecycleEvent{Code: code, Input: in, Scenario: code})
 	}
 	return out
 }
@@ -243,5 +243,41 @@ func TestALedgerReadIsLedgerStateInTheManifest(t *testing.T) {
 		if !found {
 			t.Errorf("%s: the explanation lists the ledger read with its reasons", name)
 		}
+	}
+}
+
+// ALTB-08: a scenario that reads earlier postings cannot be checked on its own (LIFECYCLE, not
+// a failure); as a lifecycle step after the scenarios it depends on, its expectation is checked.
+func TestLedgerReadingScenariosAreCheckedInTheirLifecycle(t *testing.T) {
+	c := withWriteOff(fixtureMap(t), "OPEN_BALANCE('AR1', 'INVOICE_NO')")
+	in := map[string]any{"currency": "AUD", "transactionDate": "2026-01-15", "effectiveDate": "2026-01-15", "keys": map[string]any{"INVOICE_NO": "INV2"},
+		"dimensions": map[string]any{"COMPANY": "C01"}, "sourceSystem": "BILLING", "sourceEventId": "WO1", "sourceEventVersion": 1}
+	legs := func(amount string) []any {
+		return []any{map[string]any{"class": "WO", "side": "D", "amount": amount}, map[string]any{"class": "AR1", "side": "C", "amount": amount}}
+	}
+	c["scenarios"] = append(c["scenarios"].([]any),
+		map[string]any{"code": "WO_INV2", "eventType": "INVOICE_WRITTEN_OFF", "input": in, "expect": map[string]any{"rule": "PR_WRITE_OFF", "legs": legs("0.50")}},
+		map[string]any{"code": "WO_INV2_WRONG", "eventType": "INVOICE_WRITTEN_OFF", "input": in, "expect": map[string]any{"rule": "PR_WRITE_OFF", "legs": legs("9.99")}})
+	d := docOf(t, c)
+	for _, r := range RunScenarios(d, fixtureRef, []string{"WO_INV2", "E1"}) {
+		want := map[string]string{"WO_INV2": "LIFECYCLE", "E1": "PASSED"}[r.Code]
+		if r.Status != want || len(r.Mismatches) != 0 {
+			t.Errorf("%s on its own: %s %v, want %s", r.Code, r.Status, r.Mismatches, want)
+		}
+	}
+	for code, want := range map[string]string{"WO_INV2": "PASSED", "WO_INV2_WRONG": "FAILED"} {
+		res := PreviewLifecycle(d, fixtureRef, append(scenarioEvents(t, d, "E1", "E2", "E3"), scenarioEvents(t, d, code)...))
+		for i, st := range res.Steps {
+			if st.Check == nil || (i < 3 && st.Check.Status != "PASSED") {
+				t.Fatalf("%s: step %d check %+v", code, i+1, st.Check)
+			}
+		}
+		if got := res.Steps[3].Check; got.Status != want || (want == "FAILED" && len(got.Mismatches) == 0) || got.Plan != nil {
+			t.Errorf("%s in its lifecycle: %s %v", code, got.Status, got.Mismatches)
+		}
+	}
+	// A step that is not a scenario is not checked.
+	if res := PreviewLifecycle(d, fixtureRef, []LifecycleEvent{{Code: "E1", Input: scenarioEvents(t, d, "E1")[0].Input}}); res.Steps[0].Check != nil {
+		t.Errorf("a synthetic step is checked: %+v", res.Steps[0].Check)
 	}
 }

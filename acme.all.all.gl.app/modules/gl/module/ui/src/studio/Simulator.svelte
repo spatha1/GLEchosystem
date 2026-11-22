@@ -39,6 +39,9 @@
 	let saving = $state(false);
 	let asking = $state(false);
 	let saveError = $state('');
+	// ALTB-08: the code and description a saved scenario gets (an existing scenario keeps its code).
+	let scCode = $state('');
+	let scDesc = $state('');
 
 	const known = $derived(view ? glossary(view) : {});
 	const accounts = $derived((ctx.content.accounts ?? []) as Account[]);
@@ -98,6 +101,8 @@
 			input = b;
 		}
 		inputFor = view.event.code;
+		scCode = s?.code ?? '';
+		scDesc = s?.description ?? '';
 		pristine = true;
 		plan = null;
 		refusal = null;
@@ -163,20 +168,31 @@
 	});
 	const sel = $derived(plan?.lines.find((l) => l.lineNo === selected));
 	const postable = $derived(!!plan && plan.balanced && !refusal && plan.lines.every((l) => !l.problem));
+	// An event whose formulas read earlier postings cannot run on its own; it can still be saved
+	// as a scenario (without an expected journal) and checked in a lifecycle profile.
+	const needsLedger = $derived(refusal?.code === 'LEDGER_STATE_UNAVAILABLE');
+	const taken = $derived(((ctx.content.scenarios ?? []) as Scenario[]).map((s) => s.code));
+	const suggested = $derived(view ? uniqueCode(`${view.event.code}_SIM`, taken) : '');
+	const targetCode = $derived((scCode.trim() || suggested).toUpperCase());
+	const codeClash = $derived(targetCode !== scenarioCode && taken.includes(targetCode));
+	const codeOk = $derived(/^[A-Z][A-Z0-9_]{0,63}$/.test(targetCode) && !codeClash);
 
 	async function saveScenario(reason: string) {
-		if (!plan || !view) return;
+		if ((!plan && !needsLedger) || !view) return;
 		saving = true;
 		saveError = '';
-		// Started from a scenario: update it. Started blank: a new code, never over an existing scenario.
-		const taken = ((ctx.content.scenarios ?? []) as Scenario[]).map((s) => s.code);
-		const code = scenarioCode ? scenarioCode.toUpperCase() : uniqueCode(`${view.event.code}_SIM`, taken);
+		// The code chosen (or suggested); never over another scenario. Its own code updates it.
+		if (!codeOk) return;
 		const s: Scenario = {
-			code,
+			code: targetCode,
 			eventType: view.event.code,
-			description: view.scenarios.find((x) => x.code === scenarioCode)?.description,
+			description: scDesc.trim() || undefined,
 			input: (({ eventType, ...rest }) => rest)(body()),
-			expect: refusal ? { refused: refusal.code } : { rule: plan.rule, legs: plan.lines.map((l) => ({ class: l.class, side: l.side, amount: l.amount, entity: l.entity, account: l.account })) }
+			expect: needsLedger
+				? undefined
+				: refusal
+					? { refused: refusal.code }
+					: { rule: plan!.rule, legs: plan!.lines.map((l) => ({ class: l.class, side: l.side, amount: l.amount, entity: l.entity, account: l.account })) }
 		};
 		try {
 			await ctx.save(withScenario(ctx.content, s), reason);
@@ -301,10 +317,16 @@
 				<button class="btn primary" onclick={run} disabled={running}>{running ? 'Running…' : 'Run simulation'}</button>
 				{#if !pristine && scenarioCode}<span class="small muted">Inputs changed from scenario {scenarioCode}: its expectation is not checked.</span>{/if}
 				<span class="spacer"></span>
-				{#if ctx.canEdit && plan}
-					<button class="btn" onclick={() => (asking = true)}>Save as scenario in draft</button>
-				{/if}
 			</div>
+			{#if ctx.canEdit && (plan || needsLedger)}
+				<div class="row savesc" role="group" aria-label="Save as scenario">
+					<label class="lbl">Scenario code <input class="field mono" bind:value={scCode} placeholder={suggested} /></label>
+					<label class="lbl grow">Description <input class="field" bind:value={scDesc} placeholder="What this test case shows, e.g. the requirement it proves" /></label>
+					<button class="btn" onclick={() => (asking = true)} disabled={!codeOk}>Save as scenario in draft</button>
+				</div>
+				{#if codeClash}<p class="small bad">Scenario {targetCode} already exists: choose another code.</p>{/if}
+				{#if needsLedger}<p class="small muted">This event reads earlier postings, so it cannot run on its own. Save it without an expected journal and check it in a lifecycle profile (below), after the scenarios it depends on.</p>{/if}
+			{/if}
 			{#if saveError}<div class="notice bad">{saveError}</div>{/if}
 		{/if}
 	</section>
@@ -320,7 +342,9 @@
 							<td class="mono"><b>{r.code}</b><div class="small muted">{r.description ?? ''}</div></td>
 							<td class="mono">{r.eventType}</td>
 							<td>
-								<span class="badge {r.status === 'PASSED' ? 'ok' : r.status === 'RAN' ? 'info' : 'bad'}">{r.status === 'PASSED' ? 'holds' : r.status.toLowerCase()}</span>
+								<span class="badge {r.status === 'PASSED' ? 'ok' : r.status === 'RAN' || r.status === 'LIFECYCLE' ? 'info' : 'bad'}"
+									>{r.status === 'PASSED' ? 'holds' : r.status === 'LIFECYCLE' ? 'check in a lifecycle' : r.status.toLowerCase()}</span
+								>
 							</td>
 							<td class="small">
 								{#if r.mismatches.length}{r.mismatches.join('; ')}{:else if r.error}{r.error.code}: {r.error.message}{:else}{r.plan?.lines.length} legs, balanced{/if}
@@ -349,7 +373,9 @@
 			{#if check}
 				<div>
 					<span class="k">Scenario {check.code}</span>
-					<span class="badge {check.status === 'PASSED' ? 'ok' : check.status === 'RAN' ? 'info' : 'bad'}">{check.status === 'PASSED' ? 'Matches expectation' : check.status === 'RAN' ? 'No expectation' : 'Differs from expectation'}</span>
+					<span class="badge {check.status === 'PASSED' ? 'ok' : check.status === 'RAN' || check.status === 'LIFECYCLE' ? 'info' : 'bad'}"
+						>{check.status === 'PASSED' ? 'Matches expectation' : check.status === 'RAN' ? 'No expectation' : check.status === 'LIFECYCLE' ? 'Checked in a lifecycle' : 'Differs from expectation'}</span
+					>
 				</div>
 			{/if}
 		</section>
@@ -437,9 +463,11 @@
 
 {#if asking && view}
 	<ReasonDialog
-		title="Save scenario {(scenarioCode || `${view.event.code}_SIM`).toUpperCase()} to draft v{ctx.version.version}"
+		title="Save scenario {targetCode} to draft v{ctx.version.version}"
 		verb="Save"
-		detail="The inputs are saved with this result as the expected journal, so later rule changes are checked against it."
+		detail={needsLedger
+			? 'The inputs are saved without an expected journal: run them in a lifecycle profile, then record the journal there.'
+			: 'The inputs are saved with this result as the expected journal, so later rule changes are checked against it.'}
 		busy={saving}
 		onsubmit={saveScenario}
 		oncancel={() => (asking = false)}
@@ -498,6 +526,12 @@
 	}
 	.runrow {
 		margin-top: 12px;
+	}
+	.savesc {
+		margin-top: 10px;
+		align-items: end;
+		flex-wrap: wrap;
+		gap: 8px;
 	}
 	.summary {
 		display: grid;

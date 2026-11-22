@@ -1,6 +1,6 @@
 // Typed client for the /m/gl API. The element sends the tenant (x-gl-tenant) and never an
 // identity: the app core authenticates the user and sets x-mycel-user.
-import type { ConfigSummary, Finding, Me } from './types';
+import type { ConfigSummary, Finding, Me, RoleAssignment, RoleAuditEntry } from './types';
 import type {
 	AuditEntryFull,
 	EventSummary,
@@ -79,6 +79,10 @@ export function client(tenant: string, fetcher: Fetcher = (i, o) => fetch(i, o))
 	const v = (id: string, n: number) => `${c(id)}/versions/${n}`;
 	return {
 		me: () => call<Me>('GET', '/me'),
+		/** ALTB-08: the client's people and roles (GL administrators only); every change needs a reason. */
+		roles: () => call<{ assignments: RoleAssignment[] }>('GET', '/roles').then((r) => r.assignments),
+		setRoles: (actor: string, roles: string[], reason: string) => call<{ actor: string; roles: string[]; changed: boolean }>('PUT', '/roles/' + encodeURIComponent(actor), { roles, reason }),
+		roleAudit: () => call<{ entries: RoleAuditEntry[] }>('GET', '/roles/audit').then((r) => r.entries),
 		configs: () => call<{ configs: ConfigSummary[] }>('GET', '/configs').then((r) => r.configs),
 		versions: (id: string) => call<{ versions: VersionFull[] }>('GET', c(id) + '/versions').then((r) => r.versions),
 		version: (id: string, n: number) => call<VersionFull>('GET', v(id, n)),

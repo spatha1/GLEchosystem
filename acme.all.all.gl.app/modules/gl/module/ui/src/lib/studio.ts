@@ -415,7 +415,8 @@ export interface ScenarioResult {
 	code: string;
 	description?: string;
 	eventType: string;
-	status: 'PASSED' | 'FAILED' | 'RAN' | 'REFUSED';
+	/** LIFECYCLE: reads earlier postings, so it is checked as a step of a lifecycle profile (ALTB-08). */
+	status: 'PASSED' | 'FAILED' | 'RAN' | 'REFUSED' | 'LIFECYCLE';
 	plan?: Plan;
 	error?: { code: string; message: string };
 	mismatches: string[];
@@ -452,6 +453,8 @@ export interface LifecycleStep {
 	error?: { code: string; message: string };
 	/** The temporary ledger after this step. */
 	balances: LedgerBalance[];
+	/** ALTB-08: a scenario step checked against its expectation, with the earlier steps posted. */
+	check?: ScenarioResult;
 }
 
 /** A lifecycle preview: events in order against a temporary ledger. Never posted. */

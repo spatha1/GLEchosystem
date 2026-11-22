@@ -185,3 +185,34 @@ describe('profiles in a copied configuration (ALTB-07)', () => {
 		expect((all.lifecycleProfiles as any[]).map((p) => p.code)).toEqual(['P1_JANUARY', 'P1_PREMIUM']);
 	});
 });
+
+describe('scenario checks in a lifecycle (ALTB-08)', () => {
+	it('checks each scenario step against its expected journal and records the missing ones', async () => {
+		const checked = structuredClone(life);
+		const status = ['PASSED', 'RAN', 'FAILED'] as const;
+		checked.steps.forEach((s, i) => (s.check = { code: s.code!, eventType: s.plan!.eventType, status: status[i], mismatches: i === 2 ? ['expected 9.99, got 549.50'] : [] }));
+		const ctx = ctxWith(checked);
+		ctx.canEdit = true;
+		ctx.save = vi.fn(async () => {});
+		render(LifecyclePanel, { ctx });
+		for (const code of ['E1', 'E2', 'E3']) await addStep(code);
+		await fireEvent.click(screen.getByRole('button', { name: 'Run lifecycle' }));
+		await vi.waitFor(() => expect(screen.getByText('1 of 3 steps as expected')).toBeTruthy());
+		expect(screen.getByText('as expected')).toBeTruthy();
+		expect(screen.getByText('no expectation')).toBeTruthy();
+		expect(screen.getByText('differs')).toBeTruthy();
+		expect(screen.getByText(/Differs from the expected journal: expected 9.99/)).toBeTruthy(); // step 3 is shown first
+		await fireEvent.click(screen.getByRole('button', { name: 'Record expected journals (1)' }));
+		const dialog = await screen.findByRole('dialog');
+		await fireEvent.input(within(dialog).getByRole('textbox'), { target: { value: 'E2 checked in its lifecycle' } });
+		await fireEvent.click(within(dialog).getByRole('button', { name: 'Record' }));
+		await vi.waitFor(() => expect(ctx.save).toHaveBeenCalled());
+		const [content, reason] = (ctx.save as any).mock.calls[0];
+		expect(reason).toBe('E2 checked in its lifecycle');
+		const e2 = content.scenarios.find((s: any) => s.code === 'E2');
+		expect(e2.expect.rule).toBe(checked.steps[1].plan!.rule);
+		expect(e2.expect.legs).toHaveLength(checked.steps[1].plan!.lines.length);
+		const e1 = content.scenarios.find((s: any) => s.code === 'E1');
+		expect(e1.expect).toEqual((structuredClone(fixtureConfig) as any).scenarios.find((s: any) => s.code === 'E1').expect); // untouched
+	});
+});

@@ -36,7 +36,7 @@ func ProfileEvents(d *Document, p LifecycleProfile) ([]LifecycleEvent, error) {
 		}
 		in := s.Input
 		in.EventType = s.EventType
-		out = append(out, LifecycleEvent{Code: s.Code, Input: in})
+		out = append(out, LifecycleEvent{Code: s.Code, Input: in, Scenario: s.Code})
 	}
 	return out, nil
 }

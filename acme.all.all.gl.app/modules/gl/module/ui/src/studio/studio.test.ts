@@ -412,3 +412,32 @@ describe('insurance event catalog', () => {
 		expect(opts.find((o) => o.value === 'NEW_BUSINESS')?.label).toBe('Policy lifecycle · NEW_BUSINESS — New business written');
 	});
 });
+
+describe('saving a test case that reads earlier postings (ALTB-08)', () => {
+	it('names and describes it, and saves it without an expected journal when it cannot run on its own', async () => {
+		const ctx = ctxFor({ route: { configId: 'GL_TEST_001', version: 1, event: 'PAYMENT_RECEIVED', etab: 'simulate' }, canEdit: true });
+		(ctx.api as any).plan = vi.fn(async () => {
+			throw { code: 'LEDGER_STATE_UNAVAILABLE', message: 'OPEN_BALANCE reads posted lines' };
+		});
+		render(Simulator, { ctx, fixedEvent: pay });
+		const start = await screen.findByRole('combobox', { name: /Start from/ });
+		await fireEvent.change(start, { target: { value: '' } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Run simulation' }));
+		const group = await screen.findByRole('group', { name: 'Save as scenario' });
+		expect(screen.getByText(/reads earlier postings, so it cannot run on its own/)).toBeTruthy();
+		await fireEvent.input(within(group).getByLabelText(/Scenario code/), { target: { value: 'e3' } });
+		expect(screen.getByText(/Scenario E3 already exists/)).toBeTruthy();
+		expect((within(group).getByRole('button', { name: 'Save as scenario in draft' }) as HTMLButtonElement).disabled).toBe(true);
+		await fireEvent.input(within(group).getByLabelText(/Scenario code/), { target: { value: 'pay_after_invoices' } });
+		await fireEvent.input(within(group).getByLabelText(/Description/), { target: { value: 'Payment after both invoices (pack CL-03)' } });
+		await fireEvent.click(within(group).getByRole('button', { name: 'Save as scenario in draft' }));
+		const dialog = await screen.findByRole('dialog');
+		expect(within(dialog).getByText(/without an expected journal/)).toBeTruthy();
+		await fireEvent.input(within(dialog).getByRole('textbox'), { target: { value: 'Needs the invoices first' } });
+		await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+		await vi.waitFor(() => expect(ctx.save).toHaveBeenCalled());
+		const s = (ctx.save as any).mock.calls[0][0].scenarios.find((x: any) => x.code === 'PAY_AFTER_INVOICES');
+		expect(s.description).toBe('Payment after both invoices (pack CL-03)');
+		expect(s.expect).toBeUndefined();
+	});
+});

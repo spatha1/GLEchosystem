@@ -26,12 +26,18 @@ func TestLifecyclePreviewOfAStoredVersion(t *testing.T) {
 			Steps          []struct {
 				Code     string
 				Balances []balance
+				Check    *struct{ Status string } // ALTB-08: each scenario step checked against its expectation
 			}
 		} `json:"lifecycle"`
 	}](t, do(t, "POST", path, tenantA, viewer, steps), 200)
 	l := got.Lifecycle
 	if !l.Complete || l.Stopped != "" || l.Lines != 12 || l.Entries != 4 || l.Posted || len(l.Steps) != 3 || l.Steps[2].Code != "E3" {
 		t.Fatalf("lifecycle: %+v", l)
+	}
+	for _, st := range l.Steps {
+		if st.Check == nil || st.Check.Status != "PASSED" {
+			t.Errorf("%s: each scenario step is checked against its expectation: %+v", st.Code, st.Check)
+		}
 	}
 	for _, b := range l.Steps[2].Balances {
 		if b.Account == "9948600" && b.Value == "INV2" && b.Balance != "0.50" {
