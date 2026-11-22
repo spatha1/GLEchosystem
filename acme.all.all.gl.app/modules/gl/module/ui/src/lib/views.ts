@@ -27,6 +27,14 @@ export const versionViews: VersionView[] = [
 			'Upload a business requirements document. The AI proposes the business events, then the measures, then the formulas, then the debit and credit lines with test cases, and you approve each step before it is saved to this draft.'
 	},
 	{
+		key: 'transfer',
+		label: 'Import and export',
+		short: 'Import',
+		icon: 'workbook',
+		purpose:
+			'Download this version as an Excel workbook (one sheet per section) or JSON. Import a workbook, CSV files or JSON into a draft: you see what will be added, changed or removed and what the checks find, then save it all with one reason.'
+	},
+	{
 		key: 'fields',
 		label: 'Required fields',
 		short: 'Fields',

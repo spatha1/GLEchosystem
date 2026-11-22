@@ -21,6 +21,7 @@
 	import ImpactPage from './ImpactPage.svelte';
 	import AccountsPage from './AccountsPage.svelte';
 	import OutputsPage from './OutputsPage.svelte';
+	import ImportExportPage from './ImportExportPage.svelte';
 	import HistoryPage from './HistoryPage.svelte';
 	import SectionEditor from './SectionEditor.svelte';
 	import AIWizard from './AIWizard.svelte';
@@ -257,6 +258,8 @@
 				</div>
 			{:else if tab === 'ai'}
 				<AIWizard {ctx} />
+			{:else if tab === 'transfer'}
+				<ImportExportPage {ctx} />
 			{:else if tab === 'fields'}
 				<FieldsPage {ctx} />
 			{:else if tab === 'mapping'}
