@@ -97,6 +97,8 @@ describe('editing content', () => {
 		expect(c.postingRules[0].description).toBe('Premium');
 		const off = cleanRule({ ...rule, active: false });
 		expect(off.active).toBe(false);
+		expect(cleanRule({ ...rule, journalType: ' RJ ' }).journalType).toBe('RJ'); // the rule editor's journal type is saved
+		expect(cleanRule({ ...rule, journalType: '' })).not.toHaveProperty('journalType');
 		const added = withRule(content, { ...rule, code: 'PR_NEW' });
 		expect(added.postingRules.map((r: any) => r.code)).toContain('PR_NEW');
 		expect(withoutRule(content, 'PR_INVOICED').postingRules.map((r: any) => r.code)).not.toContain('PR_INVOICED');

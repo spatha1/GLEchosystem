@@ -21,6 +21,7 @@ export function cleanRule(r: PostingRule): PostingRule {
 	if (r.active === false) out.active = false;
 	if (r.effectiveFrom?.trim()) out.effectiveFrom = r.effectiveFrom.trim();
 	if (r.effectiveTo?.trim()) out.effectiveTo = r.effectiveTo.trim();
+	if (r.journalType?.trim()) out.journalType = r.journalType.trim();
 	out.lines = r.lines.map(cleanLine);
 	return out;
 }
