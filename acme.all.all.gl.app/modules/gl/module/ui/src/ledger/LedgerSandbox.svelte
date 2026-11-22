@@ -32,6 +32,16 @@
 	let result = $state<SandboxPostResult | null>(null);
 	let postError = $state('');
 	let openSeq = $state<number | null>(null);
+	// ALTB-09: the trial balance is as at a date (default: the last posting's book date).
+	let asOf = $state('');
+	async function showAsOf(day: string) {
+		if (!view || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return;
+		try {
+			view = await api.sandboxBook(view.book.bookId, day);
+		} catch (e) {
+			failure = errText(e);
+		}
+	}
 
 	const acctName = (code: string) => accounts.find((a) => a.code === code)?.name ?? '';
 	const errText = (e: unknown) => {
@@ -59,6 +69,7 @@
 			async (v) => {
 				if (id !== bookId) return;
 				view = v;
+				asOf = v.asOf ?? '';
 				try {
 					const ver = await api.version(v.book.configId, v.book.configVersion);
 					const content = ver.content as { scenarios?: Scenario[]; accounts?: Account[]; lifecycleProfiles?: LifecycleProfile[] };
@@ -307,7 +318,10 @@
 									<td colspan="9">
 										{#each p.journals as j (j.journalId)}
 											<div class="journal">
-												<div class="small"><b class="mono">{j.journalId}</b> · {j.legalEntity} {j.currency} · period {j.accountingPeriod} · {j.status} · rule {j.lines[0]?.ruleId} v{j.configVersion}</div>
+												<div class="small">
+													<b class="mono">{j.journalId}</b> · {j.legalEntity} {j.currency} · period {j.accountingPeriod} · {j.status}{j.journalType ? ` · ${j.journalType}` : ''} · rule {j.lines[0]?.ruleId} v{j.configVersion}
+													{#if j.reversalOf}<span class="badge info">reversal of {j.reversalOf}, {j.bookingDate}</span>{/if}
+												</div>
 												<table class="data">
 													<thead><tr><th>Line</th><th>Account</th><th>Class</th><th>Subledger</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
 													<tbody>
@@ -337,7 +351,21 @@
 		</section>
 
 		<section class="card" aria-label="Trial balance">
-			<h3>Trial balance <span class="muted">— by legal entity, account and subledger key</span></h3>
+			<div class="row">
+				<h3 class="grow">Trial balance <span class="muted">— by legal entity, account and subledger key</span></h3>
+				<label class="lbl asof"
+					>As at <input
+						class="field"
+						type="date"
+						value={asOf}
+						onchange={(e) => {
+							asOf = (e.currentTarget as HTMLInputElement).value;
+							showAsOf(asOf);
+						}}
+					/>
+				</label>
+			</div>
+			<p class="small muted">Balances of the lines booked on or before this date. A reversing journal's reversal counts from the first day of the next period.</p>
 			{#if view.balances.length}
 				<table class="data">
 					<thead><tr><th>Entity</th><th>Account</th><th>Subledger</th><th class="num">Debit</th><th class="num">Credit</th><th class="num" title="Debit minus credit">Balance (Dr − Cr)</th></tr></thead>
@@ -405,6 +433,9 @@
 	}
 	.journal + .journal {
 		margin-top: 10px;
+	}
+	.asof {
+		flex: 0 0 180px;
 	}
 	.sum {
 		display: flex;

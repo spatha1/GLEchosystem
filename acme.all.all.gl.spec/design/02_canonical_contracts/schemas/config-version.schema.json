@@ -206,6 +206,13 @@
             "$ref": "#/$defs/lifecycleProfile"
           },
           "description": "ALTB-07: synthetic lifecycle profiles — a synthetic policy's scenarios in order, versioned and approved with the rules they exercise"
+        },
+        "journalTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/journalType"
+          },
+          "description": "ALTB-09: the client's journal types; a reversing type is reversed on the first day of the next period"
         }
       }
     }
@@ -936,6 +943,10 @@
           "type": "string",
           "format": "date",
           "description": "Exclusive end of the rule's window; same-rank rules may not overlap"
+        },
+        "journalType": {
+          "$ref": "#/$defs/code",
+          "description": "ALTB-09: the journal type of the entries the rule posts"
         }
       }
     },
@@ -1085,6 +1096,27 @@
             "$ref": "#/$defs/code"
           },
           "description": "scenario codes of this version, in order"
+        }
+      }
+    },
+    "journalType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/code"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reverse": {
+          "enum": [
+            "",
+            "NEXT_PERIOD"
+          ]
         }
       }
     }

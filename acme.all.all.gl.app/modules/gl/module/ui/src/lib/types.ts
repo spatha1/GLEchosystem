@@ -136,6 +136,8 @@ export interface PostingPlan {
 	eventType: string;
 	rule: string;
 	rank: number;
+	/** ALTB-09: the rule's journal type. */
+	journalType?: string;
 	config: ConfigRef;
 	considered: RuleMatch[];
 	lines: PlannedLine[];

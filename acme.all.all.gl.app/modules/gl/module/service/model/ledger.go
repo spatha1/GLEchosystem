@@ -40,6 +40,7 @@ type ledgerLine struct {
 type TempLedger struct {
 	d     *Document
 	lines []ledgerLine
+	last  time.Time // the latest book date posted, reversals excluded
 }
 
 // NewTempLedger is an empty temporary ledger for a configuration.
@@ -51,6 +52,10 @@ func (t *TempLedger) Post(step int, p *PostingPlan) error {
 	if !ok {
 		return &CodeError{"MISSING_BOOK_DATE", "the plan has no book date"}
 	}
+	if day.After(t.last) {
+		t.last = day
+	}
+	reverse := reversesNextPeriod(t.d, p.JournalType)
 	for _, l := range p.Lines {
 		r, err := formula.ParseDecimal(l.Amount)
 		if err != nil {
@@ -58,8 +63,19 @@ func (t *TempLedger) Post(step int, p *PostingPlan) error {
 		}
 		t.lines = append(t.lines, ledgerLine{step: step, class: l.Class, account: l.Account, side: l.Side, entity: l.Entity, currency: l.Currency,
 			bookDate: day, amount: r, keys: l.Keys})
+		if reverse { // ALTB-09: reversed on the first day of the next period
+			t.lines = append(t.lines, ledgerLine{step: step, class: l.Class, account: l.Account, side: flip(l.Side), entity: l.Entity, currency: l.Currency,
+				bookDate: NextPeriodStart(day), amount: r, keys: l.Keys})
+		}
 	}
 	return nil
+}
+
+func flip(side string) string {
+	if side == "D" {
+		return "C"
+	}
+	return "D"
 }
 
 // Load adds lines already posted (by a store), so later events read them. Step 0 marks them as
@@ -69,6 +85,9 @@ func (t *TempLedger) Load(lines []LedgerLine) error {
 		day, ok := ParseDay(l.BookDate)
 		if !ok {
 			return &CodeError{"MISSING_BOOK_DATE", "a posted line has no book date: " + l.LineID}
+		}
+		if !l.Reversal && day.After(t.last) {
+			t.last = day
 		}
 		r, err := formula.ParseDecimal(l.Amount)
 		if err != nil {
@@ -117,11 +136,21 @@ type LedgerBalance struct {
 }
 
 // Balances is the ledger's balances by entity, currency, account and subledger key value.
-func (t *TempLedger) Balances() []LedgerBalance {
+func (t *TempLedger) Balances() []LedgerBalance { return t.BalancesAsOf(time.Time{}) }
+
+// LastBookDate is the latest book date posted, reversals excluded (zero if none).
+func (t *TempLedger) LastBookDate() time.Time { return t.last }
+
+// BalancesAsOf is Balances counting only lines booked on or before asOf (zero: every line). A
+// reversal dated in the next period is not counted before that period starts.
+func (t *TempLedger) BalancesAsOf(asOf time.Time) []LedgerBalance {
 	type k struct{ entity, currency, account, class, key, value string }
 	sums := map[k][2]*big.Rat{}
 	var order []k
 	for _, l := range t.lines {
+		if !asOf.IsZero() && l.bookDate.After(asOf) {
+			continue
+		}
 		key := ""
 		for _, a := range t.d.Accounts {
 			if a.Code == l.account {

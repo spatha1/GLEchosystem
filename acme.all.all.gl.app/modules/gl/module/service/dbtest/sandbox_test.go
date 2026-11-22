@@ -299,3 +299,51 @@ func TestLifecycleProfilesRunByName(t *testing.T) {
 		t.Errorf("posting a profile: %+v", got)
 	}
 }
+
+// ALTB-09: a reversing journal posted to a sandbox book is stored with its reversal entry dated
+// the first day of the next period; the book's balances are as at its last posting unless asked
+// for another date.
+func TestSandboxReversingJournals(t *testing.T) {
+	needDB(t)
+	c := fixtureConfig(t)
+	c["journalTypes"] = []any{map[string]any{"code": "GJ"}, map[string]any{"code": "RJ", "reverse": "NEXT_PERIOD"}}
+	for _, r := range c["postingRules"].([]any) {
+		if r.(map[string]any)["code"] == "PR_PREM_ADDED" {
+			r.(map[string]any)["journalType"] = "RJ"
+		}
+	}
+	cfg := approvedFixture(t, c)
+	book := openBook(t, cfg)
+	type bal struct{ Account, Balance string }
+	type view struct {
+		AsOf     string
+		Balances []bal
+		Postings []struct {
+			Journals []struct{ JournalID, ReversalOf, BookingDate, JournalType string }
+		}
+	}
+	at := func(v view, account string) string {
+		for _, b := range v.Balances {
+			if b.Account == account {
+				return b.Balance
+			}
+		}
+		return "none"
+	}
+	mustStatus(t, do(t, "POST", "/ledger/sandbox/books/"+book+"/post", tenantA, operator, scenarios("E1")), 200)
+	v := decode[view](t, do(t, "GET", "/ledger/sandbox/books/"+book, tenantA, viewer, nil), 200)
+	if v.AsOf != "2026-01-01" || at(v, "4100100") != "-1000.00" {
+		t.Errorf("as at the last posting: %s %s", v.AsOf, at(v, "4100100"))
+	}
+	js := v.Postings[0].Journals
+	if len(js) != 2 || js[1].ReversalOf != js[0].JournalID || js[1].BookingDate != "2026-02-01" || js[0].JournalType != "RJ" {
+		t.Errorf("journals: %+v", js)
+	}
+	feb := decode[view](t, do(t, "GET", "/ledger/sandbox/books/"+book+"?asOf=2026-02-01", tenantA, viewer, nil), 200)
+	if feb.AsOf != "2026-02-01" || at(feb, "4100100") != "0.00" {
+		t.Errorf("as at 1 Feb, after the reversal: %s %s", feb.AsOf, at(feb, "4100100"))
+	}
+	if r := do(t, "GET", "/ledger/sandbox/books/"+book+"?asOf=Feb", tenantA, viewer, nil); r.Status != 400 {
+		t.Errorf("a bad date: %d", r.Status)
+	}
+}

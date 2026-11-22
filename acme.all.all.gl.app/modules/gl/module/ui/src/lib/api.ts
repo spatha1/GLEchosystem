@@ -121,7 +121,8 @@ export function client(tenant: string, fetcher: Fetcher = (i, o) => fetch(i, o))
 		sandboxBooks: () => call<{ books: SandboxBook[] }>('GET', '/ledger/sandbox/books').then((r) => r.books),
 		openSandboxBook: (bookId: string, configId: string, version: number, reason: string) =>
 			call<SandboxBook>('POST', '/ledger/sandbox/books', { bookId, configId, version, reason }),
-		sandboxBook: (bookId: string) => call<SandboxBookView>('GET', '/ledger/sandbox/books/' + encodeURIComponent(bookId)),
+		sandboxBook: (bookId: string, asOf?: string) =>
+			call<SandboxBookView>('GET', '/ledger/sandbox/books/' + encodeURIComponent(bookId) + (asOf ? `?asOf=${encodeURIComponent(asOf)}` : '')),
 		postToSandbox: (bookId: string, steps: LifecycleStepInput[]) =>
 			call<SandboxPostResult>('POST', '/ledger/sandbox/books/' + encodeURIComponent(bookId) + '/post', { steps }),
 		impact: (id: string, n: number, against?: number) => call<Impact>('GET', v(id, n) + '/impact' + (against ? `?against=${against}` : '')),

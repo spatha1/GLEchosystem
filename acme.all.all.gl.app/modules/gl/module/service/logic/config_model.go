@@ -27,7 +27,7 @@ var Sections = []string{
 	"sourceSystems", "sourceAuthority", "events", "baseMeasures", "derivedMeasures",
 	"dimensions", "lookups", "datePolicies", "calendars", "keyProfiles",
 	"accountingClasses", "accounts", "postingRules", "accountAssignmentRules",
-	"reconciliationEquations", "outputProfiles", "scenarios", "lifecycleProfiles",
+	"reconciliationEquations", "outputProfiles", "scenarios", "lifecycleProfiles", "journalTypes",
 }
 
 // Finding is one validation result (shared with the typed model). Severity "error" blocks

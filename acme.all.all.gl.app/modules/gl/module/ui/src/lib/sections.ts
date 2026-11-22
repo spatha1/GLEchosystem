@@ -516,6 +516,32 @@ export const specs: Record<string, SectionSpec> = {
 		],
 		blank: () => ({ code: '', name: '', class: '', activeFrom: '' })
 	},
+	journalTypes: {
+		section: 'journalTypes',
+		title: 'Journal types',
+		noun: 'journal type',
+		help: 'The journal types of the client ledger (e.g. GJ general, RJ reversing). A posting rule names one; a reversing type is reversed on the first day of the next period.',
+		key: (x) => x.code,
+		fields: [
+			{ key: 'code', label: 'Code', type: 'code', required: true, fixedOnEdit: true, placeholder: 'e.g. RJ' },
+			{ key: 'description', label: 'Description', type: 'text', wide: true },
+			{
+				key: 'reverse',
+				label: 'Reversal',
+				type: 'select',
+				options: () => [
+					{ value: '', label: 'Never reversed' },
+					{ value: 'NEXT_PERIOD', label: 'Reversed on the first day of the next period' }
+				]
+			}
+		],
+		columns: [
+			{ label: 'Journal type', value: (x) => x.code, mono: true },
+			{ label: 'Description', value: (x) => x.description ?? '' },
+			{ label: 'Reversal', value: (x) => (x.reverse === 'NEXT_PERIOD' ? 'next period' : 'never') }
+		],
+		blank: () => ({ code: '' })
+	},
 	accountAssignmentRules: {
 		section: 'accountAssignmentRules',
 		title: 'Account assignment rules',

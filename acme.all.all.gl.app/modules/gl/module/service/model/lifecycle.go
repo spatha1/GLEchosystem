@@ -75,7 +75,7 @@ func RunLifecycle(d *Document, ref ConfigRef, events []LifecycleEvent, led *Temp
 				st.Error = scenarioError(perr)
 			}
 		}
-		st.Balances = led.Balances()
+		st.Balances = led.BalancesAsOf(led.LastBookDate()) // ALTB-09: a reversal dated next period is not yet counted
 		res.Steps = append(res.Steps, st)
 		if st.Error != nil {
 			res.Stopped = fmt.Sprintf("step %d (%s) cannot be posted: %s %s", i+1, firstOf(e.Code, e.Input.EventType), st.Error.Code, st.Error.Message)

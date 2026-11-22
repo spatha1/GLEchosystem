@@ -73,3 +73,11 @@ describe('dimensions that take any value', () => {
 		expect(specs.dimensions.columns.find((c) => c.label === 'Values')!.value({ code: 'X', open: true }, {})).toBe('any value');
 	});
 });
+
+describe('journal types (ALTB-09)', () => {
+	it('are configured with their reversal', () => {
+		expect(cleanItem(specs.journalTypes.fields, { code: 'RJ', description: 'Reversing journal', reverse: 'NEXT_PERIOD' })).toEqual({ code: 'RJ', description: 'Reversing journal', reverse: 'NEXT_PERIOD' });
+		expect(cleanItem(specs.journalTypes.fields, { code: 'GJ', reverse: '' })).toEqual({ code: 'GJ' });
+		expect(specs.journalTypes.columns.find((c) => c.label === 'Reversal')!.value({ code: 'RJ', reverse: 'NEXT_PERIOD' }, {})).toBe('next period');
+	});
+});

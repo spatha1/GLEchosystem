@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"gl/model"
 
@@ -181,6 +182,7 @@ func loadLines(c *call, bookID string) ([]model.LedgerLine, *apiError) {
 		if err := json.Unmarshal([]byte(keys), &l.Keys); err != nil {
 			return nil, errInternal("storage error")
 		}
+		l.Reversal = strings.HasSuffix(l.LineID, "/REV") // ALTB-09: posted by the GL to reverse a reversing journal
 		out = append(out, l)
 	}
 	return out, nil
@@ -229,7 +231,17 @@ func getBook(c *call) modulesdk.Response {
 	if err := led.Load(lines); err != nil {
 		return errInternal("a posted line could not be read").response()
 	}
-	return jsonResponse(200, map[string]any{"book": b, "postings": postings, "balances": led.Balances()})
+	// ALTB-09: balances as at a date (default: the last posting's book date), so a reversal
+	// dated in the next period is not counted before that period starts.
+	asOf := led.LastBookDate()
+	if q := c.query("asOf"); q != "" {
+		day, ok := model.ParseDay(q)
+		if !ok {
+			return errInvalid("asOf", "asOf must be a date, YYYY-MM-DD").response()
+		}
+		asOf = day
+	}
+	return jsonResponse(200, map[string]any{"book": b, "postings": postings, "balances": led.BalancesAsOf(asOf), "asOf": dayString(asOf)})
 }
 
 type postStep struct {
@@ -411,7 +423,14 @@ func postToBook(c *call) modulesdk.Response {
 		return errInternal("a posted line could not be read").response()
 	}
 	b, _ = loadBook(c, bookID)
-	return jsonResponse(200, map[string]any{"book": b, "steps": outcomes, "posted": len(ins), "balances": after.Balances()})
+	return jsonResponse(200, map[string]any{"book": b, "steps": outcomes, "posted": len(ins), "balances": after.BalancesAsOf(after.LastBookDate()), "asOf": dayString(after.LastBookDate())})
+}
+
+func dayString(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format("2006-01-02")
 }
 
 // stepEvent is one step's event: a scenario of the pinned version, or a synthetic event. A

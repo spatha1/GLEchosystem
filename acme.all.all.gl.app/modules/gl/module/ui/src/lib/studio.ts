@@ -190,6 +190,8 @@ export interface PostingRule {
 	active?: boolean;
 	effectiveFrom?: string;
 	effectiveTo?: string;
+	/** ALTB-09: the journal type of the entries it posts (see Journal types). */
+	journalType?: string;
 }
 
 export interface AccountingClass {
@@ -552,6 +554,10 @@ export interface JournalEntry {
 	status: string;
 	configId: string;
 	configVersion: number;
+	/** ALTB-09 */
+	journalType?: string;
+	/** ALTB-09: the entry this one reverses (posted on the first day of the next period). */
+	reversalOf?: string;
 	lines: {
 		lineId: string;
 		account: string;
@@ -584,6 +590,8 @@ export interface SandboxBookView {
 	book: SandboxBook;
 	postings: SandboxPosting[];
 	balances: LedgerBalance[];
+	/** ALTB-09: the balances are as at this date (default: the last posting's book date). */
+	asOf?: string;
 }
 
 export interface SandboxPostResult {

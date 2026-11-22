@@ -38,6 +38,8 @@ type PostingRule struct {
 	// rule applies on: [from, to). Empty ends are open.
 	EffectiveFrom string `json:"effectiveFrom,omitempty"`
 	EffectiveTo   string `json:"effectiveTo,omitempty"`
+	// JournalType (ALTB-09) is the journal type of the entries the rule posts (see Journal types).
+	JournalType string `json:"journalType,omitempty"`
 }
 
 // IsActive says whether the rule is applied at all.
@@ -358,7 +360,9 @@ type PostingPlan struct {
 	Dimensions []ResolvedDimension `json:"dimensions"`
 	Period     *PeriodDecision     `json:"period,omitempty"`
 	BookDate   string              `json:"bookDate,omitempty"` // US-013: the date accounts were assigned on
-	Derived    []Derived           `json:"derived"`            // every derived measure evaluated, with its lineage
+	// JournalType (ALTB-09) is the rule's journal type; a reversing type is reversed next period.
+	JournalType string    `json:"journalType,omitempty"`
+	Derived     []Derived `json:"derived"` // every derived measure evaluated, with its lineage
 }
 
 // scopedEnv reads a list item's fields first, then the event's.
@@ -470,7 +474,7 @@ func planPosting(d *Document, ref ConfigRef, in EventInput, led LedgerReader) (*
 		return nil, &CodeError{"AMBIGUOUS_RULE", fmt.Sprintf("rules %s and %s both match at rank %d; refusing to choose", matched[0].Code, matched[1].Code, matched[0].Rank)}
 	}
 	rule := matched[0]
-	plan.Rule, plan.Rank = rule.Code, rule.Rank
+	plan.Rule, plan.Rank, plan.JournalType = rule.Code, rule.Rank, rule.JournalType
 
 	keys := map[string]string{}
 	for k, v := range in.Keys {

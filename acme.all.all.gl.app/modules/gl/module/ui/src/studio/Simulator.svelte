@@ -368,6 +368,9 @@
 				<span class="k">Matched rule</span><button class="btn link v mono" onclick={() => ctx.go({ configId: ctx.version.configId, version: ctx.version.version, event: plan!.eventType, rule: plan!.rule })}>{plan.rule || '—'}</button><span class="s">rank {plan.rank}</span>
 			</div>
 			<div><span class="k">Book date</span><span class="v">{plan.bookDate ?? '—'}</span><span class="s">{plan.period ? `period ${plan.period.accountingPeriod}${plan.period.bookingClass ? `, class ${plan.period.bookingClass}` : ''}` : 'no period decided'}</span></div>
+			{#if plan.journalType}
+				<div><span class="k">Journal type</span><span class="v mono">{plan.journalType}</span><span class="s">{((ctx.content.journalTypes ?? []) as { code: string; reverse?: string }[]).find((j) => j.code === plan!.journalType)?.reverse === 'NEXT_PERIOD' ? 'reversed on the first day of the next period' : 'not reversed'}</span></div>
+			{/if}
 			<div><span class="k">Balance</span><span class="badge {plan.balanced ? 'ok' : 'bad'}">{plan.balanced ? 'Balanced' : 'Not balanced'}</span></div>
 			<div><span class="k">Posting</span><span class="badge {postable ? 'ok' : 'bad'}">{postable ? 'Can post' : 'Refused'}</span></div>
 			{#if check}

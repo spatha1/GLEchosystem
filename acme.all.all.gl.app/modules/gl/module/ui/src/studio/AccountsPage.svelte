@@ -14,4 +14,5 @@
 	<SectionEditor {ctx} spec={specs.accountingClasses} {findings} />
 	<SectionEditor {ctx} spec={specs.accounts} {findings} />
 	<SectionEditor {ctx} spec={specs.accountAssignmentRules} {findings} />
+	<SectionEditor {ctx} spec={specs.journalTypes} {findings} />
 </div>

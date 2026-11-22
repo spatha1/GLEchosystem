@@ -138,3 +138,22 @@ describe('one sandbox book', () => {
 		await vi.waitFor(() => expect(api.postToSandbox).toHaveBeenCalledWith('SANDBOX_JAN', [{ scenario: 'E1' }, { scenario: 'E2' }, { scenario: 'E3' }]));
 	});
 });
+
+describe('reversing journals in a book (ALTB-09)', () => {
+	it('shows the trial balance as at a date and labels reversal entries', async () => {
+		const withRev = structuredClone(bookView) as any;
+		withRev.asOf = '2026-07-15';
+		const j = withRev.postings[0].journals[0];
+		withRev.postings[0].journals.push({ ...structuredClone(j), journalId: j.journalId + ':REV', reversalOf: j.journalId, bookingDate: '2026-08-01', journalType: 'RJ' });
+		const api = apiWith({ sandboxBook: vi.fn(async () => withRev) });
+		render(LedgerSandbox, { api, me: viewer, book: 'SANDBOX_JAN', go: vi.fn() });
+		const tb = await screen.findByRole('region', { name: 'Trial balance' });
+		const asOf = within(tb).getByLabelText(/As at/) as HTMLInputElement;
+		expect(asOf.value).toBe('2026-07-15');
+		await fireEvent.change(asOf, { target: { value: '2026-08-01' } });
+		await vi.waitFor(() => expect(api.sandboxBook).toHaveBeenLastCalledWith('SANDBOX_JAN', '2026-08-01'));
+		const postings = screen.getByRole('heading', { name: /Postings/ }).closest('section')!;
+		await fireEvent.click(within(postings).getAllByRole('button', { name: 'Journals' })[0]);
+		expect(within(postings).getByText(`reversal of ${j.journalId}, 2026-08-01`)).toBeTruthy();
+	});
+});

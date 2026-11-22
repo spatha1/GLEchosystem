@@ -35,6 +35,8 @@ type JournalEntry struct {
 	Status           string        `json:"status"`
 	ConfigID         string        `json:"configId"`
 	ConfigVersion    int           `json:"configVersion"`
+	JournalType      string        `json:"journalType,omitempty"` // ALTB-09
+	ReversalOf       string        `json:"reversalOf,omitempty"`  // ALTB-09: the entry this one reverses
 	Lines            []JournalLine `json:"lines"`
 }
 
@@ -66,6 +68,7 @@ type LedgerLine struct {
 	BookDate  string            `json:"bookDate"`
 	Amount    string            `json:"amount"`
 	Keys      map[string]string `json:"keys,omitempty"`
+	Reversal  bool              `json:"reversal,omitempty"` // ALTB-09: posted by the GL to reverse a reversing journal
 }
 
 // EconomicEventKey identifies the economic event independently of source and intake mode:
@@ -130,7 +133,7 @@ func Journals(d *Document, tenant string, in EventInput, p *PostingPlan) ([]Jour
 			e = &JournalEntry{SchemaVersion: JournalSchemaVersion, JournalID: "J:" + econ + ":" + l.Entity + ":" + l.Currency, GroupID: "G:" + econ,
 				TenantID: tenant, EconomicEventKey: econ, EventType: in.EventType, LegalEntity: l.Entity, Currency: l.Currency,
 				IntakeMode: intakeModeOf(d, in), BookingDate: p.BookDate, EffectiveDate: in.EffectiveDate, AccountingPeriod: period,
-				Status: "posted", ConfigID: p.Config.ConfigID, ConfigVersion: p.Config.Version}
+				Status: "posted", ConfigID: p.Config.ConfigID, ConfigVersion: p.Config.Version, JournalType: p.JournalType}
 			entries[k] = e
 			order = append(order, k)
 		}
@@ -161,6 +164,32 @@ func Journals(d *Document, tenant string, in EventInput, p *PostingPlan) ([]Jour
 		out = append(out, *e)
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].JournalID < out[j].JournalID })
+	if reversesNextPeriod(d, p.JournalType) {
+		day, _ := ParseDay(p.BookDate)
+		next := NextPeriodStart(day)
+		nextDay := next.Format("2006-01-02")
+		n := len(out)
+		for _, e := range out[:n] {
+			r := e
+			r.JournalID, r.ReversalOf, r.BookingDate, r.AccountingPeriod = e.JournalID+":REV", e.JournalID, nextDay, next.Format("2006-01")
+			r.Lines = nil
+			for _, l := range e.Lines {
+				rl := l
+				rl.LineID, rl.Side = l.LineID+"/REV", flip(l.Side)
+				rl.Explanation = "Reversal of " + l.LineID + " (journal type " + p.JournalType + ", next period)"
+				r.Lines = append(r.Lines, rl)
+			}
+			out = append(out, r)
+		}
+		for _, l := range kept[:len(kept)] {
+			if l.Reversal {
+				continue
+			}
+			rl := l
+			rl.LineID, rl.JournalID, rl.Side, rl.BookDate, rl.Reversal = l.LineID+"/REV", l.JournalID+":REV", flip(l.Side), nextDay, true
+			kept = append(kept, rl)
+		}
+	}
 	return out, kept, nil
 }
 

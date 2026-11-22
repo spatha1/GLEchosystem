@@ -21,6 +21,7 @@
     "status": { "enum": ["posted", "reversed"] },
     "configId": { "$ref": "#/$defs/code" },
     "configVersion": { "type": "integer", "minimum": 1 },
+    "journalType": { "type": "string", "description": "ALTB-09: the journal type (e.g. GJ, RJ)" },
     "mappingId": { "$ref": "#/$defs/code" },
     "mappingVersion": { "type": "integer", "minimum": 1 },
     "sourceJournalId": { "type": "string" },

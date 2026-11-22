@@ -120,6 +120,15 @@
 		<label class="lbl wide">Filter (optional) <input class="field mono" list="gl-names" bind:value={r.filter} placeholder="e.g. LOB == 'MOTOR' — empty: every {view.event.code}" /></label>
 		<label class="lbl">Effective from (optional) <input class="field" type="date" bind:value={r.effectiveFrom} /></label>
 		<label class="lbl">Effective to (optional) <input class="field" type="date" bind:value={r.effectiveTo} /></label>
+		<label class="lbl"
+			>Journal type (optional)
+			<select class="field" bind:value={r.journalType}>
+				<option value={undefined}>—</option>
+				{#each (ctx.content.journalTypes ?? []) as { code: string; description?: string; reverse?: string }[] as j (j.code)}<option value={j.code}
+						>{j.code}{j.description ? ` — ${j.description}` : ''}{j.reverse === 'NEXT_PERIOD' ? ' (reversed next period)' : ''}</option
+					>{/each}
+			</select>
+		</label>
 		<label class="toggle"><input type="checkbox" bind:checked={active} /> Active (a deactivated rule is kept for the record but never applied)</label>
 	</div>
 	{#if ruleFindings.length}<Findings findings={ruleFindings} />{/if}

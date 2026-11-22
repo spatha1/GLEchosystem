@@ -1632,7 +1632,7 @@
           "gl (GL)"
         ],
         "operationId": "gl_getSandboxBook",
-        "summary": "A sandbox book: its postings with their journal entries (C6) and its balances",
+        "summary": "A sandbox book: its postings with their journal entries (C6) and its balances; balances as at a date",
         "responses": {
           "200": {
             "description": "book, postings (source event, economic event key, book date, journals), balances by entity, currency, account and subledger key"
@@ -1640,7 +1640,19 @@
           "404": {
             "$ref": "#/components/responses/gl_Error"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "asOf",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            },
+            "description": "ALTB-09: balances as at this date (default: the last posting's book date)"
+          }
+        ]
       }
     },
     "/m/gl/ledger/sandbox/books/{bookId}/post": {
