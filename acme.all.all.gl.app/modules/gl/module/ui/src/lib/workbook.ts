@@ -117,6 +117,36 @@ const own: Record<string, { title: string; key: (x: any) => string; defs: Def[] 
 			d('expect', 'json', 'Expected journal (JSON)')
 		]
 	},
+	sourceFiles: {
+		title: 'Imported source files',
+		key: (x) => x.id ?? '',
+		defs: [
+			d('id', 'text', 'Id'),
+			d('name', 'text', 'File'),
+			d('sheet', 'text', 'Sheet'),
+			d('kind', 'text', 'Holds (COA, CLASSES, ASSIGNMENTS, OTHER)'),
+			d('rows', 'number', 'Data rows'),
+			d('columns', 'pairs', 'Columns (role=header)'),
+			d('conditions', 'list', 'Condition columns'),
+			d('skipped', 'json', 'Rows not imported (JSON)'),
+			d('importedBy', 'text', 'Imported by'),
+			d('importedAt', 'text', 'Imported at')
+		]
+	},
+	sourceClasses: {
+		title: 'Source accounting classes',
+		key: (x) => `${x.system ?? ''}/${x.code ?? ''}`,
+		defs: [
+			d('system', 'text', 'Source system'),
+			d('code', 'text', 'Code (as received)'),
+			d('meaning', 'text', 'Meaning'),
+			d('role', 'text', 'Role'),
+			d('status', 'text', 'Status (UNMAPPED, MAPPED, NOT_USED)'),
+			d('note', 'text', 'Notes'),
+			d('source', 'json', 'Source row (JSON)'),
+			d('mappings', 'rows', 'Mappings', [d('class', 'text', 'Class'), d('when', 'pairs', 'Only when'), d('note', 'text', 'Note')])
+		]
+	},
 	lifecycleProfiles: {
 		title: 'Lifecycle profiles',
 		key: (x) => x.code ?? '',
@@ -136,6 +166,8 @@ export const SECTION_ORDER = [
 	'events',
 	'sourceAuthority',
 	'derivedMeasures',
+	'sourceFiles',
+	'sourceClasses',
 	'accountingClasses',
 	'accounts',
 	'accountAssignmentRules',
@@ -273,12 +305,15 @@ const header = (c: Column) => (c.type === 'json' && !c.key.endsWith(JSON_SUFFIX)
 
 /** The rows of every table of a content; an empty section gives its header only (a template). */
 export function toTables(c: Content): Table[] {
-	return tableDefs(c).map((t) => {
+	const defs = tableDefs(c);
+	const mainKey = new Map(defs.filter((t) => !t.path.length).map((t) => [t.section, t.key]));
+	return defs.map((t) => {
 		const rows: string[][] = [];
 		// a row of a list names its owner: the item's key, then #n for the n-th row of each list above
 		const walk = (items: any[], depth: number, owner: string) => {
 			items.forEach((it, i) => {
-				const id = depth === 0 ? (t.key ? t.key(it) : String(it?.code ?? '')) : `${owner}#${i + 1}`;
+				const key = mainKey.get(t.section);
+				const id = depth === 0 ? (key ? key(it) : String(it?.code ?? '')) : `${owner}#${i + 1}`;
 				if (depth === t.path.length) {
 					const cells = t.columns.map((col) => formatCell(getPath(it, col.key), col.type));
 					rows.push(depth === 0 ? cells : [owner, ...cells]);
