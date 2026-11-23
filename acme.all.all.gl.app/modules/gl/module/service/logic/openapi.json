@@ -1800,6 +1800,269 @@
           }
         }
       }
+    },
+    "/m/gl/roles/permissions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_permissions",
+        "summary": "Every API operation and the roles that may call it, read from the route table the server enforces",
+        "responses": {
+          "200": {
+            "description": "roles, operations"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/client": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_getClient",
+        "summary": "This client's onboarding profile (404 NOT_ONBOARDED until onboarded in GL; the tenant itself belongs to the platform)",
+        "responses": {
+          "200": {
+            "description": "the profile"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_putClient",
+        "summary": "Onboard or update this client (administrators; reason required). With initialize and a configuration that does not exist yet, its empty version 1 draft is created",
+        "responses": {
+          "200": {
+            "description": "client, initialized"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/client/audit": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_clientAudit",
+        "summary": "The history of this client's onboarding profile (administrators)",
+        "responses": {
+          "200": {
+            "description": "entries"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/catalog/classes": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        }
+      ],
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_standardClasses",
+        "summary": "The standard accounting class library (catalog, version, status, classes with code, name, definition, nature, normal side and status)",
+        "responses": {
+          "200": {
+            "description": "the library"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/return": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_returnToDraft",
+        "summary": "A reviewer returns a validated version to draft instead of approving it (reason required)",
+        "responses": {
+          "200": {
+            "description": "Returned to draft"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/configs/{configId}/versions/{version}/assign": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/gl_ConfigId"
+        },
+        {
+          "$ref": "#/components/parameters/gl_VersionNo"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_assignTest",
+        "summary": "Stage 1 rule testing: which assignment rule a line with these conditions matches, the account it gets and why, every rule considered and the posting gate (read-only)",
+        "responses": {
+          "200": {
+            "description": "class, mappedBy, assignment, allowed, gate, error"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/ai/assist": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_aiAssist",
+        "summary": "The AI assistant of an area (admin, onboarding, or stage1 with a step): answer, suggestions with evidence and confidence, questions. Nothing is changed. Refused when AI is unavailable, external calls are off (AI_EXTERNAL_OFF) or the daily budget is spent (AI_BUDGET_EXCEEDED)",
+        "responses": {
+          "200": {
+            "description": "result, budget"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
+    },
+    "/m/gl/ai/decisions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gl_Tenant"
+        }
+      ],
+      "post": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_aiDecision",
+        "summary": "Record what a person did with an AI suggestion: ACCEPTED, EDITED or REJECTED (append-only)",
+        "responses": {
+          "200": {
+            "description": "recorded"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "201": {
+            "description": "Recorded"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "gl (GL)"
+        ],
+        "operationId": "gl_aiDecisions",
+        "summary": "The AI suggestions people accepted, edited or rejected in this client (filter by area, configId)",
+        "responses": {
+          "200": {
+            "description": "decisions"
+          },
+          "400": {
+            "$ref": "#/components/responses/gl_Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/gl_Error"
+          }
+        }
+      }
     }
   },
   "components": {

@@ -106,6 +106,9 @@ func run(m *testing.M, admin string) (int, error) {
 	if _, err := db.Exec("insert into gl.role_assignment (tenant_id, actor, role, granted_by) values ('CLIENT_A', 'outsider@example.com', 'CONFIG_EDITOR', 'test-seed')"); err != nil {
 		return 0, err
 	}
+	// The AI tests use a stand-in provider, so external calls are allowed here (the default
+	// reads GL_AI_EXTERNAL); TestAssistantIsGatedAliasedBudgetedAndAudited turns them off.
+	logic.AIExternal = func() bool { return true }
 	// A validator that fails on purpose, so the 422 path and its audit can be exercised.
 	logic.RegisterSectionValidator("outputProfiles", func(items []map[string]any, _ map[string][]map[string]any) []logic.Finding {
 		var fs []logic.Finding

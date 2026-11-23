@@ -27,11 +27,6 @@ func drafter() ai.Drafter {
 	return AIDrafter()
 }
 
-// aiStatus — GET /ai/status: whether AI drafting is available, with which provider and model.
-func aiStatus(c *call) modulesdk.Response {
-	return jsonResponse(200, drafter().Status())
-}
-
 // draftForAI loads a version that AI steps may work on: a draft.
 func draftForAI(c *call) (VersionView, *apiError) {
 	configID, n, e := versionParams(c)
@@ -104,6 +99,9 @@ func aiStep(c *call) modulesdk.Response {
 	if len(b.Notes) > 4000 {
 		return errInvalid("notes", "notes are limited to 4000 characters").response()
 	}
+	if e := aiGate(c); e != nil {
+		return e.response()
+	}
 	check := func(content []byte) ([]model.Finding, []byte, error) {
 		canonical, _, shape, e := contentOrError(json.RawMessage(content))
 		if e != nil {
@@ -122,6 +120,7 @@ func aiStep(c *call) modulesdk.Response {
 		}
 		return errInternal("the AI step failed: " + err.Error()).response()
 	}
+	aiRecordUsage(c, p.Usage)
 	return jsonResponse(200, map[string]any{"configId": v.ConfigID, "version": v.Version, "contentDigest": v.ContentDigest, "proposal": p})
 }
 

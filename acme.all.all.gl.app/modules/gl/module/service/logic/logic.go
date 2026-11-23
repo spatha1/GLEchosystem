@@ -30,6 +30,8 @@ var (
 	Migration0002SQL string
 	//go:embed sql/0003_sandbox_ledger.sql
 	Migration0003SQL string
+	//go:embed sql/0004_onboarding_ai.sql
+	Migration0004SQL string
 )
 
 // Ledger ids of the shipped migrations.
@@ -37,6 +39,7 @@ const (
 	Migration0001ID = "0001_config_store"
 	Migration0002ID = "0002_roles_maker_checker"
 	Migration0003ID = "0003_sandbox_ledger"
+	Migration0004ID = "0004_onboarding_ai"
 )
 
 // Migrations is the ordered list the module ships. main.go, the dev adapter and the tests
@@ -46,6 +49,7 @@ func Migrations() []modulesdk.Migration {
 		{ID: Migration0001ID, SQL: Migration0001SQL},
 		{ID: Migration0002ID, SQL: Migration0002SQL},
 		{ID: Migration0003ID, SQL: Migration0003SQL},
+		{ID: Migration0004ID, SQL: Migration0004SQL},
 	}
 }
 
@@ -107,6 +111,11 @@ var routes = []route{
 	r("GET", "/roles", roleGated, listRoles, roleAdmins...),
 	r("GET", "/roles/audit", roleGated, listRoleAudit, roleAdmins...),
 	r("PUT", "/roles/{actor}", roleGated, setRoles, roleAdmins...),
+	r("GET", "/roles/permissions", authenticated, permissions),
+	r("GET", "/client", roleGated, getClient, roleReaders...),
+	r("PUT", "/client", roleGated, putClient, roleAdmins...),
+	r("GET", "/client/audit", roleGated, clientAudit, roleAdmins...),
+	r("GET", "/catalog/classes", authenticated, standardClasses),
 	r("GET", "/configs", roleGated, listConfigs, roleReaders...),
 	r("POST", "/configs", roleGated, createConfig, roleEditors...),
 	r("GET", "/configs/{configId}/versions", roleGated, listVersions, roleReaders...),
@@ -116,6 +125,8 @@ var routes = []route{
 	r("POST", "/configs/{configId}/versions/{version}/validate", roleGated, validateVersion, roleEditors...),
 	r("POST", "/configs/{configId}/versions/{version}/approve", roleGated, approveVersion, roleApprovers...),
 	r("POST", "/configs/{configId}/versions/{version}/retire", roleGated, retireVersion, roleApprovers...),
+	r("POST", "/configs/{configId}/versions/{version}/return", roleGated, returnToDraft, roleApprovers...),
+	r("POST", "/configs/{configId}/versions/{version}/assign", roleGated, assignTest, roleReaders...),
 	r("GET", "/configs/{configId}/effective", roleGated, effectiveVersion, roleReaders...),
 	r("GET", "/configs/{configId}/effective/manifest", roleGated, effectiveManifest, roleReaders...),
 	r("GET", "/configs/{configId}/audit", roleGated, listAudit, roleReaders...),
@@ -143,6 +154,9 @@ var routes = []route{
 	r("POST", "/ledger/sandbox/books/{bookId}/post", roleGated, postToBook, roleOperators...),
 	r("GET", "/ledger/sandbox/books/{bookId}/files/{profile}", roleGated, produceFile, roleReaders...),
 	r("GET", "/ai/status", authenticated, aiStatus),
+	r("POST", "/ai/assist", authenticated, aiAssist),
+	r("POST", "/ai/decisions", authenticated, aiDecision),
+	r("GET", "/ai/decisions", roleGated, aiDecisions, roleReaders...),
 	r("POST", "/configs/{configId}/versions/{version}/ai/brd", roleGated, aiReadBRD, roleEditors...),
 	r("POST", "/configs/{configId}/versions/{version}/ai/steps/{step}", roleGated, aiStep, roleEditors...),
 }

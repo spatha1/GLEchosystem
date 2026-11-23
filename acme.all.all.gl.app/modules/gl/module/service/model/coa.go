@@ -25,13 +25,16 @@ type AccountingClass struct {
 	Nature      string `json:"nature"`               // ASSET | LIABILITY | EQUITY | INCOME | EXPENSE
 	NormalSide  string `json:"normalSide,omitempty"` // D | C; default from the nature
 	Description string `json:"description,omitempty"`
+	Standard    string `json:"standard,omitempty"` // Stage 1: the library class it adopts
+	Custom      bool   `json:"custom,omitempty"`   // Stage 1: a client-specific class, not in the library
 }
 
 // Account is one client ledger account.
 type Account struct {
 	Code         string   `json:"code"` // the client's ledger code, e.g. 9948523
 	Name         string   `json:"name"`
-	Class        string   `json:"class"`
+	Class        string   `json:"class,omitempty"`      // the class it serves; Stage 1: may be left to its assignment rules
+	Classes      []string `json:"classes,omitempty"`    // Stage 1: further classes it serves
 	Ledger       string   `json:"ledger,omitempty"`     // the ledger it belongs to; default PRIMARY
 	Entities     []string `json:"entities,omitempty"`   // legal entities (COMPANY values) that may post; empty: all
 	Currencies   []string `json:"currencies,omitempty"` // transaction currencies it accepts; empty: all
@@ -40,6 +43,11 @@ type Account struct {
 	SubledgerKey string   `json:"subledgerKey,omitempty"` // business key every line must carry
 	Dimensions   []string `json:"dimensions,omitempty"`   // dimensions every line must carry
 	Description  string   `json:"description,omitempty"`
+	// Stage 1: what the client's chart says about it, and where it came from.
+	Type          string            `json:"type,omitempty"`          // ASSET | LIABILITY | EQUITY | INCOME | EXPENSE
+	NormalBalance string            `json:"normalBalance,omitempty"` // D | C
+	Attributes    map[string]string `json:"attributes,omitempty"`    // other columns of the client's chart
+	Source        *SourceRef        `json:"source,omitempty"`
 }
 
 const defaultLedger = "PRIMARY"
@@ -145,10 +153,19 @@ func validateCOA(d *Document) []Finding {
 		if strings.TrimSpace(a.Name) == "" {
 			fs = append(fs, errf(p, "MISSING_NAME", "account %s needs a name", a.Code))
 		}
-		if !classes[a.Class] {
+		if a.Class != "" && !classes[a.Class] {
 			fs = append(fs, errf(p, "UNKNOWN_CLASS", "account %s is mapped to class %q, which is not an accounting class", a.Code, a.Class))
 		}
-		used[a.Class] = true
+		for _, c := range a.declaredClasses() {
+			used[c] = true
+		}
+		if len(a.declaredClasses()) == 0 {
+			for _, r := range d.AssignmentRules {
+				if r.Account == a.Code && r.ledger() == a.LedgerOf() {
+					used[r.Class] = true
+				}
+			}
+		}
 		from, fromOK := ParseDay(a.ActiveFrom)
 		if !fromOK {
 			fs = append(fs, errf(p, "INVALID_DATE", "account %s activeFrom %q must be a date (YYYY-MM-DD)", a.Code, a.ActiveFrom))
@@ -212,7 +229,7 @@ func AccountsFor(d *Document, q AccountQuery) []Account {
 	var out []Account
 	for _, a := range d.Accounts {
 		switch {
-		case q.Class != "" && a.Class != q.Class,
+		case q.Class != "" && !d.serves(a, q.Class),
 			q.Ledger != "" && a.LedgerOf() != q.Ledger,
 			q.Entity != "" && len(a.Entities) > 0 && !oneOf(q.Entity, a.Entities),
 			q.Currency != "" && len(a.Currencies) > 0 && !oneOf(q.Currency, a.Currencies),
@@ -259,8 +276,8 @@ func CheckPosting(d *Document, l PostingLine) (Account, error) {
 	a := *acct
 	day := l.BookDate.Format("2006-01-02")
 	switch {
-	case a.Class != l.Class:
-		return a, &CodeError{"CLASS_MISMATCH", fmt.Sprintf("account %s serves class %s, not %s", a.Code, a.Class, l.Class)}
+	case !d.serves(a, l.Class):
+		return a, &CodeError{"CLASS_MISMATCH", fmt.Sprintf("account %s serves class %s, not %s", a.Code, strings.Join(a.declaredClasses(), ", "), l.Class)}
 	case !a.ActiveOn(l.BookDate):
 		window := "from " + a.ActiveFrom
 		if a.ActiveTo != "" {
@@ -296,7 +313,7 @@ func RequirementsOf(d *Document, class string) ClassRequirement {
 	r := ClassRequirement{Class: class, Accounts: []string{}, Keys: []string{}, Dimensions: []string{}}
 	keys, dimset := map[string]bool{}, map[string]bool{}
 	for _, a := range d.Accounts {
-		if a.Class != class {
+		if !d.serves(a, class) {
 			continue
 		}
 		r.Accounts = append(r.Accounts, a.Code)

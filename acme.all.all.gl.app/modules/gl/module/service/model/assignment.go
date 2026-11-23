@@ -30,6 +30,7 @@ type AssignmentRule struct {
 	Priority      int               `json:"priority,omitempty"`
 	EffectiveFrom string            `json:"effectiveFrom,omitempty"`
 	EffectiveTo   string            `json:"effectiveTo,omitempty"` // exclusive
+	Source        *SourceRef        `json:"source,omitempty"`      // Stage 1: the source row it came from
 }
 
 const wildcard = "*"
@@ -162,8 +163,8 @@ func validateAssignments(d *Document) []Finding {
 		switch {
 		case acct == nil:
 			fs = append(fs, errf(p, "UNKNOWN_ACCOUNT", "rule %s points to account %s, which is not in ledger %s", r.Code, r.Account, r.ledger()))
-		case acct.Class != r.Class:
-			fs = append(fs, errf(p, "CLASS_MISMATCH", "rule %s assigns class %s to account %s, which serves class %s", r.Code, r.Class, r.Account, acct.Class))
+		case !d.serves(*acct, r.Class):
+			fs = append(fs, errf(p, "CLASS_MISMATCH", "rule %s assigns class %s to account %s, which serves class %s", r.Code, r.Class, r.Account, strings.Join(acct.declaredClasses(), ", ")))
 		}
 		from, fromOK := ParseDay(r.EffectiveFrom)
 		to, toOK := ParseDay(r.EffectiveTo)

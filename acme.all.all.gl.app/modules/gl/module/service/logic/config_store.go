@@ -242,44 +242,52 @@ func createConfig(c *call) modulesdk.Response {
 	if e := requireReason(b.Reason); e != nil {
 		return e.response()
 	}
-	if e := pathCode("configId", b.ConfigID); e != nil {
+	if e := insertConfig(c, b.ConfigID, b.Title, b.EffectiveFrom, b.EffectiveTo, b.Content, b.Reason); e != nil {
 		return e.response()
-	}
-	if len(b.Title) > 200 {
-		return errInvalid("title", "title is limited to 200 characters").response()
-	}
-	if e := checkEffective(b.EffectiveFrom, b.EffectiveTo); e != nil {
-		return e.response()
-	}
-	content, digest, _, e := contentOrError(b.Content)
-	if e != nil {
-		return e.response()
-	}
-	err := guarded(c.host, func() error {
-		if _, err := c.host.Exec("insert into config_artifact (tenant_id, config_id, title, created_by) values ($1, $2, $3, $4)",
-			[]string{c.id.Tenant, b.ConfigID, b.Title, c.id.Actor}); err != nil {
-			return err
-		}
-		_, err := c.host.Exec(`insert into config_version (tenant_id, config_id, version, status, schema_version, effective_from, effective_to,
-				content, content_digest, created_by, updated_by, editors)
-			values ($1, $2, 1, 'draft', $3, $4::date, nullif($5, '')::date, $6::jsonb, $7, $8, $8, array[$8]::text[])`,
-			[]string{c.id.Tenant, b.ConfigID, SchemaVersion, b.EffectiveFrom, deref(b.EffectiveTo), string(content), digest, c.id.Actor})
-		return err
-	})
-	if err != nil {
-		return classify(err).response()
-	}
-	if err := audit(c.host, c.id, b.ConfigID, 0, "create_artifact", b.Reason, "", "", "", map[string]string{"title": b.Title}); err != nil {
-		return errInternal("audit write failed").response()
-	}
-	if err := audit(c.host, c.id, b.ConfigID, 1, "create_version", b.Reason, "", "draft", digest, nil); err != nil {
-		return errInternal("audit write failed").response()
 	}
 	v, ae := loadVersion(c.host, c.id, b.ConfigID, 1, true)
 	if ae != nil {
 		return ae.response()
 	}
 	return jsonResponse(201, v)
+}
+
+// insertConfig creates a configuration and its version 1 draft, with both audit entries.
+func insertConfig(c *call, configID, title, effectiveFrom string, effectiveTo *string, raw json.RawMessage, reason string) *apiError {
+	if e := pathCode("configId", configID); e != nil {
+		return e
+	}
+	if len(title) > 200 {
+		return errInvalid("title", "title is limited to 200 characters")
+	}
+	if e := checkEffective(effectiveFrom, effectiveTo); e != nil {
+		return e
+	}
+	content, digest, _, e := contentOrError(raw)
+	if e != nil {
+		return e
+	}
+	err := guarded(c.host, func() error {
+		if _, err := c.host.Exec("insert into config_artifact (tenant_id, config_id, title, created_by) values ($1, $2, $3, $4)",
+			[]string{c.id.Tenant, configID, title, c.id.Actor}); err != nil {
+			return err
+		}
+		_, err := c.host.Exec(`insert into config_version (tenant_id, config_id, version, status, schema_version, effective_from, effective_to,
+				content, content_digest, created_by, updated_by, editors)
+			values ($1, $2, 1, 'draft', $3, $4::date, nullif($5, '')::date, $6::jsonb, $7, $8, $8, array[$8]::text[])`,
+			[]string{c.id.Tenant, configID, SchemaVersion, effectiveFrom, deref(effectiveTo), string(content), digest, c.id.Actor})
+		return err
+	})
+	if err != nil {
+		return classify(err)
+	}
+	if err := audit(c.host, c.id, configID, 0, "create_artifact", reason, "", "", "", map[string]string{"title": title}); err != nil {
+		return errInternal("audit write failed")
+	}
+	if err := audit(c.host, c.id, configID, 1, "create_version", reason, "", "draft", digest, nil); err != nil {
+		return errInternal("audit write failed")
+	}
+	return nil
 }
 
 func listConfigs(c *call) modulesdk.Response {

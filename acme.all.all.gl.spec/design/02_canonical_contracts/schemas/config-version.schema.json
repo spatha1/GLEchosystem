@@ -220,6 +220,20 @@
             "$ref": "#/$defs/journalType"
           },
           "description": "ALTB-09: the client's journal types; a reversing type is reversed on the first day of the next period"
+        },
+        "sourceClasses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceClass"
+          },
+          "description": "Stage 1: source system class codes and their mappings"
+        },
+        "sourceFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceFile"
+          },
+          "description": "Stage 1: the imported sheets"
         }
       }
     }
@@ -790,6 +804,14 @@
         },
         "description": {
           "type": "string"
+        },
+        "standard": {
+          "$ref": "#/$defs/code",
+          "description": "Stage 1: the standard library class it adopts (validates only once that class is APPROVED)"
+        },
+        "custom": {
+          "type": "boolean",
+          "description": "Stage 1: a client-specific class, not in the standard library"
         }
       }
     },
@@ -799,7 +821,6 @@
       "required": [
         "code",
         "name",
-        "class",
         "activeFrom"
       ],
       "properties": {
@@ -813,7 +834,8 @@
           "minLength": 1
         },
         "class": {
-          "$ref": "#/$defs/code"
+          "$ref": "#/$defs/code",
+          "description": "The class it serves; Stage 1: may be left to its assignment rules"
         },
         "ledger": {
           "$ref": "#/$defs/code",
@@ -854,6 +876,40 @@
         },
         "description": {
           "type": "string"
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/code"
+          },
+          "description": "Stage 1: further classes it serves"
+        },
+        "type": {
+          "enum": [
+            "ASSET",
+            "LIABILITY",
+            "EQUITY",
+            "INCOME",
+            "EXPENSE"
+          ],
+          "description": "Stage 1: the account type in the client's chart"
+        },
+        "normalBalance": {
+          "enum": [
+            "D",
+            "C"
+          ],
+          "description": "Stage 1: the normal balance in the client's chart"
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Stage 1: other columns of the client's chart, as received"
+        },
+        "source": {
+          "$ref": "#/$defs/sourceRef"
         }
       }
     },
@@ -1004,6 +1060,9 @@
         "effectiveTo": {
           "$ref": "#/$defs/date",
           "description": "Exclusive"
+        },
+        "source": {
+          "$ref": "#/$defs/sourceRef"
         }
       },
       "description": "Precedence: priority, then exact matches, then wildcards, then the later effectiveFrom; an equal-precedence overlap is AMBIGUOUS_ASSIGNMENT"
@@ -1344,6 +1403,181 @@
               }
             }
           }
+        }
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Stage 1: where an item came from: an imported file's sheet and data row, with the original cells, or a quoted passage",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "A sourceFiles id"
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "row": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The original cells, by column header"
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "sourceClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "code"
+      ],
+      "description": "Stage 1: a source system's accounting class code, kept exactly as received, with explicit mappings to the client's classes",
+      "properties": {
+        "system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exactly as in the source; never renamed"
+        },
+        "meaning": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "UNMAPPED",
+            "MAPPED",
+            "NOT_USED"
+          ]
+        },
+        "mappings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "class"
+            ],
+            "properties": {
+              "class": {
+                "$ref": "#/$defs/code"
+              },
+              "when": {
+                "type": "object",
+                "propertyNames": {
+                  "$ref": "#/$defs/code"
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": "Only when these conditions hold (\"*\": any present value)"
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "note": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/sourceRef"
+        }
+      }
+    },
+    "sourceFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "rows"
+      ],
+      "description": "Stage 1: one imported sheet, so coverage can be checked row by row",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sheet": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "COA",
+            "CLASSES",
+            "ASSIGNMENTS",
+            "OTHER"
+          ]
+        },
+        "columns": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Role → column header"
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "row",
+              "reason"
+            ],
+            "properties": {
+              "row": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "digest": {
+          "type": "string"
+        },
+        "importedBy": {
+          "type": "string"
+        },
+        "importedAt": {
+          "type": "string"
         }
       }
     }
